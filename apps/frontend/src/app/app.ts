@@ -1,12 +1,17 @@
 import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { NxWelcome } from './nx-welcome';
 
 @Component({
-  imports: [NxWelcome, RouterModule],
+  imports: [RouterModule],
   selector: 'app-root',
-  templateUrl: './app.html',
-  styleUrl: './app.css',
+  template: `
+  
+  <h1 class="text-3xl font-bold underline bg-red-300">
+  Hello world!
+</h1>
+`,
+  styles: `
+  `,
 })
 export class App {
   protected title = 'frontend';

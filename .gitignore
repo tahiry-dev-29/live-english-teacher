@@ -44,3 +44,9 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 .angular
+
+/generated/prisma
+
+/prisma/apps/backend/prisma/schema.prisma
+
+/generated/prisma

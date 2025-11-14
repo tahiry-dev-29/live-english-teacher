@@ -2,7 +2,12 @@
   "name": "@live-english-teacher/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "start:backend": "nx serve backend",
+    "start:frontend": "nx serve frontend",
+    "start:all": "concurrently \"pnpm start:backend\" \"pnpm start:frontend\"",
+    "start": "pnpm start:all"
+  },
   "private": true,
   "devDependencies": {
     "@angular-devkit/core": "~20.3.0",
@@ -23,6 +28,7 @@
     "@nx/web": "22.0.3",
     "@nx/webpack": "22.0.3",
     "@nx/workspace": "22.0.3",
+    "@prisma/cli": "^2.20.1",
     "@schematics/angular": "~20.3.0",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
@@ -30,10 +36,14 @@
     "@types/node": "20.19.9",
     "@typescript-eslint/utils": "^8.40.0",
     "angular-eslint": "^20.3.0",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "nx": "22.0.3",
     "prettier": "^2.6.2",
+    "prisma": "^6.19.0",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.40.0",
@@ -49,9 +59,13 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@prisma/client": "^6.19.0",
+    "@tailwindcss/postcss": "^4.1.17",
     "axios": "^1.6.0",
+    "postcss": "^8.5.6",
     "reflect-metadata": "^0.1.13",
     "rxjs": "~7.8.0",
+    "tailwindcss": "^4.1.17",
     "zone.js": "~0.15.0"
   }
 }

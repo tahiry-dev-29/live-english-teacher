@@ -1,26 +1,26 @@
 {
   "name": "frontend",
-  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "prefix": "app",
-  "sourceRoot": "frontend/src",
+  "sourceRoot": "apps/frontend/src",
   "tags": [],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/frontend",
-        "browser": "frontend/src/main.ts",
+        "outputPath": "dist/apps/frontend",
+        "browser": "apps/frontend/src/main.ts",
         "polyfills": ["zone.js"],
-        "tsConfig": "frontend/tsconfig.app.json",
+        "tsConfig": "apps/frontend/tsconfig.app.json",
         "assets": [
           {
             "glob": "**/*",
-            "input": "frontend/public"
+            "input": "apps/frontend/public"
           }
         ],
-        "styles": ["frontend/src/styles.css"]
+        "styles": ["apps/frontend/src/styles.css"]
       },
       "configurations": {
         "production": {
@@ -73,7 +73,7 @@
       "executor": "@nx/web:file-server",
       "options": {
         "buildTarget": "frontend:build",
-        "staticFilePath": "dist/frontend/browser",
+        "staticFilePath": "dist/apps/frontend/browser",
         "spa": true
       }
     }
