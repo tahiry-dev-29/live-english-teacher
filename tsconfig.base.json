@@ -16,7 +16,10 @@
     "baseUrl": ".",
     "paths": {
       "@app/prisma/*": ["apps/backend/src/prisma/*"],
-      "@prisma/client": ["generated/prisma/client.ts"]
+      "@prisma/client": ["generated/prisma/client.ts"],
+      "@live-english-teacher/data-access-prisma": [
+        "libs/data-access-prisma/src/index.ts"
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]
