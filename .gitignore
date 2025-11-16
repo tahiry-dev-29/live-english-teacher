@@ -44,10 +44,10 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 .angular
+.env
 
 /generated/prisma
 
 /prisma/apps/backend/prisma/schema.prisma
 
 /generated/prisma
-.env
