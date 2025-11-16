@@ -14,7 +14,10 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@app/prisma/*": ["apps/backend/src/prisma/*"],
+      "@prisma/client": ["generated/prisma/client.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }

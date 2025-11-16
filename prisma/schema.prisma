@@ -15,11 +15,21 @@ datasource db {
 }
 
 
+model Conversation {
+  id        String   @id @default(uuid())
+  role      String
+  content   String   @db.VarChar(5000)
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
 model User {
   id          String   @id @default(uuid())
-  name        String 
+  name        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   email       String   @unique
   password    String
+  conversations Conversation[]
 }
