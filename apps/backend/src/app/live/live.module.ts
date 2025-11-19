@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { LiveGateway } from './live.gateway';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
-import { DataAccessPrismaModule } from '@live-english-teacher/data-access-prisma';
+import { LiveResolver } from './live.resolver';
 
 @Module({
-  imports: [DataAccessPrismaModule], 
-  providers: [LiveGateway, GeminiLiveService],
+  providers: [LiveGateway, GeminiLiveService, LiveResolver],
+  exports: [GeminiLiveService],
 })
 export class LiveModule {}
