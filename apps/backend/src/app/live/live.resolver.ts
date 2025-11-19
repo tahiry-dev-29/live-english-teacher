@@ -4,14 +4,28 @@ import { AudioResponse, ChatResponse } from './dto/live-response.dto';
 
 @Resolver()
 export class LiveResolver {
+  // Simple in-memory history storage
+  private chatHistory = new Map<string, { role: 'user' | 'model', text: string }[]>();
+
   constructor(private readonly geminiLiveService: GeminiLiveService) {}
 
   @Mutation(() => ChatResponse)
-  async chat(@Args('content') content: string): Promise<ChatResponse> {
-    // For simple GraphQL testing, we use a stateless approach or empty history.
-    // In a real app, you might pass a session ID or the full history.
-    const history = []; 
+  async chat(
+    @Args('content') content: string,
+    @Args('sessionId') sessionId: string
+  ): Promise<ChatResponse> {
+    const history = this.chatHistory.get(sessionId) || [];
+
+    // Add user message to history
+    history.push({ role: 'user', text: content });
+    this.chatHistory.set(sessionId, history);
+
     const text = await this.geminiLiveService.getGeminiChatResponse(history, content);
+
+    // Add model response to history
+    history.push({ role: 'model', text });
+    this.chatHistory.set(sessionId, history);
+
     return { text };
   }
 
