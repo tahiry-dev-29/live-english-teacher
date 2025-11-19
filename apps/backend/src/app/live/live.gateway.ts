@@ -1,25 +1,76 @@
-// // import { WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
-// import { Server, Socket } from 'socket.io'; 
-// import { GeminiLiveService } from './gemini-live/gemini-live.service';
-// import { LiveInputDto } from './dto/live-input.dto'
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { LiveInputDto } from './dto/live-input.dto';
+import { GeminiLiveService } from './gemini-live/gemini-live.service'; 
+import { PrismaService } from '@live-english-teacher/data-access-prisma';
 
-// @WebSocketGateway({ 
-//   namespace: 'live-session',
-//   cors: { origin: '*', credentials: true },
-// })
-// export class LiveGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  
-//   @WebSocketServer() 
-//   private server: Server; 
+/**
+ * WebSocket Gateway for real-time chat and voice interactions.
+ * It orchestrates communication between the Angular frontend and the Gemini AI service.
+ */
+@WebSocketGateway({ 
+  cors: {
+    origin: '*', // Allows all origins for development
+  },
+})
+@UsePipes(new ValidationPipe({ transform: true }))
+export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer() server: Server;
+  private readonly logger = new Logger(LiveGateway.name);
 
-//   constructor(private readonly geminiLiveService: GeminiLiveService) {}
+  // Simple in-memory history storage (should use the database in production)
+  private chatHistory = new Map<string, { role: 'user' | 'model', text: string }[]>();
 
-//   @SubscribeMessage('live_input') 
-//   async handleMessage(
-//     @MessageBody() data: LiveInputDto, 
-//     @ConnectedSocket() client: Socket, 
-//   ): Promise<void> {
-//     const userId = (client as any).userId; 
-//     await this.geminiLiveService.handleLiveInput(userId, data, client);
-//   }
-// }
+  constructor(
+    private readonly geminiLiveService: GeminiLiveService,
+  ) {}
+
+  handleConnection(client: Socket) {
+    this.logger.log(`Client connected: ${client.id}`);
+    this.chatHistory.set(client.id, []);
+  }
+
+  handleDisconnect(client: Socket) {
+    this.logger.log(`Client disconnected: ${client.id}`);
+    this.chatHistory.delete(client.id);
+  }
+
+  @SubscribeMessage('sendMessage')
+  async handleMessage(client: Socket, data: LiveInputDto): Promise<void> {
+    const { content, type } = data;
+    const clientId = client.id;
+    const history = this.chatHistory.get(clientId) || [];
+
+    this.logger.log(`Input (${type}) from ${clientId}: ${content.substring(0, 50)}...`);
+
+    history.push({ role: 'user', text: content });
+    this.chatHistory.set(clientId, history);    
+    const aiTextResponse = await this.geminiLiveService.getGeminiChatResponse(history, content);
+
+    history.push({ role: 'model', text: aiTextResponse });
+    this.chatHistory.set(clientId, history);
+
+    client.emit('aiResponse', { text: aiTextResponse });
+
+    const audioData = await this.geminiLiveService.getGeminiTtsAudio(aiTextResponse);
+
+    if (audioData) {
+        client.emit('aiAudio', { base64Data: audioData.audioData, mimeType: audioData.mimeType });
+        this.logger.log(`Sent audio data to ${clientId}.`);
+    } else {
+        this.logger.warn(`Failed to generate TTS audio for ${clientId}.`);
+        client.emit('error', { message: "AI voice failed to generate. Check server logs." });
+    }
+  }
+
+  /**
+   * Handles clearing the conversation history.
+   */
+  @SubscribeMessage('clearHistory')
+  handleClearHistory(client: Socket): void {
+      this.chatHistory.set(client.id, []);
+      client.emit('historyCleared', { message: "Conversation history has been cleared." });
+      this.logger.log(`History cleared for ${client.id}.`);
+  }
+}

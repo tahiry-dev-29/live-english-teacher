@@ -60,6 +60,8 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/platform-socket.io": "^11.1.9",
+    "@nestjs/websockets": "^11.1.9",
     "@prisma/client": "^6.19.0",
     "@tailwindcss/postcss": "^4.1.17",
     "axios": "^1.6.0",
