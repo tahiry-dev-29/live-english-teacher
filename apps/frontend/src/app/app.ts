@@ -1,19 +1,20 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Apollo, gql } from 'apollo-angular';
 import { FormsModule } from '@angular/forms';
-import { inject } from "@angular/core";
+import { CommonModule } from '@angular/common';
+import { AudioRecorderComponent } from './features/chat-room/components/audio-recorder/audio-recorder';
 
 const CHAT_MUTATION = gql`
-  mutation Chat($content: String!, $sessionId: String!) {
-    chat(content: $content, sessionId: $sessionId) {
+  mutation Chat($content: String!, $sessionId: String!, $audioData: String, $mimeType: String) {
+    chat(content: $content, sessionId: $sessionId, audioData: $audioData, mimeType: $mimeType) {
       text
     }
   }
 `;
 
 @Component({
-  imports: [RouterModule, FormsModule],
+  imports: [RouterModule, FormsModule, CommonModule, AudioRecorderComponent],
   selector: 'app-root',
   standalone: true,
   providers: [Apollo],
@@ -33,8 +34,10 @@ const CHAT_MUTATION = gql`
         }
       </div>
 
-      <div class="flex gap-2">
-        <input [(ngModel)]="userInput" (keyup.enter)="sendMessage()" 
+      <div class="flex gap-2 items-center">
+        <app-audio-recorder (audioRecorded)="handleAudioRecorded($event)"></app-audio-recorder>
+        
+        <input [ngModel]="userInput()" (ngModelChange)="userInput.set($event)" (keyup.enter)="sendMessage()" 
                type="text" placeholder="Type your message..." 
                class="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
         <button (click)="sendMessage()" [disabled]="loading() || !userInput().trim()"
@@ -59,7 +62,7 @@ export class App {
     if (!this.userInput().trim()) return;
 
     const content = this.userInput();
-    this.messages.update((messages) => [...messages, { role: 'user', text: content }]);
+    this.messages.update((msgs: { role: 'user' | 'ai', text: string }[]) => [...msgs, { role: 'user', text: content }]);
     this.userInput.set('');
     this.loading.set(true);
 
@@ -70,13 +73,40 @@ export class App {
       next: (result: any) => {
         this.loading.set(false);
         if (result.data?.chat?.text) {
-          this.messages.update((messages) => [...messages, { role: 'ai', text: result.data.chat.text }]);
+          this.messages.update((msgs: { role: 'user' | 'ai', text: string }[]) => [...msgs, { role: 'ai', text: result.data.chat.text }]);
         }
-      },  
+      },
       error: (error) => {
         this.loading.set(false);
         console.error('Error sending message', error);
-        this.messages.update((messages) => [...messages, { role: 'ai', text: 'Error: Could not connect to AI.' }]);
+        this.messages.update((msgs: { role: 'user' | 'ai', text: string }[]) => [...msgs, { role: 'ai', text: 'Error: Could not connect to AI.' }]);
+      }
+    });
+  }
+
+  handleAudioRecorded(event: { base64: string }) {
+    this.messages.update((msgs: { role: 'user' | 'ai', text: string }[]) => [...msgs, { role: 'user', text: '🎤 [Audio Message]' }]);
+    this.loading.set(true);
+
+    this.apollo.mutate({
+      mutation: CHAT_MUTATION,
+      variables: { 
+        content: '', // Content is empty for audio-only messages
+        sessionId: this.sessionId,
+        audioData: event.base64,
+        mimeType: 'audio/webm' // Assuming webm from MediaRecorder
+      },
+    }).subscribe({
+      next: (result: any) => {
+        this.loading.set(false);
+        if (result.data?.chat?.text) {
+          this.messages.update((msgs: { role: 'user' | 'ai', text: string }[]) => [...msgs, { role: 'ai', text: result.data.chat.text }]);
+        }
+      },
+      error: (error) => {
+        this.loading.set(false);
+        console.error('Error sending audio', error);
+        this.messages.update((msgs: { role: 'user' | 'ai', text: string }[]) => [...msgs, { role: 'ai', text: 'Error: Could not send audio.' }]);
       }
     });
   }

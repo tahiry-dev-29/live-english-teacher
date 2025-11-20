@@ -1,9 +1,8 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
 import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { GeminiLiveService } from './gemini-live/gemini-live.service';
 import { LiveInputDto } from './dto/live-input.dto';
-import { GeminiLiveService } from './gemini-live/gemini-live.service'; 
-import { PrismaService } from '@live-english-teacher/data-access-prisma';
 
 /**
  * WebSocket Gateway for real-time chat and voice interactions.
@@ -16,7 +15,7 @@ import { PrismaService } from '@live-english-teacher/data-access-prisma';
 })
 @UsePipes(new ValidationPipe({ transform: true }))
 export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() server: Server;
+  @WebSocketServer() server: Server | undefined;
   private readonly logger = new Logger(LiveGateway.name);
 
   // Simple in-memory history storage (should use the database in production)

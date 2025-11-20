@@ -17,9 +17,12 @@
     "paths": {
       "@app/prisma/*": ["apps/backend/src/prisma/*"],
       "@prisma/client": ["generated/prisma/client.ts"],
-      "@nestjs/websockets":["@nestjs/websockets"],
+      "@nestjs/websockets": ["@nestjs/websockets"],
       "@live-english-teacher/data-access-prisma": [
         "libs/data-access-prisma/src/index.ts"
+      ],
+      "@live-english-teacher/feature-live": [
+        "libs/backend/feature-live/src/index.ts"
       ]
     }
   },

@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 // NOTE: In a real environment, load this from a config service or .env file.
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY; 
+const GEMINI_API_KEY = process.env['GEMINI_API_KEY']; 
 const GEMINI_CHAT_MODEL = 'gemini-2.5-flash-preview-09-2025';
 const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
 @Injectable()
 export class GeminiLiveService {
   private readonly logger = new Logger(GeminiLiveService.name);
-  private readonly apiUrlBase = 'https://generativelanguage.googleapis.com/v1beta/models/';
+  private readonly apiUrlBase = process.env['apiUrlBase'];
 
   // System instruction: Define the AI English tutor persona
   private readonly systemInstruction = {
@@ -23,17 +23,36 @@ export class GeminiLiveService {
    * @param newMessage The latest user message.
    * @returns The payload object.
    */
-  private buildPayload(history: { role: 'user' | 'model', text: string }[], newMessage: string) {
+  private buildPayload(
+    history: { role: 'user' | 'model', text: string }[],
+    newMessage: string,
+    audioData?: string,
+    mimeType?: string
+  ) {
     const contents = history.map(msg => ({
       role: msg.role,
       parts: [{ text: msg.text }],
     }));
 
-    // Add the latest user message
-    contents.push({
-      role: 'user',
-      parts: [{ text: newMessage }],
-    });
+    const userParts: any[] = [];
+    if (newMessage) {
+      userParts.push({ text: newMessage });
+    }
+    if (audioData && mimeType) {
+      userParts.push({
+        inlineData: {
+          mimeType: mimeType,
+          data: audioData,
+        },
+      });
+    }
+
+    if (userParts.length > 0) {
+      contents.push({
+        role: 'user',
+        parts: userParts,
+      });
+    }
 
     return {
       contents,
@@ -47,9 +66,11 @@ export class GeminiLiveService {
   async getGeminiChatResponse(
     history: { role: 'user' | 'model', text: string }[],
     newMessage: string,
+    audioData?: string,
+    mimeType?: string
   ): Promise<string> {
     const apiUrl = `${this.apiUrlBase}${GEMINI_CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-    const payload = this.buildPayload(history, newMessage);
+    const payload = this.buildPayload(history, newMessage, audioData, mimeType);
 
     // Implementation of the API call with exponential backoff for resilience
     try {
@@ -87,7 +108,11 @@ export class GeminiLiveService {
 
       throw new Error('Failed to get response from Gemini after multiple retries.');
     } catch (error) {
-      this.logger.error(`Error in getGeminiChatResponse: ${error.message}`);
+      if (error instanceof Error) {
+        this.logger.error(`Error in getGeminiChatResponse: ${error.message}`);
+      } else {
+        this.logger.error(`Error in getGeminiChatResponse: ${String(error)}`);
+      }
       return "I'm experiencing connectivity issues. Please try again later.";
     }
   }
@@ -151,7 +176,11 @@ export class GeminiLiveService {
 
       throw new Error('Failed to get TTS audio after multiple retries.');
     } catch (error) {
-      this.logger.error(`Error in getGeminiTtsAudio: ${error.message}`);
+      if (error instanceof Error) {
+        this.logger.error(`Error in getGeminiTtsAudio: ${error.message}`);
+      } else {
+        this.logger.error(`Error in getGeminiTtsAudio: ${String(error)}`);
+      }
       return null;
     }
   }

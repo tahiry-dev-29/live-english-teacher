@@ -1,6 +1,6 @@
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
-import { GeminiLiveService } from './gemini-live/gemini-live.service';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { AudioResponse, ChatResponse } from './dto/live-response.dto';
+import { GeminiLiveService } from './gemini-live/gemini-live.service';
 
 @Resolver()
 export class LiveResolver {
@@ -9,18 +9,28 @@ export class LiveResolver {
 
   constructor(private readonly geminiLiveService: GeminiLiveService) {}
 
+
+  @Query(() => String)
+  hello(): string {
+    return 'Hello World!';
+  }
+
   @Mutation(() => ChatResponse)
   async chat(
     @Args('content') content: string,
-    @Args('sessionId') sessionId: string
+    @Args('sessionId') sessionId: string,
+    @Args('audioData', { nullable: true }) audioData?: string,
+    @Args('mimeType', { nullable: true }) mimeType?: string
   ): Promise<ChatResponse> {
     const history = this.chatHistory.get(sessionId) || [];
 
-    // Add user message to history
-    history.push({ role: 'user', text: content });
-    this.chatHistory.set(sessionId, history);
+    // Add user message to history (only text for now)
+    if (content) {
+        history.push({ role: 'user', text: content });
+        this.chatHistory.set(sessionId, history);
+    }
 
-    const text = await this.geminiLiveService.getGeminiChatResponse(history, content);
+    const text = await this.geminiLiveService.getGeminiChatResponse(history, content, audioData, mimeType);
 
     // Add model response to history
     history.push({ role: 'model', text });

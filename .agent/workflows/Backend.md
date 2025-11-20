@@ -44,3 +44,5 @@ pnpm start:backend
 -   Connect a WebSocket client (or the frontend) to `http://localhost:3000`.
 -   Send a `sendMessage` event with `{ content: "Hello", type: "text" }`.
 -   Verify you receive `aiResponse` and `aiAudio` events.
+
+

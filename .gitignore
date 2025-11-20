@@ -51,3 +51,4 @@ Thumbs.db
 /prisma/apps/backend/prisma/schema.prisma
 
 /generated/prisma
+.agent/

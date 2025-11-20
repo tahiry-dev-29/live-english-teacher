@@ -1,8 +1,7 @@
 import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
-  provideZoneChangeDetection,
-  inject,
+  provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
@@ -14,7 +13,7 @@ import { InMemoryCache } from '@apollo/client/core';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideZonelessChangeDetection(),
     provideRouter(appRoutes),
     provideHttpClient(),
     {
