@@ -36,7 +36,32 @@ export class LiveResolver {
     history.push({ role: 'model', text });
     this.chatHistory.set(sessionId, history);
 
-    return { text };
+    // Generate audio for the response
+    let responseAudioData: string | undefined;
+    let responseMimeType: string | undefined;
+    
+    try {
+      const audioResult = await this.geminiLiveService.getGeminiTtsAudio(text);
+      if (audioResult) {
+        responseAudioData = audioResult.audioData;
+        responseMimeType = audioResult.mimeType;
+        console.log('Audio generated for response:', {
+          mimeType: responseMimeType,
+          dataLength: responseAudioData?.length,
+          firstChars: responseAudioData?.substring(0, 50)
+        });
+      } else {
+        console.warn('No audio result returned from TTS service');
+      }
+    } catch (error) {
+      console.error('Failed to generate audio for response:', error);
+    }
+
+    return { 
+      text,
+      audioData: responseAudioData,
+      mimeType: responseMimeType
+    };
   }
 
   @Mutation(() => AudioResponse, { nullable: true })

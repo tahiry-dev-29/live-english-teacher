@@ -69,7 +69,11 @@ export class GeminiLiveService {
     audioData?: string,
     mimeType?: string
   ): Promise<string> {
-    const apiUrl = `${this.apiUrlBase}${GEMINI_CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    const baseUrl = this.apiUrlBase || 'https://generativelanguage.googleapis.com/v1beta/models/';
+    const apiUrl = `${baseUrl}${GEMINI_CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    this.logger.log(`Using Base URL: ${baseUrl}`);
+    this.logger.log(`Requesting Chat from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`);
     const payload = this.buildPayload(history, newMessage, audioData, mimeType);
 
     // Implementation of the API call with exponential backoff for resilience
@@ -121,7 +125,11 @@ export class GeminiLiveService {
    * Generates TTS audio data from a given text.
    */
   async getGeminiTtsAudio(text: string): Promise<{ audioData: string, mimeType: string } | null> {
-    const apiUrl = `${this.apiUrlBase}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    const baseUrl = this.apiUrlBase || 'https://generativelanguage.googleapis.com/v1beta/models/';
+    const apiUrl = `${baseUrl}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    this.logger.log(`Using Base URL: ${baseUrl}`);
+    this.logger.log(`Requesting TTS from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`);
     
     // Using a clear and friendly voice (e.g., 'Kore')
     const payload = {
@@ -158,14 +166,17 @@ export class GeminiLiveService {
           const mimeType = part?.inlineData?.mimeType;
 
           if (audioData && mimeType) {
-              this.logger.log('Gemini TTS audio received.');
+              this.logger.log(`Gemini TTS audio received. MimeType: ${mimeType}, DataLength: ${audioData.length}`);
               return { audioData, mimeType };
           }
           this.logger.warn('Gemini TTS response was okay but content was empty.');
           return null;
         }
 
+        const errorBody = await response.text();
         this.logger.error(`TTS API Error (Attempt ${attempt + 1}): ${response.status} - ${response.statusText}`);
+        this.logger.error(`Error Body: ${errorBody}`);
+        
         attempt++;
         if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt) * 1000;
