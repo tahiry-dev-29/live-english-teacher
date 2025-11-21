@@ -4,6 +4,15 @@ import { Field, ObjectType } from '@nestjs/graphql';
 export class ChatResponse {
   @Field()
   text: string | undefined;
+
+  @Field({ nullable: true })
+  audioData?: string;
+
+  @Field({ nullable: true })
+  mimeType?: string;
+
+  @Field({ nullable: true })
+  sessionId?: string;
 }
 
 @ObjectType()

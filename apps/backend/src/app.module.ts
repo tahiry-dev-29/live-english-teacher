@@ -1,8 +1,8 @@
-import { DataAccessPrismaModule } from "@live-english-teacher/data-access-prisma";
+import { DataAccessPrismaModule } from "@live-languages-teacher/data-access-prisma";
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
-import { FeatureLiveModule } from "@live-english-teacher/feature-live";
+import { FeatureLiveModule } from "@live-languages-teacher/feature-live";
 
 @Module({
   imports: [

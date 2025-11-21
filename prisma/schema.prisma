@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,21 +15,32 @@ datasource db {
 }
 
 
-model Conversation {
+model Session {
+  id              String    @id @default(uuid())
+  title           String?
+  learningLanguage String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id])
+  messages        Message[]
+}
+
+model Message {
   id        String   @id @default(uuid())
-  role      String
-  content   String   @db.VarChar(5000)
+  role      String   // 'user' or 'model'
+  content   String   @db.Text
   createdAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  email       String   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  email       String    @unique
   password    String
-  conversations Conversation[]
+  sessions    Session[]
 }

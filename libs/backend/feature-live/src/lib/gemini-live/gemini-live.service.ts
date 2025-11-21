@@ -10,24 +10,21 @@ export class GeminiLiveService {
   private readonly logger = new Logger(GeminiLiveService.name);
   private readonly apiUrlBase = process.env['apiUrlBase'];
 
-  // System instruction: Define the AI English tutor persona
-  private readonly systemInstruction = {
-    parts: [{
-      text: "You are a friendly, patient, and knowledgeable AI English tutor. Your goal is to help the user practice English conversation and grammar. Keep your responses encouraging, correct any major mistakes politely, and introduce new vocabulary or grammar concepts naturally. Keep your responses concise for a smooth conversation flow."
-    }]
-  };
+
 
   /**
    * Builds the payload for the Gemini generateContent API call.
    * @param history The conversation history.
    * @param newMessage The latest user message.
+   * @param targetLanguage The language the user wants to learn.
    * @returns The payload object.
    */
   private buildPayload(
     history: { role: 'user' | 'model', text: string }[],
     newMessage: string,
     audioData?: string,
-    mimeType?: string
+    mimeType?: string,
+    targetLanguage = 'English'
   ) {
     const contents = history.map(msg => ({
       role: msg.role,
@@ -54,9 +51,20 @@ export class GeminiLiveService {
       });
     }
 
+    // Dynamic system instruction based on target language
+    const systemInstruction = {
+      parts: [{
+        text: `You are a friendly, patient, and knowledgeable AI language tutor. Your goal is to help the user practice ${targetLanguage} conversation and grammar. 
+        - If the user speaks in ${targetLanguage}, reply in ${targetLanguage} to maintain immersion.
+        - If the user speaks in another language (like their native language), you can reply in that language to explain concepts, but encourage them to switch back to ${targetLanguage}.
+        - Keep your responses encouraging, correct any major mistakes politely, and introduce new vocabulary or grammar concepts naturally.
+        - Keep your responses concise for a smooth conversation flow.`
+      }]
+    };
+
     return {
       contents,
-      systemInstruction: this.systemInstruction,
+      systemInstruction,
     };
   }
 
@@ -67,10 +75,15 @@ export class GeminiLiveService {
     history: { role: 'user' | 'model', text: string }[],
     newMessage: string,
     audioData?: string,
-    mimeType?: string
+    mimeType?: string,
+    targetLanguage = 'English'
   ): Promise<string> {
-    const apiUrl = `${this.apiUrlBase}${GEMINI_CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-    const payload = this.buildPayload(history, newMessage, audioData, mimeType);
+    const baseUrl = this.apiUrlBase || 'https://generativelanguage.googleapis.com/v1beta/models/';
+    const apiUrl = `${baseUrl}${GEMINI_CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    
+    this.logger.log(`Using Base URL: ${baseUrl}`);
+    this.logger.log(`Requesting Chat from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`);
+    const payload = this.buildPayload(history, newMessage, audioData, mimeType, targetLanguage);
 
     // Implementation of the API call with exponential backoff for resilience
     try {
@@ -118,12 +131,35 @@ export class GeminiLiveService {
   }
 
   /**
+   * Helper to select a voice based on the target language.
+   * Defaults to 'Kore' (en-US female-sounding) if no specific mapping exists.
+   */
+  private getVoiceForLanguage(language: string): string {
+    const lang = language.toLowerCase();
+    // Map languages to specific voices if available/desired.
+    // For now, we use 'Kore' as a high-quality default, but this structure allows easy expansion.
+    // Example mappings (hypothetical names, replace with actual available voices if known):
+    // if (lang.startsWith('fr')) return 'Puck'; 
+    // if (lang.startsWith('es')) return 'Fenrir';
+    
+    // Currently using 'Kore' for everything as it's a good general purpose voice,
+    // but the infrastructure is here to support language-specific voices.
+    return 'Kore';
+  }
+
+  /**
    * Generates TTS audio data from a given text.
    */
-  async getGeminiTtsAudio(text: string): Promise<{ audioData: string, mimeType: string } | null> {
-    const apiUrl = `${this.apiUrlBase}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  async getGeminiTtsAudio(text: string, targetLanguage = 'en'): Promise<{ audioData: string, mimeType: string } | null> {
+    const baseUrl = this.apiUrlBase || 'https://generativelanguage.googleapis.com/v1beta/models/';
+    const apiUrl = `${baseUrl}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     
-    // Using a clear and friendly voice (e.g., 'Kore')
+    this.logger.log(`Using Base URL: ${baseUrl}`);
+    this.logger.log(`Requesting TTS from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`);
+    
+    const voiceName = this.getVoiceForLanguage(targetLanguage);
+    this.logger.log(`Selected voice '${voiceName}' for language '${targetLanguage}'`);
+
     const payload = {
         contents: [{
             parts: [{ text: text }]
@@ -132,7 +168,7 @@ export class GeminiLiveService {
             responseModalities: ["AUDIO"],
             speechConfig: {
                 voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: "Kore" }
+                    prebuiltVoiceConfig: { voiceName: voiceName }
                 }
             }
         },
@@ -158,14 +194,17 @@ export class GeminiLiveService {
           const mimeType = part?.inlineData?.mimeType;
 
           if (audioData && mimeType) {
-              this.logger.log('Gemini TTS audio received.');
+              this.logger.log(`Gemini TTS audio received. MimeType: ${mimeType}, DataLength: ${audioData.length}`);
               return { audioData, mimeType };
           }
           this.logger.warn('Gemini TTS response was okay but content was empty.');
           return null;
         }
 
+        const errorBody = await response.text();
         this.logger.error(`TTS API Error (Attempt ${attempt + 1}): ${response.status} - ${response.statusText}`);
+        this.logger.error(`Error Body: ${errorBody}`);
+        
         attempt++;
         if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt) * 1000;
