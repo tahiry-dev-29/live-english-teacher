@@ -52,7 +52,6 @@ export class AudioRecorderComponent {
       this.isRecording.set(false);
       this.audioRecorded.emit({ base64: result.base64 });
     } catch (error) {
-      console.error('Failed to stop recording', error);
       this.isRecording.set(false);
     }
   }

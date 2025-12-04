@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, ViewChild } from '@angular/core';
+import { Component, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CallInterfaceComponent } from './core/components/call-interface/call-interface.component';
@@ -61,7 +61,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
           <div class="flex gap-2">
             <button 
               (click)="toggleLiveMode()" 
-              class="px-4 py-2 rounded-lg transition-all font-medium flex items-center gap-2"
+              class="px-4 py-2 rounded-lg transition-all font-medium flex items-center gap-2 cursor-pointer"
               [class.bg-green-600]="isLiveMode()"
               [class.hover:bg-green-700]="isLiveMode()"
               [class.bg-purple-600]="!isLiveMode()"
@@ -108,7 +108,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
           </app-chat-input>
 
           <div class="text-center mt-2">
-             <p class="text-[10px] text-gray-600">Powered by Angular 21</p>
+            <p class="text-[10px] text-gray-600">Powered by Angular 21</p>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
   `
 })
 export class App {
-  @ViewChild('sidebar') sidebar?: SidebarComponent;
+  readonly sidebar = viewChild<SidebarComponent>('sidebar');
 
   private chatService = inject(ChatService);
   protected messageService = inject(MessageService);
@@ -172,7 +172,7 @@ export class App {
     const result = await this.messageService.sendTextMessage(
       content,
       this.sessionId,
-      this.sidebar?.selectedLanguage() || 'fr-FR'
+      this.sidebar()?.selectedLanguage() || 'fr-FR'
     );
 
     if (result) {
@@ -190,7 +190,7 @@ export class App {
       event.base64,
       'audio/webm',
       this.sessionId,
-      this.sidebar?.selectedLanguage() || 'fr-FR'
+      this.sidebar()?.selectedLanguage() || 'fr-FR'
     );
 
     if (result) {
@@ -219,8 +219,8 @@ export class App {
     this.showVoiceControl.set(true);
 
     this.ttsService.speak(text, {
-      voice: this.sidebar?.selectedVoice() || undefined,
-      lang: this.sidebar?.selectedLanguage() || 'fr-FR',
+      voice: this.sidebar()?.selectedVoice() || undefined,
+      lang: this.sidebar()?.selectedLanguage() || 'fr-FR',
       onEnd: () => {
         this.playingMessageIndex.set(null);
         
@@ -254,8 +254,8 @@ export class App {
         await this.voiceCallService.startCall({
           onTranscriptReady: (text) => this.handleVoiceTranscript(text),
           onInactivity: () => this.handleInactivity(),
-          onStateChange: (state) => {},
-          language: this.sidebar?.selectedLanguage() || 'fr-FR'
+          // onStateChange: (state) => {},
+          language: this.sidebar()?.selectedLanguage() || 'fr-FR'
         });
         
         this.vocalEnabled.set(true);
@@ -274,7 +274,7 @@ export class App {
     const result = await this.messageService.sendTextMessage(
       text,
       this.sessionId,
-      this.sidebar?.selectedLanguage() || 'fr-FR'
+      this.sidebar()?.selectedLanguage() || 'fr-FR'
     );
 
     if (result) {
@@ -296,6 +296,5 @@ export class App {
     this.vocalEnabled.update(v => !v);
   }
 
-  onTyping() {
-  }
+  onTyping() {}
 }

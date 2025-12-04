@@ -136,14 +136,8 @@ export class GeminiLiveService {
    */
   private getVoiceForLanguage(language: string): string {
     const lang = language.toLowerCase();
-    // Map languages to specific voices if available/desired.
-    // For now, we use 'Kore' as a high-quality default, but this structure allows easy expansion.
-    // Example mappings (hypothetical names, replace with actual available voices if known):
-    // if (lang.startsWith('fr')) return 'Puck'; 
-    // if (lang.startsWith('es')) return 'Fenrir';
-    
-    // Currently using 'Kore' for everything as it's a good general purpose voice,
-    // but the infrastructure is here to support language-specific voices.
+    if (lang.startsWith('fr')) return 'Puck'; 
+    if (lang.startsWith('es')) return 'Fenrir';
     return 'Kore';
   }
 

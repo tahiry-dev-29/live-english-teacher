@@ -44,7 +44,7 @@ import { Session } from '../../../models/session.model';
       </div>
 
       <div class="p-4">
-        <button (click)="onNewChat()" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 transform hover:scale-[1.02] active:scale-[0.98]">
+        <button (click)="onNewChat()" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -89,12 +89,12 @@ import { Session } from '../../../models/session.model';
                   placeholder="Session title"
                   autofocus
                 />
-                <button (click)="saveRename(item.id)" class="text-green-400 hover:text-green-300 p-1">
+                <button (click)="saveRename(item.id)" class="text-green-400 hover:text-green-300 p-1 cursor-pointer">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
                 </button>
-                <button (click)="cancelRename()" class="text-gray-400 hover:text-gray-300 p-1">
+                <button (click)="cancelRename()" class="text-gray-400 hover:text-gray-300 p-1 cursor-pointer">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -114,20 +114,20 @@ import { Session } from '../../../models/session.model';
                 </div>
               </button>
               <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex gap-1 bg-gray-900/90 rounded-lg p-0.5 shadow-lg backdrop-blur-sm">
-                <button (click)="startRename(item.id, item.title); $event.stopPropagation()" class="p-1.5 hover:bg-gray-700 text-gray-400 hover:text-blue-400 rounded-md transition-colors" title="Rename">
+                <button (click)="startRename(item.id, item.title); $event.stopPropagation()" class="p-1.5 hover:bg-gray-700 text-gray-400 hover:text-blue-400 rounded-md transition-colors cursor-pointer" title="Rename">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                   </svg>
                 </button>
                 
                 @if (confirmDeleteId() === item.id) {
-                  <button (click)="confirmDelete(item.id); $event.stopPropagation()" class="p-1.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-md transition-colors animate-pulse" title="Confirm Delete">
+                  <button (click)="confirmDelete(item.id); $event.stopPropagation()" class="p-1.5 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-md transition-colors animate-pulse " title="Confirm Delete">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </button>
                 } @else {
-                  <button (click)="initDelete(item.id); $event.stopPropagation()" class="p-1.5 hover:bg-gray-700 text-gray-400 hover:text-red-400 rounded-md transition-colors" title="Delete">
+                  <button (click)="initDelete(item.id); $event.stopPropagation()" class="p-1.5 hover:bg-gray-700 text-gray-400 hover:text-red-400 rounded-md transition-colors cursor-pointer" title="Delete">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>
@@ -207,7 +207,7 @@ import { Session } from '../../../models/session.model';
 })
 export class SidebarComponent {
   isOpen = signal(true);
-  isMobile = false; // Simple check, could be improved with BreakpointObserver
+  isMobile = false;
   
   // Settings
   languages = [
@@ -257,9 +257,7 @@ export class SidebarComponent {
     });
   }
 
-  toggle() {
-    this.isOpen.update(v => !v);
-  }
+  toggle() {this.isOpen.update(v => !v);}
 
   onNewChat() {
     this.newChat.emit();

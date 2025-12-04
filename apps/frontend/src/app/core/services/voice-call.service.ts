@@ -33,12 +33,12 @@ export class VoiceCallService {
     onTranscriptReady?: (text: string) => void;
     onInactivity?: () => void;
     onStateChange?: (state: CallState) => void;
-    language?: string; // Add language parameter
+    language?: string;
   }): Promise<void> {
     this.onTranscriptReady = callbacks.onTranscriptReady;
     this.onInactivity = callbacks.onInactivity;
     this.onStateChange = callbacks.onStateChange;
-    this.language = callbacks.language || 'fr-FR'; // Use provided language or default to French
+    this.language = callbacks.language || 'fr-FR';
 
     try {
       // Start VAD
@@ -140,9 +140,6 @@ export class VoiceCallService {
     };
 
     this.recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      
-      // Restart if it's a network error
       if (event.error === 'network') {
         setTimeout(() => {
           if (this.callState() === CallState.LISTENING) {
