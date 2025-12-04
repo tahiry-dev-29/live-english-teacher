@@ -4,13 +4,9 @@ import { Server, Socket } from 'socket.io';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
 import { LiveInputDto } from './dto/live-input.dto';
 
-/**
- * WebSocket Gateway for real-time chat and voice interactions.
- * It orchestrates communication between the Angular frontend and the Gemini AI service.
- */
 @WebSocketGateway({ 
   cors: {
-    origin: '*', // Allows all origins for development
+    origin: '*', 
   },
 })
 @UsePipes(new ValidationPipe({ transform: true }))
@@ -18,7 +14,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server | undefined;
   private readonly logger = new Logger(LiveGateway.name);
 
-  // Simple in-memory history storage (should use the database in production)
+  
   private chatHistory = new Map<string, { role: 'user' | 'model', text: string }[]>();
 
   constructor(
@@ -63,10 +59,7 @@ export class LiveGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  /**
-   * Handles clearing the conversation history.
-   */
-  @SubscribeMessage('clearHistory')
+    @SubscribeMessage('clearHistory')
   handleClearHistory(client: Socket): void {
       this.chatHistory.set(client.id, []);
       client.emit('historyCleared', { message: "Conversation history has been cleared." });

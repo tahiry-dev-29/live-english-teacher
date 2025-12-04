@@ -14,7 +14,7 @@ export enum CallState {
 export class VoiceCallService {
   private vadService = inject(VadService);
   
-  // State
+  
   callState = signal<CallState>(CallState.IDLE);
   currentTranscript = signal<string>('');
   
@@ -27,7 +27,7 @@ export class VoiceCallService {
   private onTranscriptReady?: (text: string) => void;
   private onInactivity?: () => void;
   private onStateChange?: (state: CallState) => void;
-  private language = 'fr-FR'; // Default to French
+  private language = 'fr-FR'; 
 
   async startCall(callbacks: {
     onTranscriptReady?: (text: string) => void;
@@ -41,16 +41,16 @@ export class VoiceCallService {
     this.language = callbacks.language || 'fr-FR';
 
     try {
-      // Start VAD
+      
       await this.vadService.start({
         onSpeechStart: () => this.handleSpeechStart(),
         onSpeechEnd: () => this.handleSpeechEnd(),
       });
 
-      // Setup Speech Recognition
+      
       this.setupSpeechRecognition();
 
-      // Enter listening state
+      
       this.setState(CallState.LISTENING);
       this.startInactivityTimer();
       
@@ -62,43 +62,43 @@ export class VoiceCallService {
   }
 
   stopCall(): void {
-    // Stop VAD
+    
     this.vadService.stop();
 
-    // Stop speech recognition
+    
     if (this.recognition) {
       this.recognition.stop();
       this.recognition = null;
     }
 
-    // Clear timers
+    
     this.clearInactivityTimer();
 
-    // Reset state
+    
     this.setState(CallState.IDLE);
     this.currentTranscript.set('');
     
     console.log('Voice call stopped');
   }
 
-  // Called when AI starts speaking
+  
   startSpeaking(): void {
     this.setState(CallState.SPEAKING);
     this.clearInactivityTimer();
     
-    // Stop listening while AI is speaking
+    
     if (this.recognition) {
       this.recognition.stop();
     }
   }
 
-  // Called when AI finishes speaking
+  
   finishSpeaking(): void {
-    // Return to listening state
+    
     this.setState(CallState.LISTENING);
     this.startInactivityTimer();
     
-    // Restart recognition
+    
     if (this.recognition) {
       this.recognition.start();
     }
@@ -115,7 +115,7 @@ export class VoiceCallService {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.lang = this.language; // Use configured language
+    this.recognition.lang = this.language; 
 
     this.recognition.onresult = (event: any) => {
       let interimTranscript = '';
@@ -150,7 +150,7 @@ export class VoiceCallService {
     };
 
     this.recognition.onend = () => {
-      // Restart if we're still in listening state
+      
       if (this.callState() === CallState.LISTENING) {
         setTimeout(() => {
           this.recognition?.start();
@@ -158,20 +158,20 @@ export class VoiceCallService {
       }
     };
 
-    // Start recognition
+    
     this.recognition.start();
   }
 
   private handleSpeechStart(): void {
     console.log('VAD: Speech detected');
-    // Reset inactivity timer
+    
     this.clearInactivityTimer();
     this.startInactivityTimer();
   }
 
   private handleSpeechEnd(): void {
     console.log('VAD: Speech ended');
-    // Speech ended, transcript should be processed by recognition.onresult
+    
   }
 
   private processTranscript(transcript: string): void {
@@ -179,16 +179,16 @@ export class VoiceCallService {
 
     console.log('Processing transcript:', transcript);
     
-    // Enter processing state
+    
     this.setState(CallState.PROCESSING);
     this.clearInactivityTimer();
 
-    // Stop recognition while processing
+    
     if (this.recognition) {
       this.recognition.stop();
     }
 
-    // Notify callback
+    
     this.onTranscriptReady?.(transcript);
   }
 

@@ -4,29 +4,26 @@ import { Injectable, signal } from '@angular/core';
   providedIn: 'root'
 })
 export class TtsService {
-  // State
+  
   isPlaying = signal(false);
   currentAudioTime = signal(0);
   totalAudioDuration = signal(0);
   
   private currentUtterance: SpeechSynthesisUtterance | null = null;
 
-  /**
-   * Clean Markdown formatting for TTS
-   */
-  private cleanMarkdown(text: string): string {
+    private cleanMarkdown(text: string): string {
     return text
-      // Remove bold/italic markers
-      .replace(/\*\*(.+?)\*\*/g, '$1')  // **bold**
-      .replace(/\*(.+?)\*/g, '$1')      // *italic*
-      .replace(/__(.+?)__/g, '$1')      // __bold__
-      .replace(/_(.+?)_/g, '$1')        // _italic_
-      // Remove code blocks
+      
+      .replace(/\*\*(.+?)\*\*/g, '$1')  
+      .replace(/\*(.+?)\*/g, '$1')      
+      .replace(/__(.+?)__/g, '$1')      
+      .replace(/_(.+?)_/g, '$1')        
+      
       .replace(/```[\s\S]*?```/g, '')   // ```code```
-      .replace(/`(.+?)`/g, '$1')        // `code`
-      // Remove links
-      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // [text](url)
-      // Remove headers
+      .replace(/`(.+?)`/g, '$1')        
+      
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1') 
+      
       .replace(/^#{1,6}\s+/gm, '')      // # Header
       // Remove list markers
       .replace(/^[\*\-\+]\s+/gm, '')    // * item
@@ -103,29 +100,20 @@ export class TtsService {
     window.speechSynthesis.speak(utterance);
   }
 
-  /**
-   * Stop current speech
-   */
-  stop(): void {
+    stop(): void {
     window.speechSynthesis.cancel();
     this.isPlaying.set(false);
     this.currentAudioTime.set(0);
     this.currentUtterance = null;
   }
 
-  /**
-   * Pause current speech
-   */
-  pause(): void {
+    pause(): void {
     if (this.isPlaying()) {
       window.speechSynthesis.pause();
     }
   }
 
-  /**
-   * Resume paused speech
-   */
-  resume(): void {
+    resume(): void {
     if (this.isPlaying()) {
       window.speechSynthesis.resume();
     }

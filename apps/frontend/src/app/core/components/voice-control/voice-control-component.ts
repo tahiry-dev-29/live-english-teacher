@@ -93,31 +93,31 @@ import { Component, input, output, signal, effect } from '@angular/core';
   `,
 })
 export class VoiceControlComponent {
-  // Inputs
+  
   isPlaying = input<boolean>(false);
   currentTime = input<number>(0);
   totalDuration = input<number>(0);
   selectedVoice = input<SpeechSynthesisVoice | null>(null);
 
-  // Outputs
+  
   stopped = output<void>();
   paused = output<void>();
   resumed = output<void>();
   seekRequested = output<number>();
   voiceSelected = output<SpeechSynthesisVoice>();
 
-  // Internal state
+  
   waveformBars = signal<number[]>([]);
   progress = signal(0);
   currentBarIndex = signal(0);
 
   constructor() {
-    // Generate waveform (40 bars for WhatsApp-like look)
+    
     this.waveformBars.set(
       Array.from({ length: 40 }, () => Math.random() * 70 + 30)
     );
 
-    // Update progress when currentTime changes
+    
     effect(() => {
       this.updateProgress();
     });
@@ -147,14 +147,14 @@ export class VoiceControlComponent {
   handleKeydown(event: KeyboardEvent) {
     const currentProgress = this.progress();
     
-    // Space/Enter: toggle play/pause
+    
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault();
       this.togglePlayPause();
       return;
     }
     
-    // Arrow keys for seeking
+    
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       this.seekRequested.emit(Math.max(0, currentProgress - 5) / 100);

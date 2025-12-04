@@ -45,7 +45,7 @@ export interface Message {
         <div class="h-16"></div>
         } @if (messages().length === 0 && !loading()) {
         <div
-          class="h-full flex flex-col items-center justify-center text-center p-8 opacity-50 select-none"
+          class="min-h-[60vh] flex flex-col items-center justify-center text-center p-8 w-auto opacity-50 select-none"
         >
           <div
             class="w-24 h-24 bg-gray-800/50 rounded-full flex items-center justify-center mb-6 animate-pulse"

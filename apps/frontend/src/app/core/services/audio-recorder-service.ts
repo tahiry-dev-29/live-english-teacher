@@ -27,10 +27,10 @@ export class AudioRecorderService {
       }
 
       this.mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' }); // or audio/mp3 depending on browser
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' }); 
         const base64 = await this.blobToBase64(audioBlob);
         
-        // Stop all tracks to release microphone
+        
         this.mediaRecorder?.stream.getTracks().forEach(track => track.stop());
         this.mediaRecorder = null;
 
@@ -46,7 +46,7 @@ export class AudioRecorderService {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        // Remove data URL prefix (e.g., "data:audio/webm;base64,")
+        
         const base64 = base64String.split(',')[1];
         resolve(base64);
       };

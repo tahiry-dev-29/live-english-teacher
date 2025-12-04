@@ -47,14 +47,14 @@ export class ChatHistoryService {
       },
     });
 
-    // Update session title if it's the first user message
+    
     const session = await this.prisma.session.findUnique({
       where: { id: sessionId },
       include: { messages: true },
     });
 
     if (session && !session.title && role === 'user') {
-      // Use first user message as title (truncated)
+      
       const title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
       await this.prisma.session.update({
         where: { id: sessionId },

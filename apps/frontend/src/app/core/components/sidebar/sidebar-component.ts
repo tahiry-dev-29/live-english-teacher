@@ -9,12 +9,10 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
   standalone: true,
   imports: [CommonModule, FormsModule, UserMenuComponent],
   template: `
-    <!-- Mobile Overlay -->
     @if (isOpen() && isMobile) {
       <div class="fixed inset-0 bg-black/50 z-20 backdrop-blur-sm transition-opacity" (click)="toggle()" (keyup.enter)="toggle()" tabindex="0" role="button" aria-label="Close sidebar overlay"></div>
     }
 
-    <!-- Sidebar Container -->
     <aside 
       class="fixed md:relative z-30 h-full bg-gray-950 border-r border-gray-800 transition-all duration-300 ease-in-out flex flex-col shadow-2xl"
       [class.w-72]="isOpen() && !isCollapsed()"
@@ -24,8 +22,7 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
       [class.md:opacity-100]="true"
       [class.overflow-hidden]="!isOpen()">
       
-      <!-- Header -->
-      <div class="p-4 border-b border-gray-800 flex items-center gap-3 bg-gray-900/50">
+      <div class="p-5 border-b border-gray-800 flex items-center gap-3 bg-gray-900/50">
         @if (!isCollapsed()) {
           <div class="font-bold text-lg bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent whitespace-nowrap flex items-center gap-2 flex-1">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="url(#gradient)" class="w-6 h-6 shrink-0">
@@ -41,7 +38,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
           </div>
         }
         
-        <!-- Toggle Collapse Button -->
         <button 
           (click)="toggleCollapse()" 
           class="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all cursor-pointer"
@@ -54,7 +50,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
           </svg>
         </button>
         
-        <!-- Mobile Close -->
         <button (click)="toggle()" class="md:hidden text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-gray-800 cursor-pointer">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -63,7 +58,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
       </div>
 
       @if (!isCollapsed()) {
-        <!-- New Chat Button -->
         <div class="p-4">
           <button (click)="onNewChat()" class="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -73,7 +67,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
           </button>
         </div>
 
-        <!-- History Search -->
         <div class="px-4 pb-2">
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -91,7 +84,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
           </div>
         </div>
 
-        <!-- History List -->
         <div class="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-gray-800 hover:scrollbar-thumb-gray-700">
           <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center justify-between">
             <span>History</span>
@@ -100,7 +92,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
           @for (item of displayedSessions(); track item.id) {
             <div class="group relative">
               @if (editingSessionId() === item.id) {
-                <!-- Editing Mode -->
                 <div class="px-3 py-2 rounded-lg bg-gray-800 border border-blue-500/50 flex items-center gap-2">
                   <input 
                     #editInput
@@ -125,12 +116,20 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
                   </button>
                 </div>
               } @else {
-                <!-- View Mode -->
                 <button 
                   type="button"
                   (click)="onSessionClick(item.id)"
-                  class="w-full text-left px-2.5 py-2 rounded-lg hover:bg-gray-800/50 text-gray-300 text-sm truncate transition-all flex items-center gap-2.5 group-hover:text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors shrink-0">
+                  class="w-full text-left px-2.5 py-2 rounded-lg text-sm truncate transition-all flex items-center gap-2.5"
+                  [class.bg-blue-900/20]="activeSessionId() === item.id"
+                  [class.text-blue-400]="activeSessionId() === item.id"
+                  [class.text-gray-300]="activeSessionId() !== item.id"
+                  [class.hover:bg-gray-800/50]="activeSessionId() !== item.id"
+                  [class.group-hover:text-white]="activeSessionId() !== item.id">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" 
+                    class="w-4 h-4 transition-colors shrink-0"
+                    [class.text-blue-400]="activeSessionId() === item.id"
+                    [class.text-gray-600]="activeSessionId() !== item.id"
+                    [class.group-hover:text-blue-400]="activeSessionId() !== item.id">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                   </svg>
                   <div class="flex-1 min-w-0">
@@ -170,7 +169,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
             </div>
           }
           
-          <!-- Voir Plus Button -->
           @if (hasMoreSessions()) {
             <button 
               type="button"
@@ -183,7 +181,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
             </button>
           }
           
-          <!-- Show Less Button - Sticky at bottom -->
           @if (showingAll() && filteredSessions().length > initialLimit) {
             <div class="sticky bottom-0 pt-2 pb-1 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent">
               <button 
@@ -199,7 +196,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
           }
         </div>
       } @else {
-        <!-- Collapsed View - Icons Only -->
         <div class="flex-1 flex flex-col items-center py-4 space-y-2">
           <button (click)="onNewChat()" class="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-lg cursor-pointer" title="New Chat">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -209,7 +205,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
         </div>
       }
 
-      <!-- Footer with User Menu -->
       <div class="p-4 border-t border-gray-800 bg-gray-900/50">
         @if (!isCollapsed()) {
           <app-user-menu (openSettings)="openSettings.emit()"></app-user-menu>
@@ -233,13 +228,11 @@ export class SidebarComponent {
   isCollapsed = signal(false);
   isMobile = false;
   
-  // History (from backend)
   sessions = input<Session[]>([]);
+  activeSessionId = input<string | null>(null);
   
-  // History Search
   searchTerm = signal('');
   
-  // Pagination
   initialLimit = 5;
   visibleLimit = signal(5);
   showingAll = signal(false);
@@ -301,11 +294,9 @@ export class SidebarComponent {
     if (this.isMobile) this.isOpen.set(false);
   }
 
-  // Editing State
   editingSessionId = signal<string | null>(null);
   editTitle = signal('');
   
-  // Delete Confirmation State
   confirmDeleteId = signal<string | null>(null);
   deleteTimeout: any;
 

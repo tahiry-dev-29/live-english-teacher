@@ -41,6 +41,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
       <app-sidebar 
         (newChat)="onNewChat()" 
         [sessions]="sessions() ?? []" 
+        [activeSessionId]="chatService.activeSessionId()" 
         (sessionSelected)="loadSession($event)"
         (renameSession)="onRenameSession($event)"
         (deleteSession)="onDeleteSession($event)"
@@ -48,7 +49,6 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
         #sidebar>
       </app-sidebar>
 
-      <!-- Settings Dialog -->
       <app-settings-dialog
         [isOpen]="showSettings()"
         [languages]="languageService.languages"
@@ -70,7 +70,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
           <div class="w-6"></div>
         </div>
 
-        <div class="hidden md:flex bg-gray-900/50 backdrop-blur-md p-4 items-center justify-between border-b border-gray-800 z-10">
+        <div class="hidden md:flex bg-gray-950/ backdrop-blur-md p-4 items-center justify-between z-10">
           <div>
             <h1 class="text-xl font-bold tracking-wide text-white">
               {{ currentSession()?.title || 'Conversation Room' }}
@@ -142,7 +142,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
 export class App implements OnInit {
   readonly sidebar = viewChild<SidebarComponent>('sidebar');
 
-  private chatService = inject(ChatService);
+  protected chatService = inject(ChatService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   protected messageService = inject(MessageService);
@@ -218,7 +218,7 @@ export class App implements OnInit {
       this.chatService.sessionsResource.reload();
       this.router.navigate(['/chat', result.sessionId]);
 
-      if (this.isLiveMode() || this.vocalEnabled()) {
+      if (this.isLiveMode()) {
         this.speakText(result.text);
       }
     }
@@ -237,7 +237,7 @@ export class App implements OnInit {
       this.chatService.sessionsResource.reload();
       this.router.navigate(['/chat', result.sessionId]);
 
-      if (this.isLiveMode() || this.vocalEnabled()) {
+      if (this.isLiveMode()) {
         this.speakText(result.text);
       }
     }

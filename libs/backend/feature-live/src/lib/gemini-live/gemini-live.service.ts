@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-// NOTE: In a real environment, load this from a config service or .env file.
+
 const GEMINI_API_KEY = process.env['GEMINI_API_KEY']; 
 const GEMINI_CHAT_MODEL = 'gemini-2.5-flash-preview-09-2025';
 const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
@@ -12,14 +12,7 @@ export class GeminiLiveService {
 
 
 
-  /**
-   * Builds the payload for the Gemini generateContent API call.
-   * @param history The conversation history.
-   * @param newMessage The latest user message.
-   * @param targetLanguage The language the user wants to learn.
-   * @returns The payload object.
-   */
-  private buildPayload(
+    private buildPayload(
     history: { role: 'user' | 'model', text: string }[],
     newMessage: string,
     audioData?: string,
@@ -51,7 +44,7 @@ export class GeminiLiveService {
       });
     }
 
-    // Dynamic system instruction based on target language
+    
     const systemInstruction = {
       parts: [{
         text: `You are a friendly, patient, and knowledgeable AI language tutor. Your goal is to help the user practice ${targetLanguage} conversation and grammar. 
@@ -68,10 +61,7 @@ export class GeminiLiveService {
     };
   }
 
-  /**
-   * Generates a textual response from Gemini for the chat interaction.
-   */
-  async getGeminiChatResponse(
+    async getGeminiChatResponse(
     history: { role: 'user' | 'model', text: string }[],
     newMessage: string,
     audioData?: string,
@@ -85,7 +75,7 @@ export class GeminiLiveService {
     this.logger.log(`Requesting Chat from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`);
     const payload = this.buildPayload(history, newMessage, audioData, mimeType, targetLanguage);
 
-    // Implementation of the API call with exponential backoff for resilience
+    
     try {
       this.logger.log(`Sending chat request to ${GEMINI_CHAT_MODEL}`);
       const maxRetries = 3;
@@ -130,21 +120,14 @@ export class GeminiLiveService {
     }
   }
 
-  /**
-   * Helper to select a voice based on the target language.
-   * Defaults to 'Kore' (en-US female-sounding) if no specific mapping exists.
-   */
-  private getVoiceForLanguage(language: string): string {
+    private getVoiceForLanguage(language: string): string {
     const lang = language.toLowerCase();
     if (lang.startsWith('fr')) return 'Puck'; 
     if (lang.startsWith('es')) return 'Fenrir';
     return 'Kore';
   }
 
-  /**
-   * Generates TTS audio data from a given text.
-   */
-  async getGeminiTtsAudio(text: string, targetLanguage = 'en'): Promise<{ audioData: string, mimeType: string } | null> {
+    async getGeminiTtsAudio(text: string, targetLanguage = 'en'): Promise<{ audioData: string, mimeType: string } | null> {
     const baseUrl = this.apiUrlBase || 'https://generativelanguage.googleapis.com/v1beta/models/';
     const apiUrl = `${baseUrl}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     
@@ -168,7 +151,7 @@ export class GeminiLiveService {
         },
     };
 
-    // Implementation of the API call with exponential backoff for resilience
+    
     try {
       this.logger.log(`Sending TTS request to ${GEMINI_TTS_MODEL}`);
       const maxRetries = 3;

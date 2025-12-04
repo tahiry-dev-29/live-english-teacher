@@ -61,15 +61,15 @@ import { Component, input, output, signal, effect } from '@angular/core';
   `
 })
 export class AudioMessagePlayerComponent {
-  // Inputs
-  audioData = input.required<string>(); // Base64 audio data
+  
+  audioData = input.required<string>(); 
   mimeType = input<string>('audio/webm');
   
-  // Outputs
+  
   playbackStarted = output<void>();
   playbackEnded = output<void>();
 
-  // Internal state
+  
   isPlaying = signal(false);
   currentTime = signal(0);
   duration = signal(0);
@@ -80,12 +80,12 @@ export class AudioMessagePlayerComponent {
   private animationFrameId: number | null = null;
 
   constructor() {
-    // Generate random waveform
+    
     this.waveformBars.set(
       Array.from({ length: 50 }, () => Math.random() * 24 + 8)
     );
 
-    // Initialize audio when audioData changes
+    
     effect(() => {
       const data = this.audioData();
       if (data) {
@@ -95,7 +95,7 @@ export class AudioMessagePlayerComponent {
   }
 
   private initializeAudio(base64Data: string) {
-    // Clean up existing audio
+    
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.src = '';

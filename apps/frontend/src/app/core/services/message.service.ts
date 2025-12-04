@@ -33,7 +33,7 @@ const GET_SESSION_MESSAGES = gql`
 export class MessageService {
   private apollo = inject(Apollo);
   
-  // State
+  
   messages = signal<Message[]>([]);
   loading = signal(false);
 
@@ -50,7 +50,7 @@ export class MessageService {
       if (result?.data) {
         const sessionMessages = (result.data as any).sessionMessages || [];
         const formattedMessages: Message[] = sessionMessages.map((msg: any) => ({
-          // Map 'model' from backend to 'ai' for frontend
+          
           role: msg.role === 'model' ? 'ai' : msg.role,
           text: msg.content
         }));

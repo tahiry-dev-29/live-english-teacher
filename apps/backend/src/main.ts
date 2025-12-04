@@ -19,7 +19,7 @@ async function bootstrap() {
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
   );
 
-  // Start GenKit flow server on a different port
+  
   const genkitPort = 3400;
   startFlowServer({
     flows: [chatWithMemory, streamChat],

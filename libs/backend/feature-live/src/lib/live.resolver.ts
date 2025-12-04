@@ -3,7 +3,7 @@ import { AudioResponse, ChatResponse } from './dto/live-response.dto';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
 
-// GraphQL Types
+
 @ObjectType()
 class SessionResponse {
   @Field()
@@ -131,19 +131,19 @@ export class LiveResolver {
     @Args('mimeType', { nullable: true }) mimeType?: string,
     @Args('targetLanguage', { nullable: true, defaultValue: 'en' }) targetLanguage?: string
   ): Promise<ChatResponse> {
-    // Check if session exists, if not create it
+    
     let session = await this.chatHistoryService.getSession(sessionId);
     if (!session) {
       const newSession = await this.chatHistoryService.createSession(targetLanguage);
       session = { ...newSession, messages: [] };
-      // Update sessionId to the newly created one
+      
       sessionId = session.id;
     }
 
-    // Get history from database
+    
     const history = await this.chatHistoryService.getSessionHistory(sessionId);
 
-    // Add user message to database (only text for now)
+    
     if (content) {
       await this.chatHistoryService.addMessage(sessionId, 'user', content);
     }
@@ -156,10 +156,10 @@ export class LiveResolver {
       targetLanguage
     );
 
-    // Add model response to database
+    
     await this.chatHistoryService.addMessage(sessionId, 'model', text);
 
-    // Generate audio for the response
+    
     let responseAudioData: string | undefined;
     let responseMimeType: string | undefined;
 
@@ -184,7 +184,7 @@ export class LiveResolver {
       text,
       audioData: responseAudioData,
       mimeType: responseMimeType,
-      sessionId, // Return the sessionId so frontend can use it
+      sessionId, 
     };
   }
 

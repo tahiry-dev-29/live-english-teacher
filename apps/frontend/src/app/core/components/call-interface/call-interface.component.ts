@@ -116,7 +116,7 @@ export class CallInterfaceComponent {
   loading = input(false);
   isThinking = input(false);
   
-  // Visualizer
+  
   bars = new Array(20).fill(0);
   private animationFrameId: number | null = null;
   private startTime = Date.now();
@@ -152,7 +152,7 @@ export class CallInterfaceComponent {
 
   private startVisualizer() {
     const animate = () => {
-      // Simulate waveform based on state
+      
       const state = this.callState();
       const isActive = state === 'speaking' || state === 'processing';
       const baseHeight = isActive ? 40 : 15;
@@ -160,12 +160,12 @@ export class CallInterfaceComponent {
       const speed = isActive ? 0.2 : 0.05;
 
       this.bars = this.bars.map((_, i) => {
-        // Create a wave effect
+        
         const time = Date.now() * speed;
         const offset = i * 0.5;
         const wave = Math.sin(time * 0.01 + offset) * 0.5 + 0.5;
         
-        // Add some randomness
+        
         const random = Math.random() * 0.3;
         
         return Math.max(5, (baseHeight + (wave * variance)) * (1 + random));
@@ -181,7 +181,7 @@ export class CallInterfaceComponent {
   }
 
   getBarOpacity(index: number): number {
-    // Fade out edges
+    
     const center = this.bars.length / 2;
     const dist = Math.abs(index - center);
     return Math.max(0.3, 1 - (dist / center) * 0.8);

@@ -14,10 +14,8 @@ import { CommonModule } from '@angular/common';
         [class.bg-gray-800]="message().role === 'ai'"
         [class.text-gray-100]="message().role === 'ai'">
         
-        <!-- Message Content with Markdown support -->
         <div class="prose prose-invert max-w-none" [innerHTML]="formatMessage(message().text)"></div>
         
-        <!-- Play/Stop button for AI messages -->
         @if (message().role === 'ai') {
           <button
             (click)="handlePlayStop()"
@@ -88,18 +86,11 @@ export class MessageItemComponent {
     }
   }
 
-  /**
-   * Basic Markdown formatting for display
-   */
   formatMessage(text: string): string {
     return text
-      // Bold
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      // Italic
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      // Code
       .replace(/`(.+?)`/g, '<code>$1</code>')
-      // Line breaks
       .replace(/\n/g, '<br>');
   }
 }
