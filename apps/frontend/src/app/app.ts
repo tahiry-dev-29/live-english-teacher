@@ -1,14 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, inject, signal, viewChild, OnInit, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { CallInterfaceComponent } from './core/components/call-interface/call-interface.component';
 import { ChatInputComponent } from './core/components/chat-input/chat-input.component';
-import { SidebarComponent } from './core/components/sidebar/sidebar.component';
+import { SidebarComponent } from './core/components/sidebar/sidebar-component';
+import { SettingsDialogComponent } from './core/components/settings-dialog/settings-dialog-component';
 import { ChatService } from './core/services/chat.service';
 import { MessageService } from './core/services/message.service';
 import { TtsService } from './core/services/tts.service';
 import { VoiceCallService } from './core/services/voice-call.service';
+import { LanguageService } from './core/services/language.service';
 import { ChatContainerComponent } from './features/chat-room/components/chat-container/chat-container.component';
 
 @Component({
@@ -19,7 +21,8 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
     SidebarComponent, 
     CallInterfaceComponent, 
     ChatInputComponent,
-    ChatContainerComponent
+    ChatContainerComponent,
+    SettingsDialogComponent
   ],
   selector: 'app-root',
   standalone: true,
@@ -41,8 +44,21 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
         (sessionSelected)="loadSession($event)"
         (renameSession)="onRenameSession($event)"
         (deleteSession)="onDeleteSession($event)"
+        (openSettings)="showSettings.set(true)"
         #sidebar>
       </app-sidebar>
+
+      <!-- Settings Dialog -->
+      <app-settings-dialog
+        [isOpen]="showSettings()"
+        [languages]="languageService.languages"
+        [voices]="languageService.availableVoices()"
+        [selectedLanguage]="languageService.selectedLanguageCode()"
+        [selectedVoiceName]="languageService.selectedVoice()?.name ?? ''"
+        (closed)="showSettings.set(false)"
+        (languageChange)="languageService.setLanguage($event)"
+        (voiceChange)="languageService.setVoice($event)">
+      </app-settings-dialog>
 
       <main class="flex-1 flex flex-col relative w-full h-full transition-all duration-300">
         
@@ -56,7 +72,9 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
 
         <div class="hidden md:flex bg-gray-900/50 backdrop-blur-md p-4 items-center justify-between border-b border-gray-800 z-10">
           <div>
-            <h1 class="text-xl font-bold tracking-wide text-white">Conversation Room</h1>
+            <h1 class="text-xl font-bold tracking-wide text-white">
+              {{ currentSession()?.title || 'Conversation Room' }}
+            </h1>
           </div>
           <div class="flex gap-2">
             <button 
@@ -90,6 +108,7 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
           [currentAudioTime]="ttsService.currentAudioTime()"
           [totalAudioDuration]="ttsService.totalAudioDuration()"
           [playingMessageIndex]="playingMessageIndex()"
+          [learningLanguage]="currentSession()?.learningLanguage || languageService.selectedLanguageCode()"
           (playAudio)="handlePlayAudio($event)"
           (stopAudio)="handleStopAudio()">
         </app-chat-container>
@@ -102,7 +121,6 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
             [isPlaying]="ttsService.isPlaying()"
             (valueChange)="userInput.set($event)"
             (messageSent)="sendMessage()"
-            (typing)="onTyping()"
             (audioRecorded)="handleAudioRecorded($event)"
             (stop)="handleStopAudio()">
           </app-chat-input>
@@ -121,13 +139,16 @@ import { ChatContainerComponent } from './features/chat-room/components/chat-con
     }
   `
 })
-export class App {
+export class App implements OnInit {
   readonly sidebar = viewChild<SidebarComponent>('sidebar');
 
   private chatService = inject(ChatService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
   protected messageService = inject(MessageService);
   protected ttsService = inject(TtsService);
   protected voiceCallService = inject(VoiceCallService);
+  protected languageService = inject(LanguageService);
   
   sessions = this.chatService.sessions;
   messages = this.messageService.messages;
@@ -136,6 +157,7 @@ export class App {
   isLiveMode = signal(false);
   vocalEnabled = signal(false);
   showVoiceControl = signal(false);
+  showSettings = signal(false);
   userInput = signal('');
   playingMessageIndex = signal<number | null>(null);
 
@@ -143,12 +165,28 @@ export class App {
     return this.chatService.activeSessionId() || crypto.randomUUID();
   }
 
+  currentSession = computed(() => {
+    const id = this.chatService.activeSessionId();
+    return this.sessions()?.find(s => s.id === id);
+  });
+
+  ngOnInit() {
+    this.route.params.subscribe(params => {
+      const sessionId = params['sessionId'];
+      if (sessionId) {
+        this.loadSession(sessionId);
+      }
+    });
+  }
+
   onNewChat() {
-    this.chatService.createNewSession();
+    const newId = this.chatService.createNewSession();
+    this.router.navigate(['/chat', newId]);
   }
 
   async loadSession(sessionId: string) {
     await this.chatService.loadSession(sessionId);
+    this.router.navigate(['/chat', sessionId]);
   }
 
   async onRenameSession(event: { id: string; title: string }) {
@@ -172,12 +210,13 @@ export class App {
     const result = await this.messageService.sendTextMessage(
       content,
       this.sessionId,
-      this.sidebar()?.selectedLanguage() || 'fr-FR'
+      this.languageService.selectedLanguageCode()
     );
 
     if (result) {
       this.chatService.activeSessionId.set(result.sessionId);
       this.chatService.sessionsResource.reload();
+      this.router.navigate(['/chat', result.sessionId]);
 
       if (this.isLiveMode() || this.vocalEnabled()) {
         this.speakText(result.text);
@@ -190,12 +229,13 @@ export class App {
       event.base64,
       'audio/webm',
       this.sessionId,
-      this.sidebar()?.selectedLanguage() || 'fr-FR'
+      this.languageService.selectedLanguageCode()
     );
 
     if (result) {
       this.chatService.activeSessionId.set(result.sessionId);
       this.chatService.sessionsResource.reload();
+      this.router.navigate(['/chat', result.sessionId]);
 
       if (this.isLiveMode() || this.vocalEnabled()) {
         this.speakText(result.text);
@@ -219,25 +259,25 @@ export class App {
     this.showVoiceControl.set(true);
 
     this.ttsService.speak(text, {
-      voice: this.sidebar()?.selectedVoice() || undefined,
-      lang: this.sidebar()?.selectedLanguage() || 'fr-FR',
+      voice: this.languageService.selectedVoice() || undefined,
+      lang: this.languageService.selectedLanguageCode(),
       onEnd: () => {
         this.playingMessageIndex.set(null);
         
-        if (this.isLiveMode()) {
-          this.voiceCallService.finishSpeaking();
-        } else {
-          setTimeout(() => {
-            this.showVoiceControl.set(false);
-          }, 500);
-        }
-      },
-      onError: () => {
-        this.playingMessageIndex.set(null);
+          if (this.isLiveMode()) {
+            this.voiceCallService.finishSpeaking();
+          } else {
+            setTimeout(() => {
+              this.showVoiceControl.set(false);
+            }, 500);
+          }
+        },
+        onError: () => {
+          this.playingMessageIndex.set(null);
         
-        if (this.isLiveMode()) {
-          this.voiceCallService.finishSpeaking();
-        }
+          if (this.isLiveMode()) {
+            this.voiceCallService.finishSpeaking();
+          }
       }
     });
 
@@ -254,8 +294,7 @@ export class App {
         await this.voiceCallService.startCall({
           onTranscriptReady: (text) => this.handleVoiceTranscript(text),
           onInactivity: () => this.handleInactivity(),
-          // onStateChange: (state) => {},
-          language: this.sidebar()?.selectedLanguage() || 'fr-FR'
+          language: this.languageService.selectedLanguageCode()
         });
         
         this.vocalEnabled.set(true);
@@ -274,7 +313,7 @@ export class App {
     const result = await this.messageService.sendTextMessage(
       text,
       this.sessionId,
-      this.sidebar()?.selectedLanguage() || 'fr-FR'
+      this.languageService.selectedLanguageCode()
     );
 
     if (result) {
@@ -295,6 +334,4 @@ export class App {
   toggleVocal() {
     this.vocalEnabled.update(v => !v);
   }
-
-  onTyping() {}
 }

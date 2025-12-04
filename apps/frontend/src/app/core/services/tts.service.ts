@@ -50,25 +50,20 @@ export class TtsService {
   ): void {
     if (this.isPlaying()) return;
     
-    // Cancel any current speech
     window.speechSynthesis.cancel();
 
-    // Clean Markdown before speaking
     const cleanText = this.cleanMarkdown(text);
     const utterance = new SpeechSynthesisUtterance(cleanText);
     this.currentUtterance = utterance;
     
-    // Set voice if provided
     if (options?.voice) {
       utterance.voice = options.voice;
     }
 
-    // Set language if provided
     if (options?.lang) {
       utterance.lang = options.lang;
     }
 
-    // Estimate duration (rough approximation: ~150 words per minute)
     const wordCount = cleanText.split(' ').length;
     const estimatedDuration = (wordCount / 150) * 60;
     this.totalAudioDuration.set(estimatedDuration);
@@ -76,8 +71,7 @@ export class TtsService {
 
     this.isPlaying.set(true);
 
-    // Track progress
-    let startTime = Date.now();
+    const startTime = Date.now();
     const progressInterval = setInterval(() => {
       if (!this.isPlaying()) {
         clearInterval(progressInterval);

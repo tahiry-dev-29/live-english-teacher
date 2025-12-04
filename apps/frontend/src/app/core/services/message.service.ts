@@ -20,7 +20,6 @@ const CHAT_MUTATION = gql`
 const GET_SESSION_MESSAGES = gql`
   query GetSessionMessages($sessionId: String!) {
     sessionMessages(sessionId: $sessionId) {
-      id
       role
       content
       createdAt
@@ -51,7 +50,8 @@ export class MessageService {
       if (result?.data) {
         const sessionMessages = (result.data as any).sessionMessages || [];
         const formattedMessages: Message[] = sessionMessages.map((msg: any) => ({
-          role: msg.role,
+          // Map 'model' from backend to 'ai' for frontend
+          role: msg.role === 'model' ? 'ai' : msg.role,
           text: msg.content
         }));
         
