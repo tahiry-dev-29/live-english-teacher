@@ -1,7 +1,7 @@
 import { Injectable, inject, resource, signal } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { firstValueFrom } from 'rxjs';
-import { Session } from '../../models/session.model';
+import { Session } from '@models/session.model';
 import { MessageService } from './message.service';
 
 const GET_SESSIONS_QUERY = gql`
@@ -33,7 +33,7 @@ const DELETE_SESSION_MUTATION = gql`
 `;
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ChatService {
   private apollo = inject(Apollo);
@@ -46,10 +46,10 @@ export class ChatService {
       return firstValueFrom(
         this.apollo.query<{ getSessions: Session[] }>({
           query: GET_SESSIONS_QUERY,
-          fetchPolicy: 'network-only'
+          fetchPolicy: 'network-only',
         })
-      ).then(result => result.data?.getSessions ?? []);
-    }
+      ).then((result) => result.data?.getSessions ?? []);
+    },
   });
 
   sessions = this.sessionsResource.value;
@@ -58,7 +58,7 @@ export class ChatService {
     await firstValueFrom(
       this.apollo.mutate({
         mutation: RENAME_SESSION_MUTATION,
-        variables: { id, title }
+        variables: { id, title },
       })
     );
     this.sessionsResource.reload();
@@ -68,7 +68,7 @@ export class ChatService {
     await firstValueFrom(
       this.apollo.mutate({
         mutation: DELETE_SESSION_MUTATION,
-        variables: { id }
+        variables: { id },
       })
     );
     this.sessionsResource.reload();

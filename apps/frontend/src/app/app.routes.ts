@@ -5,5 +5,5 @@ import { NotFoundPageComponent } from './core/components/not-found-page/not-foun
 export const appRoutes: Route[] = [
   { path: '', component: ChatPageComponent },
   { path: 'chat/:sessionId', title: 'Chat', component: ChatPageComponent },
-  { path: '**', title: 'Not Found', component: NotFoundPageComponent }
+  { path: '**', title: 'Not Found', component: NotFoundPageComponent },
 ];

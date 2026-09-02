@@ -47,15 +47,14 @@ export class ChatHistoryService {
       },
     });
 
-    
     const session = await this.prisma.session.findUnique({
       where: { id: sessionId },
       include: { messages: true },
     });
 
     if (session && !session.title && role === 'user') {
-      
-      const title = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+      const title =
+        content.substring(0, 50) + (content.length > 50 ? '...' : '');
       await this.prisma.session.update({
         where: { id: sessionId },
         data: { title },
@@ -74,8 +73,8 @@ export class ChatHistoryService {
   async getSessionHistory(sessionId: string) {
     const session = await this.getSession(sessionId);
     if (!session) return [];
-    
-    return session.messages.map(msg => ({
+
+    return session.messages.map((msg) => ({
       role: msg.role as 'user' | 'model',
       text: msg.content,
     }));

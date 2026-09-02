@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AudioRecorderService {
   private mediaRecorder: MediaRecorder | null = null;
@@ -27,11 +27,10 @@ export class AudioRecorderService {
       }
 
       this.mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' }); 
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
         const base64 = await this.blobToBase64(audioBlob);
-        
-        
-        this.mediaRecorder?.stream.getTracks().forEach(track => track.stop());
+
+        this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
         this.mediaRecorder = null;
 
         resolve({ audioBlob, base64 });
@@ -46,7 +45,7 @@ export class AudioRecorderService {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        
+
         const base64 = base64String.split(',')[1];
         resolve(base64);
       };

@@ -1,13 +1,22 @@
 import { Module } from '@nestjs/common';
 import { DataAccessPrismaModule } from '@live-languages-teacher/data-access-prisma';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
+import { GroqLiveService } from './groq-live/groq-live.service';
+import { AiProviderService } from './ai-provider.service';
+import { AiStreamController } from './ai-stream.controller';
 import { LiveResolver } from './live.resolver';
-import { LiveGateway } from './live.gateway';
 import { ChatHistoryService } from './chat-history/chat-history.service';
 
 @Module({
   imports: [DataAccessPrismaModule],
-  providers: [LiveGateway, GeminiLiveService, LiveResolver, ChatHistoryService],
-  exports: [GeminiLiveService, ChatHistoryService],
+  controllers: [AiStreamController],
+  providers: [
+    GeminiLiveService,
+    GroqLiveService,
+    AiProviderService,
+    LiveResolver,
+    ChatHistoryService,
+  ],
+  exports: [GeminiLiveService, GroqLiveService, AiProviderService, ChatHistoryService],
 })
 export class FeatureLiveModule {}

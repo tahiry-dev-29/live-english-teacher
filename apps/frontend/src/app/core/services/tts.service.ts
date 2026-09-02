@@ -1,58 +1,59 @@
 import { Injectable, signal } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TtsService {
-  
   isPlaying = signal(false);
   currentAudioTime = signal(0);
   totalAudioDuration = signal(0);
-  
+
   private currentUtterance: SpeechSynthesisUtterance | null = null;
 
-    private cleanMarkdown(text: string): string {
-    return text
-      
-      .replace(/\*\*(.+?)\*\*/g, '$1')  
-      .replace(/\*(.+?)\*/g, '$1')      
-      .replace(/__(.+?)__/g, '$1')      
-      .replace(/_(.+?)_/g, '$1')        
-      
-      .replace(/```[\s\S]*?```/g, '')   // ```code```
-      .replace(/`(.+?)`/g, '$1')        
-      
-      .replace(/\[(.+?)\]\(.+?\)/g, '$1') 
-      
-      .replace(/^#{1,6}\s+/gm, '')      // # Header
-      // Remove list markers
-      .replace(/^[\*\-\+]\s+/gm, '')    // * item
-      .replace(/^\d+\.\s+/gm, '')       // 1. item
-      // Clean up extra spaces
-      .replace(/\s+/g, ' ')
-      .trim();
+  private cleanMarkdown(text: string): string {
+    return (
+      text
+
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/__(.+?)__/g, '$1')
+        .replace(/_(.+?)_/g, '$1')
+
+        .replace(/```[\s\S]*?```/g, '') // ```code```
+        .replace(/`(.+?)`/g, '$1')
+
+        .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+
+        .replace(/^#{1,6}\s+/gm, '') // # Header
+        // Remove list markers
+        .replace(/^[*\-+]\s+/gm, '') // * item
+        .replace(/^\d+\.\s+/gm, '') // 1. item
+        // Clean up extra spaces
+        .replace(/\s+/g, ' ')
+        .trim()
+    );
   }
 
   /**
    * Speak text using Web Speech API
    */
   speak(
-    text: string, 
+    text: string,
     options?: {
       voice?: SpeechSynthesisVoice;
       lang?: string;
       onEnd?: () => void;
-      onError?: (error: any) => void;
+      onError?: (error: SpeechSynthesisErrorEvent) => void;
     }
   ): void {
     if (this.isPlaying()) return;
-    
+
     window.speechSynthesis.cancel();
 
     const cleanText = this.cleanMarkdown(text);
     const utterance = new SpeechSynthesisUtterance(cleanText);
     this.currentUtterance = utterance;
-    
+
     if (options?.voice) {
       utterance.voice = options.voice;
     }
@@ -83,7 +84,7 @@ export class TtsService {
       this.isPlaying.set(false);
       this.currentAudioTime.set(0);
       this.currentUtterance = null;
-      
+
       options?.onEnd?.();
     };
 
@@ -93,27 +94,27 @@ export class TtsService {
       this.isPlaying.set(false);
       this.currentAudioTime.set(0);
       this.currentUtterance = null;
-      
+
       options?.onError?.(e);
     };
 
     window.speechSynthesis.speak(utterance);
   }
 
-    stop(): void {
+  stop(): void {
     window.speechSynthesis.cancel();
     this.isPlaying.set(false);
     this.currentAudioTime.set(0);
     this.currentUtterance = null;
   }
 
-    pause(): void {
+  pause(): void {
     if (this.isPlaying()) {
       window.speechSynthesis.pause();
     }
   }
 
-    resume(): void {
+  resume(): void {
     if (this.isPlaying()) {
       window.speechSynthesis.resume();
     }

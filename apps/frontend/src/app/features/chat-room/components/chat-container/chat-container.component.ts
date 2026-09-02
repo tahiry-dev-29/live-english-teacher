@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MessageItemComponent } from '../message-item/message-item.component';
-import { VoiceControlComponent } from '../../../../core/components/voice-control/voice-control-component';
+import { VoiceControlComponent } from '@core/components/voice-control/voice-control-component';
 
 export interface Message {
   role: 'user' | 'ai';
@@ -74,7 +74,7 @@ export interface Message {
         <app-message-item
           [message]="message"
           [isPlaying]="isPlaying() && playingMessageIndex() === $index"
-          (play)="onPlayMessage($index, message.text)"
+          (playRequested)="onPlayMessage($index, message.text)"
           (stop)="onStopAudio()"
         >
         </app-message-item>

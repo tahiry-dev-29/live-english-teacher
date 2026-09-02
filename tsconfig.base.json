@@ -15,9 +15,6 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@app/prisma/*": ["apps/backend/src/prisma/*"],
-      "@prisma/client": ["generated/prisma"],
-      "@nestjs/websockets": ["@nestjs/websockets"],
       "@live-languages-teacher/data-access-prisma": [
         "libs/data-access-prisma/src/index.ts"
       ],

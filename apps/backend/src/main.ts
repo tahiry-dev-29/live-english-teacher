@@ -2,7 +2,10 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { startFlowServer } from '@genkit-ai/express';
-import { chatWithMemory, streamChat } from '@live-languages-teacher/feature-live';
+import {
+  chatWithMemory,
+  streamChat,
+} from '@live-languages-teacher/feature-live';
 
 import * as express from 'express';
 
@@ -19,7 +22,6 @@ async function bootstrap() {
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
   );
 
-  
   const genkitPort = 3400;
   startFlowServer({
     flows: [chatWithMemory, streamChat],

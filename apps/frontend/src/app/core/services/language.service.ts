@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, effect } from '@angular/core';
 
 export interface Language {
   code: string;
@@ -7,7 +7,7 @@ export interface Language {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LanguageService {
   selectedLanguageCode = signal<string>('en');
@@ -40,7 +40,7 @@ export class LanguageService {
   }
 
   setVoice(voiceName: string) {
-    const voice = this.availableVoices().find(v => v.name === voiceName);
+    const voice = this.availableVoices().find((v) => v.name === voiceName);
     if (voice) {
       this.selectedVoice.set(voice);
     }
@@ -48,11 +48,11 @@ export class LanguageService {
 
   private loadVoices() {
     if (typeof window === 'undefined') return;
-    
+
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
       this.availableVoices.set(voices);
-      
+
       if (!this.selectedVoice()) {
         this.selectBestVoiceForLanguage(this.selectedLanguageCode());
       }
@@ -63,15 +63,19 @@ export class LanguageService {
     const voices = this.availableVoices();
     if (voices.length === 0) return;
 
-    const matchingVoice = voices.find(v => 
+    const matchingVoice = voices.find((v) =>
       v.lang.toLowerCase().startsWith(langCode.toLowerCase())
     );
 
     if (matchingVoice) {
       this.selectedVoice.set(matchingVoice);
     } else {
-      if (!this.selectedVoice()?.lang.toLowerCase().startsWith(langCode.toLowerCase())) {
-         this.selectedVoice.set(voices[0]);
+      if (
+        !this.selectedVoice()
+          ?.lang.toLowerCase()
+          .startsWith(langCode.toLowerCase())
+      ) {
+        this.selectedVoice.set(voices[0]);
       }
     }
   }

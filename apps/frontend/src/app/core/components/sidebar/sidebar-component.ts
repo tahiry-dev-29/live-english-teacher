@@ -1,7 +1,13 @@
-import { Component, signal, output, input, effect, computed } from '@angular/core';
+import {
+  Component,
+  signal,
+  output,
+  input,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Session } from '../../../models/session.model';
+import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
 
 @Component({
@@ -102,7 +108,6 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
                     (keyup.escape)="cancelRename()"
                     class="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-500"
                     placeholder="Session title"
-                    autofocus
                   />
                   <button type="button" (click)="saveRename(item.id)" class="text-green-400 hover:text-green-300 p-1 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
@@ -221,40 +226,42 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
         }
       </div>
     </aside>
-  `
+  `,
 })
 export class SidebarComponent {
   isOpen = signal(true);
   isCollapsed = signal(false);
   isMobile = false;
-  
+
   sessions = input<Session[]>([]);
   activeSessionId = input<string | null>(null);
-  
+
   searchTerm = signal('');
-  
+
   initialLimit = 5;
   visibleLimit = signal(5);
   showingAll = signal(false);
-  
+
   filteredSessions = computed(() => {
     const term = this.searchTerm().toLowerCase();
     if (!term) return this.sessions();
-    return this.sessions().filter(session => 
+    return this.sessions().filter((session) =>
       session.title.toLowerCase().includes(term)
     );
   });
-  
+
   displayedSessions = computed(() => {
     const sessions = this.filteredSessions();
     if (this.showingAll()) return sessions;
     return sessions.slice(0, this.visibleLimit());
   });
-  
+
   hasMoreSessions = computed(() => {
-    return !this.showingAll() && this.filteredSessions().length > this.visibleLimit();
+    return (
+      !this.showingAll() && this.filteredSessions().length > this.visibleLimit()
+    );
   });
-  
+
   remainingCount = computed(() => {
     return this.filteredSessions().length - this.visibleLimit();
   });
@@ -270,21 +277,23 @@ export class SidebarComponent {
     window.addEventListener('resize', () => this.checkScreenSize());
   }
 
-  toggle() { this.isOpen.update(v => !v); }
-  
-  toggleCollapse() { 
-    this.isCollapsed.update(v => !v); 
+  toggle() {
+    this.isOpen.update((v) => !v);
+  }
+
+  toggleCollapse() {
+    this.isCollapsed.update((v) => !v);
   }
 
   onNewChat() {
     this.newChat.emit();
     if (this.isMobile) this.isOpen.set(false);
   }
-  
+
   showMore() {
     this.showingAll.set(true);
   }
-  
+
   showLess() {
     this.showingAll.set(false);
   }
@@ -296,9 +305,9 @@ export class SidebarComponent {
 
   editingSessionId = signal<string | null>(null);
   editTitle = signal('');
-  
+
   confirmDeleteId = signal<string | null>(null);
-  deleteTimeout: any;
+  deleteTimeout: ReturnType<typeof setTimeout> | null = null;
 
   startRename(sessionId: string, currentTitle: string) {
     this.editingSessionId.set(sessionId);
@@ -321,7 +330,7 @@ export class SidebarComponent {
   initDelete(sessionId: string) {
     this.confirmDeleteId.set(sessionId);
     this.editingSessionId.set(null);
-    
+
     if (this.deleteTimeout) clearTimeout(this.deleteTimeout);
     this.deleteTimeout = setTimeout(() => {
       this.confirmDeleteId.set(null);

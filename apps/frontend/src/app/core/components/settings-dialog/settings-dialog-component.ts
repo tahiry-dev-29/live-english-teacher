@@ -1,4 +1,11 @@
-import { Component, input, output, signal, computed, effect } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  computed,
+  effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -179,48 +186,54 @@ interface Language {
       </div>
     }
   `,
-  styles: [`
-    @keyframes fade-in {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    @keyframes slide-up {
-      from { 
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
+  styles: [
+    `
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
-      to { 
-        opacity: 1;
-        transform: translateY(0) scale(1);
+
+      @keyframes slide-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
-    }
-    
-    .animate-fade-in {
-      animation: fade-in 0.2s ease-out;
-    }
-    
-    .animate-slide-up {
-      animation: slide-up 0.3s ease-out;
-    }
-    
-    .scrollbar-thin::-webkit-scrollbar {
-      width: 4px;
-    }
-    
-    .scrollbar-thin::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    
-    .scrollbar-thin::-webkit-scrollbar-thumb {
-      background: #374151;
-      border-radius: 4px;
-    }
-    
-    .scrollbar-thumb-gray-700::-webkit-scrollbar-thumb:hover {
-      background: #4B5563;
-    }
-  `]
+
+      .animate-fade-in {
+        animation: fade-in 0.2s ease-out;
+      }
+
+      .animate-slide-up {
+        animation: slide-up 0.3s ease-out;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #374151;
+        border-radius: 4px;
+      }
+
+      .scrollbar-thumb-gray-700::-webkit-scrollbar-thumb:hover {
+        background: #4b5563;
+      }
+    `,
+  ],
 })
 export class SettingsDialogComponent {
   isOpen = input(false);
@@ -228,16 +241,16 @@ export class SettingsDialogComponent {
   voices = input<SpeechSynthesisVoice[]>([]);
   selectedLanguage = input('en');
   selectedVoiceName = input('');
-  
+
   closed = output<void>();
   languageChange = output<string>();
   voiceChange = output<string>();
-  
+
   // Temp values for cancel functionality
   tempLanguage = signal('en');
   tempVoiceName = signal('');
   playingVoice = signal<string | null>(null);
-  
+
   // Languages with flags
   languagesList: Language[] = [
     { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -247,7 +260,7 @@ export class SettingsDialogComponent {
     { code: 'it', name: 'Italian', flag: '🇮🇹' },
     { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
   ];
-  
+
   constructor() {
     effect(() => {
       if (this.isOpen()) {
@@ -256,21 +269,23 @@ export class SettingsDialogComponent {
       }
     });
   }
-  
+
   filteredVoices = computed(() => {
     const lang = this.tempLanguage();
-    return this.voices().filter(v => v.lang.toLowerCase().startsWith(lang.toLowerCase()));
+    return this.voices().filter((v) =>
+      v.lang.toLowerCase().startsWith(lang.toLowerCase())
+    );
   });
-  
+
   private sampleTexts: Record<string, string> = {
-    'en': 'Hello! This is a sample of my voice. Nice to meet you!',
-    'fr': 'Bonjour! Ceci est un exemple de ma voix. Enchanté!',
-    'es': '¡Hola! Este es un ejemplo de mi voz. ¡Mucho gusto!',
-    'de': 'Hallo! Dies ist ein Beispiel meiner Stimme. Freut mich!',
-    'it': 'Ciao! Questo è un esempio della mia voce. Piacere!',
-    'ja': 'こんにちは！これは私の声のサンプルです。よろしくお願いします！',
+    en: 'Hello! This is a sample of my voice. Nice to meet you!',
+    fr: 'Bonjour! Ceci est un exemple de ma voix. Enchanté!',
+    es: '¡Hola! Este es un ejemplo de mi voz. ¡Mucho gusto!',
+    de: 'Hallo! Dies ist ein Beispiel meiner Stimme. Freut mich!',
+    it: 'Ciao! Questo è un esempio della mia voce. Piacere!',
+    ja: 'こんにちは！これは私の声のサンプルです。よろしくお願いします！',
   };
-  
+
   handleSave() {
     window.speechSynthesis.cancel();
     this.playingVoice.set(null);
@@ -278,7 +293,7 @@ export class SettingsDialogComponent {
     this.voiceChange.emit(this.tempVoiceName());
     this.closed.emit();
   }
-  
+
   handleCancel() {
     window.speechSynthesis.cancel();
     this.playingVoice.set(null);
@@ -286,27 +301,27 @@ export class SettingsDialogComponent {
     this.tempVoiceName.set(this.selectedVoiceName());
     this.closed.emit();
   }
-  
+
   previewVoice(voice: SpeechSynthesisVoice) {
     if (this.playingVoice() === voice.name) {
       window.speechSynthesis.cancel();
       this.playingVoice.set(null);
       return;
     }
-    
+
     window.speechSynthesis.cancel();
     const langCode = voice.lang.split('-')[0].toLowerCase();
     const text = this.sampleTexts[langCode] || this.sampleTexts['en'];
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.voice = voice;
     utterance.rate = 1;
     utterance.pitch = 1;
-    
+
     utterance.onstart = () => this.playingVoice.set(voice.name);
     utterance.onend = () => this.playingVoice.set(null);
     utterance.onerror = () => this.playingVoice.set(null);
-    
+
     window.speechSynthesis.speak(utterance);
   }
 }

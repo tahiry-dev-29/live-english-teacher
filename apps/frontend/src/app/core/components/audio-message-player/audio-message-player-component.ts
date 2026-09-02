@@ -1,47 +1,83 @@
-import { Component, input, output, signal, effect } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  input,
+  output,
+  signal,
+  effect,
+} from '@angular/core';
 
 @Component({
   selector: 'app-audio-message-player',
   standalone: true,
   template: `
-    <div class="audio-player bg-gray-800/50 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-xs hover:bg-gray-800/70 transition-colors">
-      
+    <div
+      class="audio-player bg-gray-800/50 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-xs hover:bg-gray-800/70 transition-colors"
+    >
       <!-- Play/Pause Button -->
-      <button 
+      <button
         (click)="togglePlay()"
         class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 transition-all flex items-center justify-center flex-shrink-0"
-        [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'">
+        [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
+      >
         @if (isPlaying()) {
-          <!-- Pause Icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white">
-            <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
-          </svg>
+        <!-- Pause Icon -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="w-5 h-5 text-white"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z"
+            clip-rule="evenodd"
+          />
+        </svg>
         } @else {
-          <!-- Play Icon -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white ml-0.5">
-            <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
-          </svg>
+        <!-- Play Icon -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="w-5 h-5 text-white ml-0.5"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
+            clip-rule="evenodd"
+          />
+        </svg>
         }
       </button>
 
       <!-- Waveform Progress -->
       <div class="flex-1 flex flex-col gap-1">
         <!-- Waveform Bars -->
-        <div 
+        <div
           class="flex items-center gap-0.5 h-8 cursor-pointer"
+          role="slider"
+          tabindex="0"
+          [attr.aria-label]="'Seek audio'"
+          [attr.aria-valuemin]="0"
+          [attr.aria-valuemax]="duration()"
+          [attr.aria-valuenow]="currentTime()"
           (click)="seekToPosition($event)"
-          #waveformContainer>
+          (keydown.arrowright)="seekBy(5)"
+          (keydown.arrowleft)="seekBy(-5)"
+          #waveformContainer
+        >
           @for (bar of waveformBars(); track $index) {
-            <div 
-              class="waveform-bar rounded-full transition-all"
-              [style.height.px]="bar"
-              [style.width.px]="2"
-              [class.bg-blue-500]="$index < currentBarIndex()"
-              [class.bg-gray-600]="$index >= currentBarIndex()">
-            </div>
+          <div
+            class="waveform-bar rounded-full transition-all"
+            [style.height.px]="bar"
+            [style.width.px]="2"
+            [class.bg-blue-500]="$index < currentBarIndex()"
+            [class.bg-gray-600]="$index >= currentBarIndex()"
+          ></div>
           }
         </div>
-        
+
         <!-- Time Display -->
         <div class="flex justify-between text-xs text-gray-400">
           <span>{{ formatTime(currentTime()) }}</span>
@@ -58,34 +94,29 @@ import { Component, input, output, signal, effect } from '@angular/core';
     .waveform-bar:hover {
       background-color: rgb(59, 130, 246) !important;
     }
-  `
+  `,
 })
-export class AudioMessagePlayerComponent {
-  
-  audioData = input.required<string>(); 
+export class AudioMessagePlayerComponent implements OnDestroy {
+  audioData = input.required<string>();
   mimeType = input<string>('audio/webm');
-  
-  
+
   playbackStarted = output<void>();
   playbackEnded = output<void>();
 
-  
   isPlaying = signal(false);
   currentTime = signal(0);
   duration = signal(0);
   waveformBars = signal<number[]>([]);
   currentBarIndex = signal(0);
-  
+
   private audioElement: HTMLAudioElement | null = null;
   private animationFrameId: number | null = null;
 
   constructor() {
-    
     this.waveformBars.set(
       Array.from({ length: 50 }, () => Math.random() * 24 + 8)
     );
 
-    
     effect(() => {
       const data = this.audioData();
       if (data) {
@@ -95,7 +126,6 @@ export class AudioMessagePlayerComponent {
   }
 
   private initializeAudio(base64Data: string) {
-    
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.src = '';
@@ -148,6 +178,18 @@ export class AudioMessagePlayerComponent {
     }
   }
 
+  seekBy(deltaSeconds: number) {
+    if (!this.audioElement || !this.duration()) return;
+
+    const newTime = Math.min(
+      Math.max(0, this.audioElement.currentTime + deltaSeconds),
+      this.duration()
+    );
+    this.audioElement.currentTime = newTime;
+    this.currentTime.set(newTime);
+    this.updateBarIndex();
+  }
+
   seekToPosition(event: MouseEvent) {
     if (!this.audioElement) return;
 
@@ -155,7 +197,7 @@ export class AudioMessagePlayerComponent {
     const rect = container.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const percentage = clickX / rect.width;
-    
+
     this.audioElement.currentTime = percentage * this.duration();
     this.currentTime.set(this.audioElement.currentTime);
     this.updateBarIndex();
@@ -163,7 +205,7 @@ export class AudioMessagePlayerComponent {
 
   private updateProgress() {
     if (!this.isPlaying()) return;
-    
+
     this.updateBarIndex();
     this.animationFrameId = requestAnimationFrame(() => this.updateProgress());
   }

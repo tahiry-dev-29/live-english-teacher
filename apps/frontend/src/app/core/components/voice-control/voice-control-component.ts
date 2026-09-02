@@ -93,31 +93,26 @@ import { Component, input, output, signal, effect } from '@angular/core';
   `,
 })
 export class VoiceControlComponent {
-  
   isPlaying = input<boolean>(false);
   currentTime = input<number>(0);
   totalDuration = input<number>(0);
   selectedVoice = input<SpeechSynthesisVoice | null>(null);
 
-  
   stopped = output<void>();
   paused = output<void>();
   resumed = output<void>();
   seekRequested = output<number>();
   voiceSelected = output<SpeechSynthesisVoice>();
 
-  
   waveformBars = signal<number[]>([]);
   progress = signal(0);
   currentBarIndex = signal(0);
 
   constructor() {
-    
     this.waveformBars.set(
       Array.from({ length: 40 }, () => Math.random() * 70 + 30)
     );
 
-    
     effect(() => {
       this.updateProgress();
     });
@@ -146,15 +141,13 @@ export class VoiceControlComponent {
 
   handleKeydown(event: KeyboardEvent) {
     const currentProgress = this.progress();
-    
-    
+
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault();
       this.togglePlayPause();
       return;
     }
-    
-    
+
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       this.seekRequested.emit(Math.max(0, currentProgress - 5) / 100);

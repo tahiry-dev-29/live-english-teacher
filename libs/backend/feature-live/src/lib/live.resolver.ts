@@ -1,8 +1,16 @@
-import { Args, Mutation, Query, Resolver, Field, ObjectType, InputType } from '@nestjs/graphql';
+import {
+  Args,
+  Mutation,
+  Query,
+  Resolver,
+  Field,
+  ObjectType,
+  InputType,
+} from '@nestjs/graphql';
 import { AudioResponse, ChatResponse } from './dto/live-response.dto';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
+import { AiProviderService } from './ai-provider.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
-
 
 @ObjectType()
 class SessionResponse {
@@ -71,6 +79,7 @@ class UpdateSessionInput {
 export class LiveResolver {
   constructor(
     private readonly geminiLiveService: GeminiLiveService,
+    private readonly aiProviderService: AiProviderService,
     private readonly chatHistoryService: ChatHistoryService
   ) {}
 
@@ -93,7 +102,9 @@ export class LiveResolver {
   }
 
   @Query(() => SessionDetailResponse, { nullable: true })
-  async getSession(@Args('sessionId') sessionId: string): Promise<SessionDetailResponse | null> {
+  async getSession(
+    @Args('sessionId') sessionId: string
+  ): Promise<SessionDetailResponse | null> {
     const session = await this.chatHistoryService.getSession(sessionId);
     if (!session) return null;
 
@@ -112,7 +123,9 @@ export class LiveResolver {
   }
 
   @Query(() => [MessageResponse])
-  async sessionMessages(@Args('sessionId') sessionId: string): Promise<MessageResponse[]> {
+  async sessionMessages(
+    @Args('sessionId') sessionId: string
+  ): Promise<MessageResponse[]> {
     const session = await this.chatHistoryService.getSession(sessionId);
     if (!session) return [];
 
@@ -129,42 +142,41 @@ export class LiveResolver {
     @Args('sessionId') sessionId: string,
     @Args('audioData', { nullable: true }) audioData?: string,
     @Args('mimeType', { nullable: true }) mimeType?: string,
-    @Args('targetLanguage', { nullable: true, defaultValue: 'en' }) targetLanguage?: string
+    @Args('targetLanguage', { nullable: true, defaultValue: 'en' })
+    targetLanguage?: string
   ): Promise<ChatResponse> {
-    
     let session = await this.chatHistoryService.getSession(sessionId);
     if (!session) {
-      const newSession = await this.chatHistoryService.createSession(targetLanguage);
+      const newSession = await this.chatHistoryService.createSession(
+        targetLanguage
+      );
       session = { ...newSession, messages: [] };
-      
+
       sessionId = session.id;
     }
 
-    
     const history = await this.chatHistoryService.getSessionHistory(sessionId);
 
-    
     if (content) {
       await this.chatHistoryService.addMessage(sessionId, 'user', content);
     }
 
-    const text = await this.geminiLiveService.getGeminiChatResponse(
+    const text = await this.aiProviderService.generateText(
       history,
       content,
-      audioData,
-      mimeType,
-      targetLanguage
+      { audioData, mimeType, targetLanguage }
     );
 
-    
     await this.chatHistoryService.addMessage(sessionId, 'model', text);
 
-    
     let responseAudioData: string | undefined;
     let responseMimeType: string | undefined;
 
     try {
-      const audioResult = await this.geminiLiveService.getGeminiTtsAudio(text, targetLanguage);
+      const audioResult = await this.geminiLiveService.getGeminiTtsAudio(
+        text,
+        targetLanguage
+      );
       if (audioResult) {
         responseAudioData = audioResult.audioData;
         responseMimeType = audioResult.mimeType;
@@ -184,12 +196,14 @@ export class LiveResolver {
       text,
       audioData: responseAudioData,
       mimeType: responseMimeType,
-      sessionId, 
+      sessionId,
     };
   }
 
   @Mutation(() => AudioResponse, { nullable: true })
-  async generateAudio(@Args('text') text: string): Promise<AudioResponse | null> {
+  async generateAudio(
+    @Args('text') text: string
+  ): Promise<AudioResponse | null> {
     const result = await this.geminiLiveService.getGeminiTtsAudio(text);
     if (!result) {
       return null;
@@ -201,10 +215,15 @@ export class LiveResolver {
   }
 
   @Mutation(() => SessionResponse, { nullable: true })
-  async updateSession(@Args('data') data: UpdateSessionInput): Promise<SessionResponse | null> {
-    const session = await this.chatHistoryService.updateSession(data.sessionId, { title: data.title });
+  async updateSession(
+    @Args('data') data: UpdateSessionInput
+  ): Promise<SessionResponse | null> {
+    const session = await this.chatHistoryService.updateSession(
+      data.sessionId,
+      { title: data.title }
+    );
     if (!session) return null;
-    
+
     return {
       ...session,
       createdAt: session.createdAt.toISOString(),
@@ -222,4 +241,3 @@ export class LiveResolver {
     }
   }
 }
-
