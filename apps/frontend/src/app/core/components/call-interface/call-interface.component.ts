@@ -1,10 +1,4 @@
-import {
-  Component,
-  OnDestroy,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { Component, OnDestroy, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -13,58 +7,53 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <div
-      class="fixed inset-0 z-50 flex flex-col items-center justify-between bg-gray-950 text-white overflow-hidden font-sans"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-between bg-base-100 text-base-content overflow-hidden font-sans"
     >
-      <!-- Background Effects -->
       <div
-        class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-gray-950 to-gray-950 pointer-events-none"
+        class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/15 via-base-100 to-base-100 pointer-events-none"
       ></div>
 
-      <!-- Header -->
       <div class="relative z-10 w-full p-6 flex justify-between items-center">
         <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
           <span
-            class="text-sm font-medium text-gray-400 tracking-wider uppercase"
+            class="text-sm font-medium text-base-content/60 tracking-wider uppercase"
             >Live Call</span
           >
         </div>
-        <div class="text-sm font-medium text-gray-500">{{ duration() }}</div>
+        <div class="text-sm font-medium text-base-content/50">
+          {{ duration() }}
+        </div>
       </div>
 
-      <!-- Main Visualizer Area -->
       <div
         class="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4"
       >
-        <!-- Status Text -->
         <div class="mb-8 text-center transition-all duration-500">
           <h2
-            class="text-3xl md:text-4xl font-light tracking-tight text-white/90"
+            class="text-3xl md:text-4xl font-light tracking-tight text-base-content/90"
           >
             @if (callState() === 'speaking') { Speaking... } @else if
             (callState() === 'processing') { Thinking... } @else if (callState()
             === 'listening') { Listening... } @else { Ready }
           </h2>
-
-          <!-- Real-time Transcript -->
           @if (transcript() && callState() === 'listening') {
-          <p class="mt-4 text-lg text-blue-400 italic animate-pulse">
-            "{{ transcript() }}"
+          <p class="mt-4 text-lg text-primary italic animate-pulse">
+            {{ transcript() }}
           </p>
           }
         </div>
 
-        <!-- Waveform Visualizer -->
         <div
           class="relative h-32 w-full flex items-center justify-center gap-1.5"
         >
           @for (bar of bars; track $index) {
           <div
             class="w-1.5 md:w-2 rounded-full transition-all duration-75 ease-in-out"
-            [class.bg-blue-500]="callState() === 'listening'"
-            [class.bg-purple-500]="callState() === 'speaking'"
-            [class.bg-amber-500]="callState() === 'processing'"
-            [class.bg-gray-600]="callState() === 'idle'"
+            [class.bg-primary]="callState() === 'listening'"
+            [class.bg-secondary]="callState() === 'speaking'"
+            [class.bg-warning]="callState() === 'processing'"
+            [class.bg-base-300]="callState() === 'idle'"
             [style.height.%]="getBarHeight($index)"
             [style.opacity]="getBarOpacity($index)"
           ></div>
@@ -72,14 +61,12 @@ import { CommonModule } from '@angular/common';
         </div>
       </div>
 
-      <!-- Controls -->
       <div
         class="relative z-10 w-full p-8 md:p-12 flex items-center justify-center gap-6 md:gap-8"
       >
-        <!-- Mute Button -->
         <button
           (click)="toggleMuteState()"
-          class="p-4 rounded-full bg-gray-800/50 hover:bg-gray-800 border border-gray-700 text-white transition-all transform hover:scale-105 active:scale-95 backdrop-blur-sm group"
+          class="btn btn-circle btn-lg btn-ghost border border-base-300 bg-base-200/50 hover:bg-base-200 text-base-content transition-transform hover:scale-105 active:scale-95 backdrop-blur-sm group"
         >
           @if (isMuted()) {
           <svg
@@ -88,7 +75,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="w-6 h-6 text-red-400"
+            class="w-6 h-6 text-error"
           >
             <path
               stroke-linecap="round"
@@ -103,7 +90,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="w-6 h-6 group-hover:text-blue-400"
+            class="w-6 h-6 group-hover:text-primary"
           >
             <path
               stroke-linecap="round"
@@ -114,10 +101,9 @@ import { CommonModule } from '@angular/common';
           }
         </button>
 
-        <!-- End Call Button -->
         <button
           (click)="onEndCall()"
-          class="p-6 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-900/30 transition-all transform hover:scale-110 active:scale-95"
+          class="btn btn-circle btn-xl btn-error shadow-lg shadow-error/40 transition-transform hover:scale-110 active:scale-95"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -135,9 +121,8 @@ import { CommonModule } from '@angular/common';
           </svg>
         </button>
 
-        <!-- More Options Button -->
         <button
-          class="p-4 rounded-full bg-gray-800/50 hover:bg-gray-800 border border-gray-700 text-white transition-all transform hover:scale-105 active:scale-95 backdrop-blur-sm group opacity-50 cursor-not-allowed"
+          class="btn btn-circle btn-lg btn-ghost border border-base-300 bg-base-200/50 text-base-content opacity-50 cursor-not-allowed"
           disabled
           title="Coming soon"
         >
@@ -163,16 +148,12 @@ import { CommonModule } from '@angular/common';
 export class CallInterfaceComponent implements OnDestroy {
   callState = input<string>('idle');
   transcript = input<string>('');
-
   endCall = output<void>();
   toggleMute = output<void>();
-
   isMuted = signal(false);
   duration = signal('00:00');
-
   loading = input(false);
   isThinking = input(false);
-
   bars = new Array(20).fill(0);
   private animationFrameId: number | null = null;
   private startTime = Date.now();
@@ -215,17 +196,13 @@ export class CallInterfaceComponent implements OnDestroy {
       const baseHeight = isActive ? 40 : 15;
       const variance = isActive ? 60 : 10;
       const speed = isActive ? 0.2 : 0.05;
-
       this.bars = this.bars.map((_, i) => {
         const time = Date.now() * speed;
         const offset = i * 0.5;
         const wave = Math.sin(time * 0.01 + offset) * 0.5 + 0.5;
-
         const random = Math.random() * 0.3;
-
         return Math.max(5, (baseHeight + wave * variance) * (1 + random));
       });
-
       this.animationFrameId = requestAnimationFrame(animate);
     };
     animate();

@@ -8,74 +8,17 @@ import {
   InputType,
 } from '@nestjs/graphql';
 import { AudioResponse, ChatResponse } from './dto/live-response.dto';
+import {
+  SessionResponse,
+  SessionDetailResponse,
+  MessageResponse,
+  UpdateSessionInput,
+} from './live-resolver.types';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
 import { AiProviderService } from './ai-provider.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
 
 @ObjectType()
-class SessionResponse {
-  @Field()
-  id!: string;
-
-  @Field()
-  title!: string;
-
-  @Field({ nullable: true })
-  learningLanguage?: string;
-
-  @Field()
-  createdAt!: string;
-
-  @Field()
-  updatedAt!: string;
-
-  @Field({ nullable: true })
-  lastMessage?: string;
-}
-
-@ObjectType()
-class MessageResponse {
-  @Field()
-  role!: string;
-
-  @Field()
-  content!: string;
-
-  @Field()
-  createdAt!: string;
-}
-
-@ObjectType()
-class SessionDetailResponse {
-  @Field()
-  id!: string;
-
-  @Field()
-  title!: string;
-
-  @Field()
-  learningLanguage!: string;
-
-  @Field()
-  createdAt!: string;
-
-  @Field()
-  updatedAt!: string;
-
-  @Field(() => [MessageResponse])
-  messages!: MessageResponse[];
-}
-
-@InputType()
-class UpdateSessionInput {
-  @Field()
-  sessionId!: string;
-
-  @Field({ nullable: true })
-  title?: string;
-}
-
-@Resolver()
 export class LiveResolver {
   constructor(
     private readonly geminiLiveService: GeminiLiveService,
@@ -161,11 +104,11 @@ export class LiveResolver {
       await this.chatHistoryService.addMessage(sessionId, 'user', content);
     }
 
-    const text = await this.aiProviderService.generateText(
-      history,
-      content,
-      { audioData, mimeType, targetLanguage }
-    );
+    const text = await this.aiProviderService.generateText(history, content, {
+      audioData,
+      mimeType,
+      targetLanguage,
+    });
 
     await this.chatHistoryService.addMessage(sessionId, 'model', text);
 

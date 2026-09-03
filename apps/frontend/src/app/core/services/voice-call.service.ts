@@ -121,10 +121,12 @@ export class VoiceCallService {
 
   private setupSpeechRecognition(): void {
     const SpeechRecognition =
-      (window as unknown as {
-        SpeechRecognition?: SpeechRecognitionCtor;
-        webkitSpeechRecognition?: SpeechRecognitionCtor;
-      }).SpeechRecognition ||
+      (
+        window as unknown as {
+          SpeechRecognition?: SpeechRecognitionCtor;
+          webkitSpeechRecognition?: SpeechRecognitionCtor;
+        }
+      ).SpeechRecognition ||
       (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionCtor })
         .webkitSpeechRecognition;
 

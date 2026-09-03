@@ -130,95 +130,58 @@ export class GeminiLiveService {
     }
   }
 
-  private getVoiceForLanguage(language: string): string {
-    const lang = language.toLowerCase();
-    if (lang.startsWith('fr')) return 'Puck';
-    if (lang.startsWith('es')) return 'Fenrir';
-    return 'Kore';
-  }
-
   async getGeminiTtsAudio(
     text: string,
-    targetLanguage = 'en'
+    targetLanguage?: string
   ): Promise<{ audioData: string; mimeType: string } | null> {
     const baseUrl =
       this.apiUrlBase ||
       'https://generativelanguage.googleapis.com/v1beta/models/';
     const apiUrl = `${baseUrl}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
-    this.logger.log(`Using Base URL: ${baseUrl}`);
-    this.logger.log(
-      `Requesting TTS from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`
-    );
-
-    const voiceName = this.getVoiceForLanguage(targetLanguage);
-    this.logger.log(
-      `Selected voice '${voiceName}' for language '${targetLanguage}'`
-    );
+    const voice = this.getVoiceForLanguage(targetLanguage || 'en');
 
     const payload = {
-      contents: [
-        {
-          parts: [{ text: text }],
-        },
-      ],
+      contents: [{ role: 'user', parts: [{ text }] }],
       generationConfig: {
-        responseModalities: ['AUDIO'],
+        responseModalities: ['audio'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voiceName },
+            prebuiltVoiceConfig: { voiceName: voice },
           },
         },
       },
     };
 
+    this.logger.log(`Generating TTS audio with voice: ${voice}`);
+
     try {
-      this.logger.log(`Sending TTS request to ${GEMINI_TTS_MODEL}`);
-      const maxRetries = 3;
-      let attempt = 0;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      while (attempt < maxRetries) {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const part = result?.candidates?.[0]?.content?.parts?.[0];
-          const audioData = part?.inlineData?.data;
-          const mimeType = part?.inlineData?.mimeType;
-
-          if (audioData && mimeType) {
-            this.logger.log(
-              `Gemini TTS audio received. MimeType: ${mimeType}, DataLength: ${audioData.length}`
-            );
-            return { audioData, mimeType };
-          }
-          this.logger.warn(
-            'Gemini TTS response was okay but content was empty.'
-          );
-          return null;
-        }
-
-        const errorBody = await response.text();
+      if (!response.ok) {
         this.logger.error(
-          `TTS API Error (Attempt ${attempt + 1}): ${response.status} - ${
-            response.statusText
-          }`
+          `TTS API Error: ${response.status} - ${response.statusText}`
         );
-        this.logger.error(`Error Body: ${errorBody}`);
-
-        attempt++;
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000;
-          this.logger.log(`Retrying in ${delay / 1000}s...`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
+        return null;
       }
 
-      throw new Error('Failed to get TTS audio after multiple retries.');
+      const result = await response.json();
+      const part = result.candidates?.[0]?.content?.parts?.[0];
+
+      if (part?.inlineData) {
+        this.logger.log('TTS audio generated successfully.');
+        return {
+          audioData: part.inlineData.data,
+          mimeType: part.inlineData.mimeType || 'audio/wav',
+        };
+      }
+
+      this.logger.warn('No audio data in TTS response.');
+      return null;
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error(`Error in getGeminiTtsAudio: ${error.message}`);
@@ -227,5 +190,12 @@ export class GeminiLiveService {
       }
       return null;
     }
+  }
+
+  private getVoiceForLanguage(language: string): string {
+    const lang = language.toLowerCase();
+    if (lang.startsWith('fr')) return 'Puck';
+    if (lang.startsWith('es')) return 'Fenrir';
+    return 'Kore';
   }
 }

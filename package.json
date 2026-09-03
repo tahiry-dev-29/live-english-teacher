@@ -5,8 +5,19 @@
   "scripts": {
     "start:backend": "nx serve backend",
     "start:frontend": "nx serve frontend",
-    "start:all": "concurrently \"pnpm start:backend\" \"pnpm start:frontend\"",
-    "start": "pnpm start:all"
+    "start:all": "nx run-many --targets=serve --projects=backend,frontend --parallel=2",
+    "start": "pnpm start:all",
+    "build": "nx run-many --target=build --all",
+    "build:backend": "nx build backend",
+    "build:frontend": "nx build frontend",
+    "lint": "nx run-many --target=lint --all",
+    "lint:fix": "nx run-many --target=lint --all -- --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "nx run-many --target=test --all",
+    "test:backend": "nx test backend",
+    "test:frontend": "nx test frontend",
+    "e2e": "nx run-many --target=e2e --all"
   },
   "private": true,
   "devDependencies": {

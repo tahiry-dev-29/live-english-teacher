@@ -9,14 +9,14 @@ import { Component, input, output, signal, effect } from '@angular/core';
       <!-- Play/Pause Button -->
       <button 
         (click)="togglePlayPause()"
-        class="w-12 h-12 rounded-full bg-green-500 hover:bg-green-600 transition-all flex items-center justify-center flex-shrink-0 shadow-md"
+        class="btn btn-circle btn-success shadow-md"
         [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'">
         @if (isPlaying()) {
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
             <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
           </svg>
         } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white ml-0.5">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 ml-0.5">
             <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
           </svg>
         }
@@ -25,7 +25,7 @@ import { Component, input, output, signal, effect } from '@angular/core';
       <!-- Waveform & Time -->
       <div class="flex-1 flex flex-col gap-1.5">
         <!-- Time -->
-        <div class="text-sm font-medium text-green-700">
+        <div class="text-sm font-medium text-success">
           {{ formatTime(currentTime()) }}
         </div>
         
@@ -47,16 +47,16 @@ import { Component, input, output, signal, effect } from '@angular/core';
               <div 
                 class="flex-1 rounded-full transition-all duration-100"
                 [style.height.%]="bar"
-                [class.bg-green-500]="$index < currentBarIndex()"
-                [class.bg-green-300/40]="$index >= currentBarIndex()">
+                [class.bg-success]="$index < currentBarIndex()"
+                [class.bg-success/40]="$index >= currentBarIndex()">
               </div>
             }
           </div>
           
           <!-- Progress Bar Overlay -->
-          <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-green-200/30 rounded-full overflow-hidden pointer-events-none">
+          <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-success/30 rounded-full overflow-hidden pointer-events-none">
             <div 
-              class="h-full bg-green-500 transition-all duration-100 rounded-full"
+              class="h-full bg-success transition-all duration-100 rounded-full"
               [style.width.%]="progress()">
             </div>
           </div>
@@ -66,9 +66,9 @@ import { Component, input, output, signal, effect } from '@angular/core';
       <!-- Stop Button -->
       <button 
         (click)="stopPlayback()"
-        class="w-8 h-8 rounded-full bg-red-500/80 hover:bg-red-600 transition-all flex items-center justify-center flex-shrink-0"
+        class="btn btn-circle btn-sm btn-error"
         [attr.aria-label]="'Stop'">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
           <path fill-rule="evenodd" d="M4.5 7.5a3 3 0 013-3h9a3 3 0 013 3v9a3 3 0 01-3 3h-9a3 3 0 01-3-3v-9z" clip-rule="evenodd" />
         </svg>
       </button>

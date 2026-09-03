@@ -6,23 +6,26 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex" [class.justify-end]="message().role === 'user'">
+    <div
+      class="chat"
+      [class.chat-end]="message().role === 'user'"
+      [class.chat-start]="message().role === 'ai'"
+    >
       <div
         class="max-w-[80%] rounded-2xl px-4 py-3 mb-3 shadow-sm transition-all hover:shadow-md"
-        [class.bg-blue-500]="message().role === 'user'"
-        [class.text-white]="message().role === 'user'"
-        [class.bg-gray-800]="message().role === 'ai'"
-        [class.text-gray-100]="message().role === 'ai'"
+        [class.chat-bubble-primary]="message().role === 'user'"
+        [class.bg-base-200]="message().role === 'ai'"
+        [class.text-base-content]="message().role === 'ai'"
       >
         <div
-          class="prose prose-invert max-w-none"
+          class="prose max-w-none"
           [innerHTML]="formatMessage(message().text)"
         ></div>
 
         @if (message().role === 'ai') {
         <button
           (click)="handlePlayStop()"
-          class="mt-2 p-2 rounded-full hover:bg-gray-700 transition-colors inline-flex items-center gap-2 text-sm group"
+          class="btn btn-ghost btn-sm mt-2 inline-flex items-center gap-2 group"
         >
           @if (isPlaying()) {
           <svg
@@ -31,7 +34,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="w-4 h-4 group-hover:text-red-500"
+            class="w-4 h-4 group-hover:text-error"
           >
             <path
               stroke-linecap="round"
@@ -47,7 +50,7 @@ import { CommonModule } from '@angular/common';
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="w-4 h-4 group-hover:text-purple-500"
+            class="w-4 h-4 group-hover:text-secondary"
           >
             <path
               stroke-linecap="round"

@@ -5,7 +5,9 @@
 ### Backend (NestJS + Prisma)
 
 #### 1. Schéma de base de données (Prisma)
+
 - **Modèle `Session`** : Stocke les sessions de chat avec :
+
   - `id` : Identifiant unique
   - `title` : Titre de la conversation (généré automatiquement à partir du premier message)
   - `learningLanguage` : Langue d'apprentissage (ex: 'en', 'fr', 'es')
@@ -21,6 +23,7 @@
   - `sessionId` : Lien vers la session
 
 #### 2. Service ChatHistory
+
 - `createSession()` : Crée une nouvelle session avec la langue d'apprentissage
 - `getSession()` : Récupère une session avec tous ses messages
 - `getAllSessions()` : Récupère toutes les sessions
@@ -29,10 +32,10 @@
 - `deleteSession()` : Supprime une session
 
 #### 3. Resolver GraphQL mis à jour
+
 - **Queries** :
   - `getSessions` : Récupère la liste de toutes les sessions
   - `getSession(sessionId)` : Récupère une session spécifique avec ses messages
-  
 - **Mutations** :
   - `chat()` : Modifiée pour créer automatiquement une session si elle n'existe pas et retourner le `sessionId`
   - `deleteSession(sessionId)` : Supprime une session
@@ -40,11 +43,13 @@
 ### Frontend (Angular 20)
 
 #### 1. Modèles TypeScript
+
 - Interface `Session` : Type pour les sessions
 - Interface `SessionDetail` : Type pour les détails d'une session
 - Interface `Message` : Type pour les messages
 
 #### 2. Composant App
+
 - **Ajout de la query GraphQL** `GET_SESSIONS_QUERY` pour récupérer les sessions
 - **Méthode `loadSessions()`** : Charge les sessions depuis le backend
 - **Méthode `loadSession(sessionId)`** : Charge une session spécifique (à compléter)
@@ -53,6 +58,7 @@
   - Recharge la liste des sessions après chaque message
 
 #### 3. Composant Sidebar
+
 - **Input `sessions`** : Reçoit la liste des sessions du parent
 - **Output `sessionSelected`** : Émet l'ID de la session sélectionnée
 - **Sélection automatique de la voix** :
@@ -63,13 +69,16 @@
 ## Configuration requise
 
 ### 1. Base de données PostgreSQL
+
 Créez un fichier `.env` à la racine du projet avec :
+
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/live_english_teacher?schema=public"
 GEMINI_API_KEY="votre-clé-api-gemini"
 ```
 
 ### 2. Migration de la base de données
+
 ```bash
 # Générer le client Prisma
 pnpm prisma generate
@@ -81,16 +90,19 @@ pnpm prisma migrate dev --name add_session_and_message_models
 ## Fonctionnalités
 
 ### ✅ Historique persistant
+
 - Les conversations sont sauvegardées en base de données
 - Chaque session a un titre généré automatiquement
 - Les messages sont liés à leur session
 
 ### ✅ Sélection automatique de la voix
+
 - Lorsque vous changez la langue d'apprentissage dans la sidebar
 - La voix de synthèse vocale est automatiquement mise à jour
 - Exemple : Français → Voix française, Anglais → Voix anglaise
 
 ### ✅ Liste des conversations
+
 - Affichage de toutes les sessions dans la sidebar
 - Clic sur une session pour la charger (à compléter)
 - Création de nouvelles conversations

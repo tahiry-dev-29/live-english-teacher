@@ -1,10 +1,4 @@
-import {
-  Component,
-  signal,
-  output,
-  input,
-  computed,
-} from '@angular/core';
+import { Component, signal, output, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Session } from '@models/session.model';

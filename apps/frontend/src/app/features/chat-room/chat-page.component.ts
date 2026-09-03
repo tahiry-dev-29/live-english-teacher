@@ -89,21 +89,19 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
         </div>
 
         <div
-          class="hidden md:flex bg-gray-950/ backdrop-blur-md p-4 items-center justify-between z-10"
+          class="hidden md:flex bg-base-200/80 backdrop-blur-md p-4 items-center justify-between z-10 border-b border-base-300"
         >
           <div>
-            <h1 class="text-xl font-bold tracking-wide text-white">
+            <h1 class="text-xl font-bold tracking-wide text-base-content">
               {{ currentSession()?.title || 'Conversation Room' }}
             </h1>
           </div>
           <div class="flex gap-2">
             <button
               (click)="toggleLiveMode()"
-              class="px-4 py-2 rounded-lg transition-all font-medium flex items-center gap-2 cursor-pointer"
-              [class.bg-green-600]="isLiveMode()"
-              [class.hover:bg-green-700]="isLiveMode()"
-              [class.bg-purple-600]="!isLiveMode()"
-              [class.hover:bg-purple-700]="!isLiveMode()"
+              class="btn"
+              [class.btn-success]="isLiveMode()"
+              [class.btn-primary]="!isLiveMode()"
             >
               @if (isLiveMode()) {
               <svg
@@ -196,185 +194,4 @@ export class ChatPageComponent implements OnInit {
   sessions = this.chatService.sessions;
   messages = this.messageService.messages;
   loading = this.messageService.loading;
-
-  isLiveMode = signal(false);
-  vocalEnabled = signal(false);
-  showVoiceControl = signal(false);
-  showSettings = signal(false);
-  userInput = signal('');
-  playingMessageIndex = signal<number | null>(null);
-
-  get sessionId(): string {
-    return this.chatService.activeSessionId() || crypto.randomUUID();
-  }
-
-  currentSession = computed(() => {
-    const id = this.chatService.activeSessionId();
-    return this.sessions()?.find((s) => s.id === id);
-  });
-
-  ngOnInit() {
-    this.route.params.subscribe((params) => {
-      const sessionId = params['sessionId'];
-      if (sessionId) {
-        this.loadSession(sessionId);
-      }
-    });
-  }
-
-  onNewChat() {
-    const newId = this.chatService.createNewSession();
-    this.router.navigate(['/chat', newId]);
-  }
-
-  async loadSession(sessionId: string) {
-    await this.chatService.loadSession(sessionId);
-    this.router.navigate(['/chat', sessionId]);
-  }
-
-  async onRenameSession(event: { id: string; title: string }) {
-    await this.chatService.renameSession(event.id, event.title);
-  }
-
-  async onDeleteSession(id: string) {
-    await this.chatService.deleteSession(id);
-
-    if (this.chatService.activeSessionId() === id) {
-      this.onNewChat();
-    }
-  }
-
-  async sendMessage() {
-    const content = this.userInput().trim();
-    if (!content) return;
-
-    this.userInput.set('');
-
-    const result = await this.messageService.streamTextMessage(
-      content,
-      this.sessionId,
-      this.languageService.selectedLanguageCode()
-    );
-
-    if (result) {
-      this.chatService.activeSessionId.set(result.sessionId);
-      this.chatService.sessionsResource.reload();
-      this.router.navigate(['/chat', result.sessionId]);
-
-      if (this.isLiveMode()) {
-        this.speakText(result.text);
-      }
-    }
-  }
-
-  async handleAudioRecorded(event: { base64: string }) {
-    const result = await this.messageService.sendAudioMessage(
-      event.base64,
-      'audio/webm',
-      this.sessionId,
-      this.languageService.selectedLanguageCode()
-    );
-
-    if (result) {
-      this.chatService.activeSessionId.set(result.sessionId);
-      this.chatService.sessionsResource.reload();
-      this.router.navigate(['/chat', result.sessionId]);
-
-      if (this.isLiveMode()) {
-        this.speakText(result.text);
-      }
-    }
-  }
-
-  handlePlayAudio(event: { index: number; text: string }) {
-    this.playingMessageIndex.set(event.index);
-    this.speakText(event.text);
-  }
-
-  handleStopAudio() {
-    this.ttsService.stop();
-    this.playingMessageIndex.set(null);
-    this.showVoiceControl.set(false);
-  }
-
-  private speakText(text: string) {
-    this.vocalEnabled.set(true);
-    this.showVoiceControl.set(true);
-
-    this.ttsService.speak(text, {
-      voice: this.languageService.selectedVoice() || undefined,
-      lang: this.languageService.selectedLanguageCode(),
-      onEnd: () => {
-        this.playingMessageIndex.set(null);
-
-        if (this.isLiveMode()) {
-          this.voiceCallService.finishSpeaking();
-        } else {
-          setTimeout(() => {
-            this.showVoiceControl.set(false);
-          }, 500);
-        }
-      },
-      onError: () => {
-        this.playingMessageIndex.set(null);
-
-        if (this.isLiveMode()) {
-          this.voiceCallService.finishSpeaking();
-        }
-      },
-    });
-
-    if (this.isLiveMode()) {
-      this.voiceCallService.startSpeaking();
-    }
-  }
-
-  async toggleLiveMode() {
-    this.isLiveMode.update((v) => !v);
-
-    if (this.isLiveMode()) {
-      try {
-        await this.voiceCallService.startCall({
-          onTranscriptReady: (text) => this.handleVoiceTranscript(text),
-          onInactivity: () => this.handleInactivity(),
-          language: this.languageService.selectedLanguageCode(),
-        });
-
-        this.vocalEnabled.set(true);
-        this.showVoiceControl.set(true);
-      } catch {
-        this.isLiveMode.set(false);
-        alert('Could not access microphone. Please grant permission.');
-      }
-    } else {
-      this.voiceCallService.stopCall();
-      this.handleStopAudio();
-    }
-  }
-
-  private async handleVoiceTranscript(text: string) {
-    const result = await this.messageService.streamTextMessage(
-      text,
-      this.sessionId,
-      this.languageService.selectedLanguageCode()
-    );
-
-    if (result) {
-      this.chatService.activeSessionId.set(result.sessionId);
-      this.chatService.sessionsResource.reload();
-      this.speakText(result.text);
-    } else {
-      this.voiceCallService.finishSpeaking();
-    }
-  }
-
-  private handleInactivity() {
-    const fallbackMessage = "I can't hear you. Are you still there?";
-    this.messageService.addMessage({ role: 'ai', text: fallbackMessage });
-    this.speakText(fallbackMessage);
-  }
-
-  toggleVocal() {
-    this.vocalEnabled.update((v) => !v);
-  }
 }

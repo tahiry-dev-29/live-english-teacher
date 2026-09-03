@@ -4,25 +4,28 @@ import { Component, output } from '@angular/core';
   selector: 'app-user-menu',
   standalone: true,
   template: `
-    <div class="flex items-center gap-3 group">
+    <div class="flex items-center gap-3">
       <!-- Avatar with gradient -->
       <div
-        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-gray-700 group-hover:ring-purple-500/50 transition-all"
+        class="w-10 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content shadow-lg ring-2 ring-base-300 transition-all"
       >
         G
       </div>
 
       <!-- User Info -->
       <div class="flex-1 min-w-0">
-        <div class="text-sm font-medium text-white truncate">Guest User</div>
-        <div class="text-xs text-gray-500">Free Plan</div>
+        <div class="text-sm font-medium text-base-content truncate">
+          Guest User
+        </div>
+        <div class="text-xs text-base-content/50">Free Plan</div>
       </div>
 
       <!-- Menu Button -->
       <button
         (click)="openSettings.emit()"
-        class="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-all group/btn cursor-pointer"
+        class="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-base-content group/btn"
         title="Settings"
+        aria-label="Settings"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

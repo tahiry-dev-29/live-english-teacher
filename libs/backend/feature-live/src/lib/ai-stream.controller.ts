@@ -79,7 +79,11 @@ export class AiStreamController {
         : await this.chatHistoryService.getSessionHistory(sessionId);
 
       if (dto.message) {
-        await this.chatHistoryService.addMessage(sessionId, 'user', dto.message);
+        await this.chatHistoryService.addMessage(
+          sessionId,
+          'user',
+          dto.message
+        );
       }
 
       let fullText = '';

@@ -10,7 +10,7 @@ import { AudioRecorderService } from '@core/services/audio-recorder-service';
       @if (!isRecording()) {
       <button
         (click)="startRecording()"
-        class="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 transition-all shadow-lg hover:shadow-red-500/50 active:scale-95 flex items-center justify-center"
+        class="btn btn-circle btn-error shadow-lg shadow-error/30 transition-transform hover:scale-105 active:scale-95"
         title="Start Recording"
       >
         <svg
@@ -30,7 +30,7 @@ import { AudioRecorderService } from '@core/services/audio-recorder-service';
       } @if (isRecording()) {
       <button
         (click)="stopRecording()"
-        class="bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 transition-all animate-pulse shadow-lg border-2 border-red-500 flex items-center justify-center"
+        class="btn btn-circle btn-outline btn-error border-2 shadow-lg animate-pulse"
         title="Stop Recording"
       >
         <svg

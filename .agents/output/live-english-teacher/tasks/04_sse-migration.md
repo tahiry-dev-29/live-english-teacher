@@ -3,6 +3,7 @@
 **Status: DONE**
 
 ## Backend
+
 - `AiProviderService` : sélection centralisée gemini|groq (résolver + controller SSE)
 - `AiStreamController.stream()` devient un chemin de chat complet : création/récupération
   de session, persistance message user + réponse, streaming token par token,
@@ -12,6 +13,7 @@
   frozen-lockfile).
 
 ## Frontend
+
 - `environment.ts` : ajout `apiBaseUrl`
 - `MessageService.streamTextMessage()` : fetch POST + ReadableStream SSE, mise à jour
   token par token du signal `messages`, fallback automatique sur la mutation GraphQL
@@ -20,6 +22,7 @@
   streaming ; TTS déclenché après complétion
 
 ## Critères d'acceptation
+
 - [x] `nx run backend:build` passe
 - [x] `nx run frontend:build` passe
 - [x] SSE persiste en DB (session + messages)

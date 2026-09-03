@@ -58,7 +58,11 @@ export class AiProviderService {
     targetLanguage = 'English'
   ): AsyncGenerator<string, void, unknown> {
     if (this.provider === 'groq') {
-      yield* this.groqLiveService.generateStream(history, content, targetLanguage);
+      yield* this.groqLiveService.generateStream(
+        history,
+        content,
+        targetLanguage
+      );
       return;
     }
     const text = await this.geminiLiveService.getGeminiChatResponse(

@@ -7,17 +7,19 @@ import { FormsModule } from '@angular/forms';
   imports: [FormsModule],
   template: `
     <div
-      class="p-6 bg-gray-800 rounded-2xl shadow-xl max-w-2xl mx-auto text-white space-y-6"
+      class="card bg-base-200 border border-base-300 shadow-xl max-w-2xl mx-auto text-base-content"
     >
       <h2
-        class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+        class="card-title text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
       >
         Browser TTS Tester
       </h2>
 
       <!-- Voice Selection -->
       <div class="space-y-2">
-        <label for="voice-select" class="text-sm text-gray-400 font-medium"
+        <label
+          for="voice-select"
+          class="label-text font-medium text-base-content/70"
           >Select Voice</label
         >
         <div class="relative">
@@ -25,7 +27,7 @@ import { FormsModule } from '@angular/forms';
             id="voice-select"
             [ngModel]="selectedVoice()?.name"
             (ngModelChange)="onVoiceChange($event)"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white appearance-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            class="select w-full"
           >
             @for (voice of voices(); track voice.name) {
             <option [value]="voice.name">
@@ -33,17 +35,15 @@ import { FormsModule } from '@angular/forms';
             </option>
             }
           </select>
-          <div
-            class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
-          >
-            ▼
-          </div>
+          <div>▼</div>
         </div>
       </div>
 
       <!-- Text Input -->
       <div class="space-y-2">
-        <label for="tts-input" class="text-sm text-gray-400 font-medium"
+        <label
+          for="tts-input"
+          class="label-text font-medium text-base-content/70"
           >Text to Read</label
         >
         <textarea
@@ -51,7 +51,7 @@ import { FormsModule } from '@angular/forms';
           [ngModel]="text()"
           (ngModelChange)="text.set($event)"
           rows="4"
-          class="w-full bg-gray-700 border border-gray-600 rounded-lg p-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none transition-all"
+          class="textarea w-full resize-none"
           placeholder="Type something here..."
         ></textarea>
       </div>
@@ -61,7 +61,7 @@ import { FormsModule } from '@angular/forms';
         <button
           (click)="speak()"
           [disabled]="!text() || isSpeaking()"
-          class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all active:scale-95 flex items-center justify-center gap-2"
+          class="btn btn-primary flex-1 gap-2"
         >
           @if (isSpeaking()) {
           <span class="animate-spin">⟳</span> Speaking... } @else {
@@ -71,7 +71,7 @@ import { FormsModule } from '@angular/forms';
         <button
           (click)="stop()"
           [disabled]="!isSpeaking()"
-          class="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg font-medium transition-colors disabled:opacity-30"
+          class="btn btn-error btn-outline"
         >
           Stop
         </button>

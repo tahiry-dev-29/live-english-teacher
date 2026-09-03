@@ -17,6 +17,11 @@ import { ChatHistoryService } from './chat-history/chat-history.service';
     LiveResolver,
     ChatHistoryService,
   ],
-  exports: [GeminiLiveService, GroqLiveService, AiProviderService, ChatHistoryService],
+  exports: [
+    GeminiLiveService,
+    GroqLiveService,
+    AiProviderService,
+    ChatHistoryService,
+  ],
 })
 export class FeatureLiveModule {}

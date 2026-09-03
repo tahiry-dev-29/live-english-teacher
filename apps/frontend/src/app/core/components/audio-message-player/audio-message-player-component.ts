@@ -12,21 +12,19 @@ import {
   standalone: true,
   template: `
     <div
-      class="audio-player bg-gray-800/50 rounded-2xl px-4 py-3 flex items-center gap-3 max-w-xs hover:bg-gray-800/70 transition-colors"
+      class="audio-player bg-base-200/70 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center gap-3 max-w-xs border border-base-300 hover:bg-base-200 transition-colors"
     >
-      <!-- Play/Pause Button -->
       <button
         (click)="togglePlay()"
-        class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 transition-all flex items-center justify-center flex-shrink-0"
+        class="btn btn-circle btn-sm bg-primary text-primary-content border-none shadow-md transition-transform hover:scale-105"
         [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
       >
         @if (isPlaying()) {
-        <!-- Pause Icon -->
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="currentColor"
-          class="w-5 h-5 text-white"
+          class="w-5 h-5"
         >
           <path
             fill-rule="evenodd"
@@ -35,12 +33,11 @@ import {
           />
         </svg>
         } @else {
-        <!-- Play Icon -->
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="currentColor"
-          class="w-5 h-5 text-white ml-0.5"
+          class="w-5 h-5 ml-0.5"
         >
           <path
             fill-rule="evenodd"
@@ -51,9 +48,7 @@ import {
         }
       </button>
 
-      <!-- Waveform Progress -->
       <div class="flex-1 flex flex-col gap-1">
-        <!-- Waveform Bars -->
         <div
           class="flex items-center gap-0.5 h-8 cursor-pointer"
           role="slider"
@@ -72,14 +67,12 @@ import {
             class="waveform-bar rounded-full transition-all"
             [style.height.px]="bar"
             [style.width.px]="2"
-            [class.bg-blue-500]="$index < currentBarIndex()"
-            [class.bg-gray-600]="$index >= currentBarIndex()"
+            [class.bg-primary]="$index < currentBarIndex()"
+            [class.bg-base-300]="$index >= currentBarIndex()"
           ></div>
           }
         </div>
-
-        <!-- Time Display -->
-        <div class="flex justify-between text-xs text-gray-400">
+        <div class="flex justify-between text-xs text-base-content/60">
           <span>{{ formatTime(currentTime()) }}</span>
           <span>{{ formatTime(duration()) }}</span>
         </div>
@@ -90,9 +83,8 @@ import {
     .waveform-bar {
       transition: background-color 0.2s ease, height 0.1s ease;
     }
-    
     .waveform-bar:hover {
-      background-color: rgb(59, 130, 246) !important;
+      background-color: var(--color-primary) !important;
     }
   `,
 })
@@ -116,7 +108,6 @@ export class AudioMessagePlayerComponent implements OnDestroy {
     this.waveformBars.set(
       Array.from({ length: 50 }, () => Math.random() * 24 + 8)
     );
-
     effect(() => {
       const data = this.audioData();
       if (data) {
@@ -125,34 +116,24 @@ export class AudioMessagePlayerComponent implements OnDestroy {
     });
   }
 
-  private initializeAudio(base64Data: string) {
+  private initializeAudio(data: string) {
     if (this.audioElement) {
       this.audioElement.pause();
       this.audioElement.src = '';
     }
-
-    // Create new audio element
     this.audioElement = new Audio();
-    const blob = this.base64ToBlob(base64Data, this.mimeType());
+    const blob = this.base64ToBlob(data, this.mimeType());
     this.audioElement.src = URL.createObjectURL(blob);
-
-    // Set up event listeners
     this.audioElement.addEventListener('loadedmetadata', () => {
-      if (this.audioElement) {
-        this.duration.set(this.audioElement.duration);
-      }
+      if (this.audioElement) this.duration.set(this.audioElement.duration);
     });
-
     this.audioElement.addEventListener('ended', () => {
       this.isPlaying.set(false);
       this.currentTime.set(0);
       this.currentBarIndex.set(0);
       this.playbackEnded.emit();
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-      }
+      if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
     });
-
     this.audioElement.addEventListener('timeupdate', () => {
       if (this.audioElement) {
         this.currentTime.set(this.audioElement.currentTime);
@@ -163,13 +144,10 @@ export class AudioMessagePlayerComponent implements OnDestroy {
 
   togglePlay() {
     if (!this.audioElement) return;
-
     if (this.isPlaying()) {
       this.audioElement.pause();
       this.isPlaying.set(false);
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-      }
+      if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
     } else {
       this.audioElement.play();
       this.isPlaying.set(true);
@@ -180,7 +158,6 @@ export class AudioMessagePlayerComponent implements OnDestroy {
 
   seekBy(deltaSeconds: number) {
     if (!this.audioElement || !this.duration()) return;
-
     const newTime = Math.min(
       Math.max(0, this.audioElement.currentTime + deltaSeconds),
       this.duration()
@@ -192,12 +169,10 @@ export class AudioMessagePlayerComponent implements OnDestroy {
 
   seekToPosition(event: MouseEvent) {
     if (!this.audioElement) return;
-
     const container = event.currentTarget as HTMLElement;
     const rect = container.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const percentage = clickX / rect.width;
-
     this.audioElement.currentTime = percentage * this.duration();
     this.currentTime.set(this.audioElement.currentTime);
     this.updateBarIndex();
@@ -205,7 +180,6 @@ export class AudioMessagePlayerComponent implements OnDestroy {
 
   private updateProgress() {
     if (!this.isPlaying()) return;
-
     this.updateBarIndex();
     this.animationFrameId = requestAnimationFrame(() => this.updateProgress());
   }

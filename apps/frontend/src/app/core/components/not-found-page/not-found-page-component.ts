@@ -7,7 +7,7 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <div
-      class="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 overflow-hidden relative"
+      class="min-h-screen bg-base-100 text-base-content flex flex-col items-center justify-center p-6 overflow-hidden relative"
     >
       <!-- Stars Background -->
       <div class="absolute inset-0 overflow-hidden">
@@ -29,7 +29,6 @@ import { RouterLink } from '@angular/router';
           viewBox="0 0 200 200"
           class="drop-shadow-2xl"
         >
-          <!-- Helmet -->
           <ellipse
             cx="100"
             cy="70"
@@ -40,17 +39,14 @@ import { RouterLink } from '@angular/router';
             stroke-width="3"
           />
           <ellipse cx="100" cy="70" rx="35" ry="40" fill="#1F2937" />
-          <!-- Visor reflection -->
           <ellipse
             cx="90"
             cy="60"
             rx="15"
             ry="20"
-            fill="#3B82F6"
+            fill="var(--color-primary)"
             opacity="0.3"
           />
-
-          <!-- Body -->
           <rect
             x="60"
             y="115"
@@ -61,11 +57,7 @@ import { RouterLink } from '@angular/router';
             stroke="#4B5563"
             stroke-width="2"
           />
-
-          <!-- Backpack -->
           <rect x="130" y="120" width="20" height="40" rx="5" fill="#4B5563" />
-
-          <!-- Arms -->
           <g
             class="animate-wave origin-center"
             style="transform-origin: 60px 130px;"
@@ -107,8 +99,6 @@ import { RouterLink } from '@angular/router';
             stroke="#4B5563"
             stroke-width="2"
           />
-
-          <!-- Legs -->
           <rect
             x="70"
             y="160"
@@ -129,8 +119,6 @@ import { RouterLink } from '@angular/router';
             stroke="#4B5563"
             stroke-width="2"
           />
-
-          <!-- Boots -->
           <ellipse cx="80" cy="195" rx="12" ry="8" fill="#1F2937" />
           <ellipse cx="120" cy="195" rx="12" ry="8" fill="#1F2937" />
         </svg>
@@ -139,14 +127,14 @@ import { RouterLink } from '@angular/router';
       <!-- Planet -->
       <div class="absolute bottom-10 right-10 animate-spin-slow opacity-30">
         <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="50" fill="#7C3AED" />
+          <circle cx="60" cy="60" r="50" fill="var(--color-secondary)" />
           <ellipse
             cx="60"
             cy="60"
             rx="70"
             ry="15"
             fill="none"
-            stroke="#A78BFA"
+            stroke="var(--color-primary)"
             stroke-width="4"
             transform="rotate(-20 60 60)"
           />
@@ -156,18 +144,18 @@ import { RouterLink } from '@angular/router';
       <!-- Content -->
       <div class="relative z-10 text-center mt-8">
         <h1
-          class="text-8xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-4"
+          class="text-8xl font-bold bg-gradient-to-r from-primary via-secondary to-warning bg-clip-text text-transparent mb-4"
         >
           404
         </h1>
-        <p class="text-xl text-gray-400 mb-2">Lost in Space</p>
-        <p class="text-gray-500 mb-8 max-w-md">
+        <p class="text-xl text-base-content/70 mb-2">Lost in Space</p>
+        <p class="text-base-content/50 mb-8 max-w-md">
           The page you're looking for has drifted into another galaxy.
         </p>
 
         <a
           routerLink="/"
-          class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-purple-900/30"
+          class="btn btn-primary inline-flex items-center gap-2 px-6 shadow-lg shadow-primary/20 transition-transform hover:scale-105"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

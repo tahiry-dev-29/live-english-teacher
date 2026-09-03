@@ -1,55 +1,63 @@
 import { Injectable } from '@angular/core';
 
-@Injectable({
-  providedIn: 'root',
-})
+interface RecordingResult {
+  base64: string;
+  mimeType: string;
+}
+
+@Injectable({ providedIn: 'root' })
 export class AudioRecorderService {
   private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
+  private chunks: Blob[] = [];
 
   async startRecording(): Promise<void> {
+    if (this.mediaRecorder) {
+      return;
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.chunks = [];
     this.mediaRecorder = new MediaRecorder(stream);
-    this.audioChunks = [];
-
     this.mediaRecorder.ondataavailable = (event) => {
-      this.audioChunks.push(event.data);
+      if (event.data.size > 0) {
+        this.chunks.push(event.data);
+      }
     };
-
     this.mediaRecorder.start();
   }
 
-  stopRecording(): Promise<{ audioBlob: Blob; base64: string }> {
-    return new Promise((resolve, reject) => {
-      if (!this.mediaRecorder) {
-        reject('No recording in progress');
-        return;
-      }
+  async stopRecording(): Promise<RecordingResult> {
+    if (!this.mediaRecorder) {
+      throw new Error('No active recording');
+    }
+    const recorder = this.mediaRecorder;
+    const mimeType = recorder.mimeType || 'audio/webm';
 
-      this.mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        const base64 = await this.blobToBase64(audioBlob);
-
-        this.mediaRecorder?.stream.getTracks().forEach((track) => track.stop());
-        this.mediaRecorder = null;
-
-        resolve({ audioBlob, base64 });
-      };
-
-      this.mediaRecorder.stop();
+    const stopped = new Promise<void>((resolve) => {
+      recorder.onstop = () => resolve();
     });
+
+    recorder.stop();
+    await stopped;
+
+    const blob = new Blob(this.chunks, { type: mimeType });
+    const base64 = await this.blobToBase64(blob);
+
+    recorder.stream.getTracks().forEach((track) => track.stop());
+    this.mediaRecorder = null;
+    this.chunks = [];
+
+    return { base64, mimeType };
   }
 
   private blobToBase64(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-
-        const base64 = base64String.split(',')[1];
-        resolve(base64);
+        const result = reader.result as string;
+        const commaIdx = result.indexOf(',');
+        resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(blob);
     });
   }
