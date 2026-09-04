@@ -1,7 +1,7 @@
 import { Component, input, output, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideSquare, LucideMic, LucidePlus } from '@lucide/angular';
+import { LucideSquare, LucidePlus } from '@lucide/angular';
 import { AudioRecorderComponent } from '@features/chat-room/components/audio-recorder/audio-recorder';
 
 @Component({
@@ -11,7 +11,6 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
     CommonModule,
     FormsModule,
     LucideSquare,
-    LucideMic,
     LucidePlus,
     AudioRecorderComponent,
   ],
@@ -52,26 +51,11 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
 
         <!-- Action buttons -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- Microphone button -->
-          <app-audio-recorder
-            (audioRecorded)="onAudioRecorded($event)"
+          <!-- Microphone button for recording -->
+          <app-audio-recorder (audioRecorded)="onAudioRecorded($event)"
             (recordingStateChange)="recordingStateChange.emit($event)"
             class="shrink-0"
-          ></app-audio-recorder>
-
-          <!-- Live button -->
-          @if (showLiveButton()) {
-          <button
-            (click)="liveToggled.emit()"
-            class="btn btn-circle btn-sm transition-all md:hidden"
-            [class.btn-error]="isLiveActive()"
-            [class.btn-ghost]="!isLiveActive()"
-            [title]="isLiveActive() ? 'Stop live call' : 'Start live call'"
-            aria-label="Toggle Live Call"
-          >
-            <svg lucideMic class="w-4 h-4"></svg>
-          </button>
-          }
+           />
 
           <!-- Stop button -->
           @if (isLoading() || isPlaying()) {
@@ -125,14 +109,11 @@ export class ChatInputComponent {
   isLoading = input<boolean>(false);
   isPlaying = input<boolean>(false);
   isRecording = input<boolean>(false);
-  showLiveButton = input<boolean>(false);
-  isLiveActive = input<boolean>(false);
 
   valueChange = output<string>();
   messageSent = output<void>();
   audioRecorded = output<{ base64: string }>();
   stop = output<void>();
-  liveToggled = output<void>();
   recordingStateChange = output<boolean>();
   newChat = output<void>();
 
