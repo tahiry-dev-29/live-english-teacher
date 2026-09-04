@@ -58,22 +58,6 @@
           {{ currentSession()?.title || 'Conversation Room' }}
         </h1>
       </div>
-      <div class="flex gap-2">
-        <button
-          (click)="toggleLiveMode()"
-          class="btn"
-          [class.btn-success]="isLiveMode()"
-          [class.btn-primary]="!isLiveMode()"
-        >
-          @if (isLiveMode()) {
-          <svg lucidePhone class="w-5 h-5"></svg>
-          <span>End Call</span>
-          } @else {
-          <svg lucideMic class="w-5 h-5"></svg>
-          <span>Start Live Call</span>
-          }
-        </button>
-      </div>
     </div>
 
     <app-chat-container [messages]="messages()"
@@ -97,12 +81,13 @@
         [isLoading]="loading()"
         [isPlaying]="ttsService.isPlaying()"
         [isRecording]="isAudioRecording()"
+        [isLiveActive]="isLiveMode()"
         (valueChange)="userInput.set($event)"
         (messageSent)="sendMessage()"
         (audioRecorded)="handleAudioRecorded($event)"
         (stop)="handleStopAudio()"
         (recordingStateChange)="handleRecordingStateChange($event)"
-        (newChat)="onNewChat()"
+        (liveToggled)="toggleLiveMode()"
        />
 
       <div class="text-center mt-2">

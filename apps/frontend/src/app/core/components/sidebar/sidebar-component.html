@@ -49,9 +49,31 @@
     </div>
     }
 
+    @if (isMobile) {
+    <button
+      (click)="toggle()"
+      class="btn btn-ghost btn-circle btn-sm"
+      title="Close sidebar"
+      aria-label="Close sidebar"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="w-5 h-5"
+      >
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    } @else {
     <button
       (click)="toggleCollapse()"
-      class="md:hidden btn btn-ghost btn-circle btn-sm"
+      class="btn btn-ghost btn-circle btn-sm"
       [class.mx-auto]="isCollapsed()"
       title="Toggle sidebar"
     >
@@ -61,6 +83,7 @@
         [class.rotate-180]="isCollapsed()"
       ></svg>
     </button>
+    }
   </div>
 
   @if (!isCollapsed()) {
@@ -91,15 +114,13 @@
   <div
     class="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-base-300 hover:scrollbar-thumb-base-content/30"
   >
-    <app-sidebar-session-list
-      [sessions]="displayedSessions()"
+    <app-sidebar-session-list [sessions]="displayedSessions()"
       [totalSessions]="filteredSessions().length"
       [activeSessionId]="activeSessionId()"
       (sessionClick)="onSessionClick($event)"
       (renameSession)="renameSession.emit($event)"
       (deleteSession)="deleteSession.emit($event)"
-    >
-    </app-sidebar-session-list>
+     />
 
     @if (hasMoreSessions()) {
     <button
@@ -139,7 +160,7 @@
 
   <div class="p-4 border-t border-base-300 bg-base-300/50">
     @if (!isCollapsed()) {
-    <app-user-menu (openSettings)="openSettings.emit()"></app-user-menu>
+    <app-user-menu (openSettings)="openSettings.emit()" />
     } @else {
     <button
       (click)="openSettings.emit()"
