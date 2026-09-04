@@ -52,7 +52,7 @@
     @if (isMobile) {
     <button
       (click)="toggle()"
-      class="btn btn-ghost btn-circle btn-sm"
+      class="btn btn-ghost btn-circle"
       title="Close sidebar"
       aria-label="Close sidebar"
     >
@@ -61,7 +61,7 @@
     } @else {
     <button
       (click)="toggleCollapse()"
-      class="btn btn-ghost btn-circle btn-sm"
+      class="btn btn-ghost btn-circle"
       [class.mx-auto]="isCollapsed()"
       title="Toggle sidebar"
     >
