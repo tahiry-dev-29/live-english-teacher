@@ -5,13 +5,14 @@ import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import {
-  LucidePlus,
+  LucideMessageCircle,
   LucideSearch,
   LucideChevronDown,
   LucideChevronUp,
   LucideSettings,
   LucidePanelRightClose,
   LucidePanelRightOpen,
+  LucideX,
 } from '@lucide/angular';
 
 @Component({
@@ -22,13 +23,14 @@ import {
     FormsModule,
     UserMenuComponent,
     SidebarSessionListComponent,
-    LucidePlus,
+    LucideMessageCircle,
     LucideSearch,
     LucideChevronDown,
     LucideChevronUp,
     LucideSettings,
     LucidePanelRightClose,
     LucidePanelRightOpen,
+    LucideX,
   ],
   templateUrl: './sidebar-component.html',
 })
@@ -36,6 +38,7 @@ export class SidebarComponent {
   isOpen = signal(true);
   isCollapsed = signal(false);
   isMobile = false;
+  showSearchModal = signal(false);
 
   sessions = input<Session[]>([]);
   activeSessionId = input<string | null>(null);
@@ -92,6 +95,19 @@ export class SidebarComponent {
   onNewChat() {
     this.newChat.emit();
     if (this.isMobile) this.isOpen.set(false);
+  }
+
+  openSearch() {
+    this.showSearchModal.set(true);
+  }
+
+  closeSearch() {
+    this.showSearchModal.set(false);
+    this.searchTerm.set('');
+  }
+
+  onSearchInput(term: string) {
+    this.searchTerm.set(term);
   }
 
   showMore() {
