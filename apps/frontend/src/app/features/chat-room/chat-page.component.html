@@ -1,0 +1,116 @@
+<div class="flex h-screen bg-gray-950 text-white overflow-hidden">
+  @if (isLiveMode()) {
+  <app-call-interface
+    [callState]="voiceCallService.callState()"
+    [transcript]="voiceCallService.currentTranscript()"
+    (endCall)="toggleLiveMode()"
+    (toggleMute)="toggleVocal()"
+  >
+  </app-call-interface>
+  }
+
+  <app-sidebar
+    (newChat)="onNewChat()"
+    [sessions]="sessions() ?? []"
+    [activeSessionId]="chatService.activeSessionId()"
+    (sessionSelected)="loadSession($event)"
+    (renameSession)="onRenameSession($event)"
+    (deleteSession)="onDeleteSession($event)"
+    (openSettings)="showSettings.set(true)"
+    #sidebar
+  >
+  </app-sidebar>
+
+  <app-settings-dialog
+    [isOpen]="showSettings()"
+    [languages]="languageService.languages"
+    [voices]="languageService.availableVoices()"
+    [selectedLanguage]="languageService.selectedLanguageCode()"
+    [selectedVoiceName]="languageService.selectedVoice()?.name ?? ''"
+    (closed)="showSettings.set(false)"
+    (languageChange)="languageService.setLanguage($event)"
+    (voiceChange)="languageService.setVoice($event)"
+  >
+  </app-settings-dialog>
+
+  <main
+    class="flex-1 flex flex-col relative w-full h-full transition-all duration-300"
+  >
+    <div
+      class="md:hidden p-4 bg-gray-900 border-b border-gray-800 flex items-center justify-between"
+    >
+      <button
+        (click)="sidebar.toggle()"
+        class="text-gray-400 hover:text-white"
+      >
+        ☰
+      </button>
+      <span
+        class="font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+        >Live Teacher</span
+      >
+      <div class="w-6"></div>
+    </div>
+
+    <div
+      class="hidden md:flex bg-base-200/80 backdrop-blur-md p-4 items-center justify-between z-10 border-b border-base-300"
+    >
+      <div>
+        <h1 class="text-xl font-bold tracking-wide text-base-content">
+          {{ currentSession()?.title || 'Conversation Room' }}
+        </h1>
+      </div>
+      <div class="flex gap-2">
+        <button
+          (click)="toggleLiveMode()"
+          class="btn"
+          [class.btn-success]="isLiveMode()"
+          [class.btn-primary]="!isLiveMode()"
+        >
+          @if (isLiveMode()) {
+          <svg lucidePhone class="w-5 h-5"></svg>
+          <span>End Call</span>
+          } @else {
+          <svg lucideMic class="w-5 h-5"></svg>
+          <span>Start Live Call</span>
+          }
+        </button>
+      </div>
+    </div>
+
+    <app-chat-container
+      [messages]="messages()"
+      [loading]="loading()"
+      [isPlaying]="ttsService.isPlaying()"
+      [showVoiceControl]="showVoiceControl()"
+      [currentAudioTime]="ttsService.currentAudioTime()"
+      [totalAudioDuration]="ttsService.totalAudioDuration()"
+      [playingMessageIndex]="playingMessageIndex()"
+      [learningLanguage]="
+        currentSession()?.learningLanguage ||
+        languageService.selectedLanguageCode()
+      "
+      (playAudio)="handlePlayAudio($event)"
+      (stopAudio)="handleStopAudio()"
+    >
+    </app-chat-container>
+
+    <div class="p-4">
+      <app-chat-input
+        [value]="userInput()"
+        [disabled]="loading()"
+        [isLoading]="loading()"
+        [isPlaying]="ttsService.isPlaying()"
+        (valueChange)="userInput.set($event)"
+        (messageSent)="sendMessage()"
+        (audioRecorded)="handleAudioRecorded($event)"
+        (stop)="handleStopAudio()"
+      >
+      </app-chat-input>
+
+      <div class="text-center mt-2">
+        <p class="text-[10px] text-gray-600">Powered by Angular 21</p>
+      </div>
+    </div>
+  </main>
+</div>

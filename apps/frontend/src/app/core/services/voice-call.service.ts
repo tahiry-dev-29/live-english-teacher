@@ -54,7 +54,7 @@ export class VoiceCallService {
   private onTranscriptReady?: (text: string) => void;
   private onInactivity?: () => void;
   private onStateChange?: (state: CallState) => void;
-  private language = 'fr-FR';
+  private language = 'en-US';
 
   async startCall(callbacks: {
     onTranscriptReady?: (text: string) => void;
@@ -65,7 +65,16 @@ export class VoiceCallService {
     this.onTranscriptReady = callbacks.onTranscriptReady;
     this.onInactivity = callbacks.onInactivity;
     this.onStateChange = callbacks.onStateChange;
-    this.language = callbacks.language || 'fr-FR';
+    const langMap: Record<string, string> = {
+      en: 'en-US',
+      fr: 'fr-FR',
+      es: 'es-ES',
+      de: 'de-DE',
+      it: 'it-IT',
+      ja: 'ja-JP',
+    };
+    const inputLang = callbacks.language || 'en-US';
+    this.language = langMap[inputLang] || inputLang;
 
     try {
       await this.vadService.start({
@@ -85,11 +94,18 @@ export class VoiceCallService {
     }
   }
 
+  private isRecognitionActive = false;
+
   stopCall(): void {
     this.vadService.stop();
 
     if (this.recognition) {
-      this.recognition.stop();
+      try {
+        this.recognition.stop();
+      } catch {
+        // ignore already stopped
+      }
+      this.isRecognitionActive = false;
       this.recognition = null;
     }
 
@@ -105,8 +121,13 @@ export class VoiceCallService {
     this.setState(CallState.SPEAKING);
     this.clearInactivityTimer();
 
-    if (this.recognition) {
-      this.recognition.stop();
+    if (this.recognition && this.isRecognitionActive) {
+      try {
+        this.recognition.stop();
+      } catch {
+        // ignore
+      }
+      this.isRecognitionActive = false;
     }
   }
 
@@ -114,8 +135,13 @@ export class VoiceCallService {
     this.setState(CallState.LISTENING);
     this.startInactivityTimer();
 
-    if (this.recognition) {
-      this.recognition.start();
+    if (this.recognition && !this.isRecognitionActive) {
+      try {
+        this.recognition.start();
+        this.isRecognitionActive = true;
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -165,22 +191,40 @@ export class VoiceCallService {
     this.recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
       if (event.error === 'network') {
         setTimeout(() => {
-          if (this.callState() === CallState.LISTENING) {
-            this.recognition?.start();
+          if (this.callState() === CallState.LISTENING && !this.isRecognitionActive) {
+            try {
+              this.recognition?.start();
+              this.isRecognitionActive = true;
+            } catch {
+              // ignore
+            }
           }
         }, 1000);
       }
     };
 
     this.recognition.onend = () => {
+      this.isRecognitionActive = false;
       if (this.callState() === CallState.LISTENING) {
         setTimeout(() => {
-          this.recognition?.start();
+          if (this.callState() === CallState.LISTENING && !this.isRecognitionActive) {
+            try {
+              this.recognition?.start();
+              this.isRecognitionActive = true;
+            } catch {
+              // ignore
+            }
+          }
         }, 100);
       }
     };
 
-    this.recognition.start();
+    try {
+      this.recognition.start();
+      this.isRecognitionActive = true;
+    } catch {
+      // ignore
+    }
   }
 
   private handleSpeechStart(): void {
@@ -202,8 +246,13 @@ export class VoiceCallService {
     this.setState(CallState.PROCESSING);
     this.clearInactivityTimer();
 
-    if (this.recognition) {
-      this.recognition.stop();
+    if (this.recognition && this.isRecognitionActive) {
+      try {
+        this.recognition.stop();
+      } catch {
+        // ignore
+      }
+      this.isRecognitionActive = false;
     }
 
     this.onTranscriptReady?.(transcript);

@@ -1,8 +1,10 @@
 import { Component, output } from '@angular/core';
+import { LucideEllipsis } from '@lucide/angular';
 
 @Component({
   selector: 'app-user-menu',
   standalone: true,
+  imports: [LucideEllipsis],
   template: `
     <div class="flex items-center gap-3">
       <!-- Avatar with gradient -->
@@ -27,20 +29,7 @@ import { Component, output } from '@angular/core';
         title="Settings"
         aria-label="Settings"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
-          />
-        </svg>
+        <svg lucideEllipsis class="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300"></svg>
       </button>
     </div>
   `,

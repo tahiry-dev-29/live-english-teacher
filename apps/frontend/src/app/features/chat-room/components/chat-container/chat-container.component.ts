@@ -2,15 +2,17 @@ import {
   Component,
   input,
   output,
-  effect,
   viewChild,
   ElementRef,
   signal,
-  computed,
+  AfterViewInit,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LucideArrowDown } from '@lucide/angular';
 import { MessageItemComponent } from '../message-item/message-item.component';
 import { VoiceControlComponent } from '@core/components/voice-control/voice-control-component';
+import { ChatWelcomeComponent } from './chat-welcome.component';
 
 export interface Message {
   role: 'user' | 'ai';
@@ -20,144 +22,17 @@ export interface Message {
 @Component({
   selector: 'app-chat-container',
   standalone: true,
-  imports: [CommonModule, MessageItemComponent, VoiceControlComponent],
-  template: `
-    <div class="relative h-full flex flex-col">
-      @if (showVoiceControl()) {
-      <div
-        class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-md px-4 transition-all duration-300 ease-in-out"
-      >
-        <app-voice-control
-          [currentTime]="currentAudioTime()"
-          [totalDuration]="totalAudioDuration()"
-          (stopped)="onStopAudio()"
-        >
-        </app-voice-control>
-      </div>
-      }
-
-      <div
-        class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
-        #scrollContainer
-        (scroll)="onScroll()"
-      >
-        @if (showVoiceControl()) {
-        <div class="h-16"></div>
-        } @if (messages().length === 0 && !loading()) {
-        <div
-          class="min-h-[60vh] flex flex-col items-center justify-center text-center p-8 w-auto opacity-70 select-none"
-        >
-          <div
-            class="w-24 h-24 bg-base-200 rounded-full flex items-center justify-center mb-6 animate-pulse"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-12 h-12 text-base-content/40"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
-              />
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold text-base-content mb-2">
-            {{ welcomeMessage().title }}
-          </h3>
-          <p class="text-base-content/60 max-w-xs">
-            {{ welcomeMessage().subtitle }}
-          </p>
-        </div>
-        } @for (message of messages(); track $index) {
-        <app-message-item
-          [message]="message"
-          [isPlaying]="isPlaying() && playingMessageIndex() === $index"
-          (playRequested)="onPlayMessage($index, message.text)"
-          (stop)="onStopAudio()"
-        >
-        </app-message-item>
-        } @if (loading()) {
-        <div class="flex justify-start animate-pulse">
-          <div
-            class="bg-base-200 backdrop-blur-sm rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 border border-base-300"
-          >
-            <div class="flex gap-1.5">
-              <div
-                class="w-2 h-2 bg-primary rounded-full animate-bounce"
-                style="animation-delay: 0ms"
-              ></div>
-              <div
-                class="w-2 h-2 bg-secondary rounded-full animate-bounce"
-                style="animation-delay: 150ms"
-              ></div>
-              <div
-                class="w-2 h-2 bg-warning rounded-full animate-bounce"
-                style="animation-delay: 300ms"
-              ></div>
-            </div>
-          </div>
-        </div>
-        }
-
-        <div class="h-4"></div>
-      </div>
-
-      @if (showScrollButton()) {
-      <button
-        (click)="scrollToBottom()"
-        class="absolute bottom-6 right-6 btn btn-circle bg-primary text-primary-content border-none shadow-lg shadow-primary/30 transition-transform hover:scale-110 active:scale-95 z-10 relative"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="w-5 h-5 group-hover:animate-bounce"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
-          />
-        </svg>
-        @if (hasNewMessages()) {
-        <span
-          class="absolute -top-1 -right-1 w-3 h-3 bg-error rounded-full border-2 border-base-100"
-        ></span>
-        }
-      </button>
-      }
-    </div>
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 100%;
-        overflow: hidden;
-      }
-      .overflow-y-auto::-webkit-scrollbar {
-        width: 6px;
-      }
-      .overflow-y-auto::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .overflow-y-auto::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-      }
-      .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-    `,
+  imports: [
+    CommonModule,
+    LucideArrowDown,
+    MessageItemComponent,
+    VoiceControlComponent,
+    ChatWelcomeComponent,
   ],
+  templateUrl: './chat-container.component.html',
+  styleUrl: './chat-container.component.css',
 })
-export class ChatContainerComponent {
+export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   messages = input<Message[]>([]);
   loading = input(false);
   isPlaying = input(false);
@@ -167,36 +42,61 @@ export class ChatContainerComponent {
   playingMessageIndex = input<number | null>(null);
   learningLanguage = input('en');
 
-  welcomeMessages: Record<string, { title: string; subtitle: string }> = {
-    en: {
-      title: 'Conversation Room',
-      subtitle: 'Start chatting to practice English!',
-    },
-    fr: {
-      title: 'Salle de Conversation',
-      subtitle: 'Commencez à discuter pour pratiquer le Français !',
-    },
-    es: {
-      title: 'Sala de Conversación',
-      subtitle: '¡Empieza a chatear para practicar Español!',
-    },
-    de: {
-      title: 'Konversationsraum',
-      subtitle: 'Fangen Sie an zu chatten, um Deutsch zu üben!',
-    },
-    it: {
-      title: 'Sala di Conversazione',
-      subtitle: "Inizia a chattare per praticare l'Italiano!",
-    },
-    ja: {
-      title: '会話ルーム',
-      subtitle: 'チャットを始めて日本語を練習しましょう！',
-    },
-  };
+  playAudio = output<{ text: string; index: number }>();
+  stop = output<void>();
 
-  welcomeMessage = computed(() => {
-    const lang = this.learningLanguage().toLowerCase();
-    const shortLang = lang.split('-')[0];
-    return this.welcomeMessages[shortLang] || this.welcomeMessages['en'];
-  });
+  readonly scrollContainer = viewChild<ElementRef>('scrollContainer');
+
+  showScrollButton = signal(false);
+  hasNewMessages = signal(false);
+
+  private scrollObserver?: IntersectionObserver;
+
+  ngAfterViewInit(): void {
+    const el = this.scrollContainer()?.nativeElement;
+    if (!el) return;
+
+    const sentinel = document.createElement('div');
+    sentinel.className = 'scroll-sentinel';
+    sentinel.style.height = '1px';
+    el.appendChild(sentinel);
+
+    this.scrollObserver = new IntersectionObserver(
+      ([entry]) => {
+        this.hasNewMessages.set(!entry.isIntersecting);
+      },
+      { root: el, threshold: 0.1 }
+    );
+    this.scrollObserver.observe(sentinel);
+  }
+
+  ngOnDestroy(): void {
+    this.scrollObserver?.disconnect();
+  }
+
+  onScroll(): void {
+    const el = this.scrollContainer()?.nativeElement;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    this.showScrollButton.set(!atBottom);
+    if (atBottom) {
+      this.hasNewMessages.set(false);
+    }
+  }
+
+  scrollToBottom(): void {
+    const el = this.scrollContainer()?.nativeElement;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      this.hasNewMessages.set(false);
+    }
+  }
+
+  onStopAudio(): void {
+    this.stop.emit();
+  }
+
+  onPlayMessage(index: number, text: string): void {
+    this.playAudio.emit({ text, index });
+  }
 }

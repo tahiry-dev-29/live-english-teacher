@@ -79,6 +79,7 @@
     "@genkit-ai/express": "^1.24.0",
     "@genkit-ai/flow": "^0.5.17",
     "@genkit-ai/googleai": "^1.24.0",
+    "@lucide/angular": "^1.39.0",
     "@nestjs/apollo": "^13.2.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",

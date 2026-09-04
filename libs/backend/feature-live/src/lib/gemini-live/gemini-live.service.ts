@@ -1,78 +1,46 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { buildTutorSystemPrompt } from '../tutor-prompt';
+import {
+  GEMINI_API_KEY,
+  GEMINI_CHAT_MODEL,
+  GEMINI_TTS_MODEL,
+  buildChatPayload,
+  buildTtsPayload,
+  resolveGeminiUrl,
+  getVoiceForLanguage,
+  extractResponseText,
+  extractResponseAudio,
+  ChatMessage,
+} from './gemini-live.util';
 
-const GEMINI_API_KEY = process.env['GEMINI_API_KEY'];
-const GEMINI_CHAT_MODEL = 'gemini-2.5-flash';
-const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+/** Low-level Gemini REST helpers shared by all Gemini Live service methods. */
+const postJson = async (
+  url: string,
+  payload: unknown
+): Promise<Response> =>
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 
 @Injectable()
 export class GeminiLiveService {
   private readonly logger = new Logger(GeminiLiveService.name);
   private readonly apiUrlBase = process.env['apiUrlBase'];
 
-  private buildPayload(
-    history: { role: 'user' | 'model'; text: string }[],
-    newMessage: string,
-    audioData?: string,
-    mimeType?: string,
-    targetLanguage = 'English'
-  ) {
-    const contents = history.map((msg) => ({
-      role: msg.role,
-      parts: [{ text: msg.text }],
-    }));
-
-    const userParts: any[] = [];
-    if (newMessage) {
-      userParts.push({ text: newMessage });
-    }
-    if (audioData && mimeType) {
-      userParts.push({
-        inlineData: {
-          mimeType: mimeType,
-          data: audioData,
-        },
-      });
-    }
-
-    if (userParts.length > 0) {
-      contents.push({
-        role: 'user',
-        parts: userParts,
-      });
-    }
-
-    const systemInstruction = {
-      parts: [
-        {
-          text: buildTutorSystemPrompt(targetLanguage),
-        },
-      ],
-    };
-
-    return {
-      contents,
-      systemInstruction,
-    };
-  }
-
   async getGeminiChatResponse(
-    history: { role: 'user' | 'model'; text: string }[],
+    history: ChatMessage[],
     newMessage: string,
     audioData?: string,
     mimeType?: string,
     targetLanguage = 'English'
   ): Promise<string> {
-    const baseUrl =
-      this.apiUrlBase ||
-      'https://generativelanguage.googleapis.com/v1beta/models/';
-    const apiUrl = `${baseUrl}${GEMINI_CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-
-    this.logger.log(`Using Base URL: ${baseUrl}`);
-    this.logger.log(
-      `Requesting Chat from: ${apiUrl.replace(GEMINI_API_KEY || '', '***')}`
+    const apiUrl = resolveGeminiUrl(
+      this.apiUrlBase,
+      GEMINI_CHAT_MODEL,
+      GEMINI_API_KEY
     );
-    const payload = this.buildPayload(
+    const payload = buildChatPayload(
       history,
       newMessage,
       audioData,
@@ -80,46 +48,12 @@ export class GeminiLiveService {
       targetLanguage
     );
 
+    this.logger.log(
+      `Requesting Chat from: ${apiUrl.replace(GEMINI_API_KEY, '***')}`
+    );
+
     try {
-      this.logger.log(`Sending chat request to ${GEMINI_CHAT_MODEL}`);
-      const maxRetries = 3;
-      let attempt = 0;
-
-      while (attempt < maxRetries) {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (text) {
-            this.logger.log('Gemini chat response received.');
-            return text;
-          }
-          this.logger.warn('Gemini response was okay but content was empty.');
-          return "I'm sorry, I couldn't generate a response right now. Could you try asking something else?";
-        }
-
-        this.logger.error(
-          `API Error (Attempt ${attempt + 1}): ${response.status} - ${
-            response.statusText
-          }`
-        );
-        attempt++;
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000;
-          this.logger.log(`Retrying in ${delay / 1000}s...`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-      }
-
-      throw new Error(
-        'Failed to get response from Gemini after multiple retries.'
-      );
+      return await this.postWithRetry(apiUrl, payload);
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error(`Error in getGeminiChatResponse: ${error.message}`);
@@ -134,34 +68,18 @@ export class GeminiLiveService {
     text: string,
     targetLanguage?: string
   ): Promise<{ audioData: string; mimeType: string } | null> {
-    const baseUrl =
-      this.apiUrlBase ||
-      'https://generativelanguage.googleapis.com/v1beta/models/';
-    const apiUrl = `${baseUrl}${GEMINI_TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-
-    const voice = this.getVoiceForLanguage(targetLanguage || 'en');
-
-    const payload = {
-      contents: [{ role: 'user', parts: [{ text }] }],
-      generationConfig: {
-        responseModalities: ['audio'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voice },
-          },
-        },
-      },
-    };
+    const apiUrl = resolveGeminiUrl(
+      this.apiUrlBase,
+      GEMINI_TTS_MODEL,
+      GEMINI_API_KEY
+    );
+    const voice = getVoiceForLanguage(targetLanguage || 'en');
+    const payload = buildTtsPayload(text, voice);
 
     this.logger.log(`Generating TTS audio with voice: ${voice}`);
 
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
+      const response = await postJson(apiUrl, payload);
       if (!response.ok) {
         this.logger.error(
           `TTS API Error: ${response.status} - ${response.statusText}`
@@ -169,19 +87,13 @@ export class GeminiLiveService {
         return null;
       }
 
-      const result = await response.json();
-      const part = result.candidates?.[0]?.content?.parts?.[0];
-
-      if (part?.inlineData) {
+      const audio = extractResponseAudio(await response.json());
+      if (audio) {
         this.logger.log('TTS audio generated successfully.');
-        return {
-          audioData: part.inlineData.data,
-          mimeType: part.inlineData.mimeType || 'audio/wav',
-        };
+      } else {
+        this.logger.warn('No audio data in TTS response.');
       }
-
-      this.logger.warn('No audio data in TTS response.');
-      return null;
+      return audio;
     } catch (error) {
       if (error instanceof Error) {
         this.logger.error(`Error in getGeminiTtsAudio: ${error.message}`);
@@ -192,10 +104,36 @@ export class GeminiLiveService {
     }
   }
 
-  private getVoiceForLanguage(language: string): string {
-    const lang = language.toLowerCase();
-    if (lang.startsWith('fr')) return 'Puck';
-    if (lang.startsWith('es')) return 'Fenrir';
-    return 'Kore';
+  private async postWithRetry(url: string, payload: unknown): Promise<string> {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      const response = await postJson(url, payload);
+
+      if (response.ok) {
+        const text = extractResponseText(await response.json());
+        if (text) {
+          this.logger.log('Gemini chat response received.');
+          return text;
+        }
+        this.logger.warn('Gemini response was okay but content was empty.');
+        return "I'm sorry, I couldn't generate a response right now. Could you try asking something else?";
+      }
+
+      this.logger.error(
+        `API Error (Attempt ${attempt + 1}): ${response.status} - ${
+          response.statusText
+        }`
+      );
+      attempt++;
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        this.logger.log(`Retrying in ${delay / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw new Error('Failed to get response from Gemini after multiple retries.');
   }
 }

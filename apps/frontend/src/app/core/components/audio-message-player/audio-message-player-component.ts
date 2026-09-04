@@ -6,10 +6,14 @@ import {
   signal,
   effect,
 } from '@angular/core';
+import { LucidePlay, LucidePause } from '@lucide/angular';
+import { formatTime } from '@core/utils/time.util';
+import { base64ToBlob } from '@core/utils/text.util';
 
 @Component({
   selector: 'app-audio-message-player',
   standalone: true,
+  imports: [LucidePlay, LucidePause],
   template: `
     <div
       class="audio-player bg-base-200/70 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center gap-3 max-w-xs border border-base-300 hover:bg-base-200 transition-colors"
@@ -20,31 +24,9 @@ import {
         [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
       >
         @if (isPlaying()) {
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          class="w-5 h-5"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z"
-            clip-rule="evenodd"
-          />
-        </svg>
+        <svg lucidePause class="w-5 h-5"></svg>
         } @else {
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          class="w-5 h-5 ml-0.5"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z"
-            clip-rule="evenodd"
-          />
-        </svg>
+        <svg lucidePlay class="w-5 h-5 ml-0.5"></svg>
         }
       </button>
 
@@ -64,155 +46,211 @@ import {
         >
           @for (bar of waveformBars(); track $index) {
           <div
-            class="waveform-bar rounded-full transition-all"
-            [style.height.px]="bar"
-            [style.width.px]="2"
-            [class.bg-primary]="$index < currentBarIndex()"
-            [class.bg-base-300]="$index >= currentBarIndex()"
+            class="w-1 rounded-full transition-all duration-75"
+            [class.bg-primary]="isBarPlayed($index)"
+            [class.bg-base-300]="!isBarPlayed($index)"
+            [style.height.px]="getBarHeight(bar)"
           ></div>
           }
         </div>
-        <div class="flex justify-between text-xs text-base-content/60">
+
+        <div
+          class="flex justify-between text-[11px] text-base-content/60 font-mono"
+        >
           <span>{{ formatTime(currentTime()) }}</span>
           <span>{{ formatTime(duration()) }}</span>
         </div>
       </div>
     </div>
   `,
-  styles: `
-    .waveform-bar {
-      transition: background-color 0.2s ease, height 0.1s ease;
-    }
-    .waveform-bar:hover {
-      background-color: var(--color-primary) !important;
-    }
-  `,
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class AudioMessagePlayerComponent implements OnDestroy {
   audioData = input.required<string>();
-  mimeType = input<string>('audio/webm');
+  mimeType = input<string>('audio/wav');
+  isPlayingInput = input<boolean>(false);
 
-  playbackStarted = output<void>();
-  playbackEnded = output<void>();
+  playRequested = output<void>();
+  pauseRequested = output<void>();
+  ended = output<void>();
 
   isPlaying = signal(false);
   currentTime = signal(0);
   duration = signal(0);
   waveformBars = signal<number[]>([]);
-  currentBarIndex = signal(0);
 
-  private audioElement: HTMLAudioElement | null = null;
+  private audio: HTMLAudioElement | null = null;
   private animationFrameId: number | null = null;
+  private audioUrl: string | null = null;
 
   constructor() {
-    this.waveformBars.set(
-      Array.from({ length: 50 }, () => Math.random() * 24 + 8)
-    );
+    effect(() => {
+      const isPlaying = this.isPlayingInput();
+      if (isPlaying !== this.isPlaying()) {
+        if (isPlaying) {
+          this.playAudio();
+        } else {
+          this.pauseAudio();
+        }
+      }
+    });
+
     effect(() => {
       const data = this.audioData();
       if (data) {
         this.initializeAudio(data);
       }
     });
+
+    this.generateDummyWaveform();
   }
 
-  private initializeAudio(data: string) {
-    if (this.audioElement) {
-      this.audioElement.pause();
-      this.audioElement.src = '';
+  ngOnDestroy(): void {
+    this.cleanupAudio();
+  }
+
+  private initializeAudio(base64Data: string): void {
+    this.cleanupAudio();
+
+    try {
+      const blob = base64ToBlob(base64Data, this.mimeType());
+      this.audioUrl = URL.createObjectURL(blob);
+      this.audio = new Audio(this.audioUrl);
+
+      this.audio.onloadedmetadata = () => {
+        if (this.audio) {
+          this.duration.set(this.audio.duration);
+        }
+      };
+
+      this.audio.onended = () => {
+        this.isPlaying.set(false);
+        this.currentTime.set(0);
+        this.ended.emit();
+        this.stopProgressTracking();
+      };
+
+      this.audio.onerror = (error) => {
+        console.error('Audio playback error:', error);
+        this.isPlaying.set(false);
+        this.stopProgressTracking();
+      };
+    } catch (error) {
+      console.error('Error creating audio blob:', error);
     }
-    this.audioElement = new Audio();
-    const blob = this.base64ToBlob(data, this.mimeType());
-    this.audioElement.src = URL.createObjectURL(blob);
-    this.audioElement.addEventListener('loadedmetadata', () => {
-      if (this.audioElement) this.duration.set(this.audioElement.duration);
-    });
-    this.audioElement.addEventListener('ended', () => {
-      this.isPlaying.set(false);
-      this.currentTime.set(0);
-      this.currentBarIndex.set(0);
-      this.playbackEnded.emit();
-      if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-    });
-    this.audioElement.addEventListener('timeupdate', () => {
-      if (this.audioElement) {
-        this.currentTime.set(this.audioElement.currentTime);
-        this.updateBarIndex();
-      }
-    });
   }
 
-  togglePlay() {
-    if (!this.audioElement) return;
+  togglePlay(): void {
     if (this.isPlaying()) {
-      this.audioElement.pause();
-      this.isPlaying.set(false);
-      if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+      this.pauseAudio();
+      this.pauseRequested.emit();
     } else {
-      this.audioElement.play();
-      this.isPlaying.set(true);
-      this.playbackStarted.emit();
-      this.updateProgress();
+      this.playAudio();
+      this.playRequested.emit();
     }
   }
 
-  seekBy(deltaSeconds: number) {
-    if (!this.audioElement || !this.duration()) return;
-    const newTime = Math.min(
-      Math.max(0, this.audioElement.currentTime + deltaSeconds),
-      this.duration()
-    );
-    this.audioElement.currentTime = newTime;
-    this.currentTime.set(newTime);
-    this.updateBarIndex();
+  private playAudio(): void {
+    if (!this.audio) return;
+
+    this.audio
+      .play()
+      .then(() => {
+        this.isPlaying.set(true);
+        this.startProgressTracking();
+      })
+      .catch((error) => {
+        console.error('Failed to play audio:', error);
+      });
   }
 
-  seekToPosition(event: MouseEvent) {
-    if (!this.audioElement) return;
+  private pauseAudio(): void {
+    if (!this.audio) return;
+    this.audio.pause();
+    this.isPlaying.set(false);
+    this.stopProgressTracking();
+  }
+
+  private startProgressTracking(): void {
+    const updateProgress = () => {
+      if (this.audio && this.isPlaying()) {
+        this.currentTime.set(this.audio.currentTime);
+        this.animationFrameId = requestAnimationFrame(updateProgress);
+      }
+    };
+    this.animationFrameId = requestAnimationFrame(updateProgress);
+  }
+
+  private stopProgressTracking(): void {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  seekToPosition(event: MouseEvent): void {
+    if (!this.audio || !this.duration()) return;
+
     const container = event.currentTarget as HTMLElement;
     const rect = container.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    this.audioElement.currentTime = percentage * this.duration();
-    this.currentTime.set(this.audioElement.currentTime);
-    this.updateBarIndex();
+    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+
+    const newTime = percentage * this.duration();
+    this.audio.currentTime = newTime;
+    this.currentTime.set(newTime);
   }
 
-  private updateProgress() {
-    if (!this.isPlaying()) return;
-    this.updateBarIndex();
-    this.animationFrameId = requestAnimationFrame(() => this.updateProgress());
+  seekBy(seconds: number): void {
+    if (!this.audio || !this.duration()) return;
+    const newTime = Math.max(
+      0,
+      Math.min(this.duration(), this.currentTime() + seconds)
+    );
+    this.audio.currentTime = newTime;
+    this.currentTime.set(newTime);
   }
 
-  private updateBarIndex() {
+  isBarPlayed(index: number): boolean {
+    const totalBars = this.waveformBars().length;
+    if (totalBars === 0 || this.duration() === 0) return false;
     const progress = this.currentTime() / this.duration();
-    const barCount = this.waveformBars().length;
-    this.currentBarIndex.set(Math.floor(progress * barCount));
+    return index / totalBars <= progress;
   }
 
-  private base64ToBlob(base64: string, mimeType: string): Blob {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+  getBarHeight(value: number): number {
+    return Math.max(4, value * 28);
+  }
+
+  private generateDummyWaveform(): void {
+    const bars: number[] = [];
+    const count = 32;
+    for (let i = 0; i < count; i++) {
+      const value = 0.2 + Math.sin(i * 0.3) * 0.3 + Math.random() * 0.5;
+      bars.push(Math.min(1, Math.max(0.1, value)));
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: mimeType });
+    this.waveformBars.set(bars);
+  }
+
+  private cleanupAudio(): void {
+    this.stopProgressTracking();
+    if (this.audio) {
+      this.audio.pause();
+      this.audio = null;
+    }
+    if (this.audioUrl) {
+      URL.revokeObjectURL(this.audioUrl);
+      this.audioUrl = null;
+    }
   }
 
   formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  ngOnDestroy() {
-    if (this.audioElement) {
-      this.audioElement.pause();
-      this.audioElement.src = '';
-    }
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-    }
+    return formatTime(seconds);
   }
 }
