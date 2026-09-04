@@ -5,7 +5,7 @@ import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import {
-  LucideMessageCircle,
+  LucideMessageCirclePlus,
   LucideSearch,
   LucideChevronDown,
   LucideChevronUp,
@@ -23,7 +23,7 @@ import {
     FormsModule,
     UserMenuComponent,
     SidebarSessionListComponent,
-    LucideMessageCircle,
+    LucideMessageCirclePlus,
     LucideSearch,
     LucideChevronDown,
     LucideChevronUp,
