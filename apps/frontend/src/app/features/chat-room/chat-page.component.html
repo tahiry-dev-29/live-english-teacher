@@ -1,13 +1,15 @@
 <div class="flex h-screen bg-base-100 text-base-content overflow-hidden">
   @if (isLiveMode()) {
-  <app-call-interface [callState]="voiceCallService.callState()"
+  <app-call-interface
+    [callState]="voiceCallService.callState()"
     [transcript]="voiceCallService.currentTranscript()"
     (endCall)="toggleLiveMode()"
     (toggleMute)="toggleVocal()"
-   />
+  />
   }
 
-  <app-sidebar (newChat)="onNewChat()"
+  <app-sidebar
+    (newChat)="onNewChat()"
     [sessions]="sessions() ?? []"
     [activeSessionId]="chatService.activeSessionId()"
     (sessionSelected)="loadSession($event)"
@@ -15,9 +17,10 @@
     (deleteSession)="onDeleteSession($event)"
     (openSettings)="showSettings.set(true)"
     #sidebar
-   />
+  />
 
-  <app-settings-dialog [isOpen]="showSettings()"
+  <app-settings-dialog
+    [isOpen]="showSettings()"
     [languages]="languageService.languages"
     [voices]="languageService.availableVoices()"
     [selectedLanguage]="languageService.selectedLanguageCode()"
@@ -25,13 +28,14 @@
     (closed)="showSettings.set(false)"
     (languageChange)="languageService.setLanguage($event)"
     (voiceChange)="languageService.setVoice($event)"
-   />
+    (requestVoiceReload)="languageService.reloadVoices()"
+  />
 
   <main
     class="flex-1 flex flex-col relative w-full h-full transition-all duration-300"
   >
     <div
-      class="md:hidden p-4 bg-base-200 border-b border-base-300 flex items-center justify-between"
+      class="lg:hidden p-4 bg-base-200 border-b border-base-300 flex items-center justify-between"
     >
       <button (click)="sidebar.toggle()" class="btn btn-ghost btn-circle">
         ☰
@@ -42,25 +46,15 @@
       >
       <button
         (click)="onNewChat()"
-        class="btn btn-primary btn-sm"
+        class="btn btn-primary btn-circle btn-sm"
         title="New Chat"
       >
-        <svg lucidePlus class="w-4 h-4"></svg>
-        <span class="text-sm font-medium">New</span>
+        <svg lucideMessageCircle class="w-5 h-5"></svg>
       </button>
     </div>
 
-    <div
-      class="hidden md:flex bg-base-200/80 backdrop-blur-md p-4 items-center justify-between z-10 border-b border-base-300"
-    >
-      <div>
-        <h1 class="text-xl font-bold tracking-wide text-base-content">
-          {{ currentSession()?.title || 'Conversation Room' }}
-        </h1>
-      </div>
-    </div>
-
-    <app-chat-container [messages]="messages()"
+    <app-chat-container
+      [messages]="messages()"
       [loading]="loading()"
       [isPlaying]="ttsService.isPlaying()"
       [showVoiceControl]="showVoiceControl()"
@@ -73,10 +67,11 @@
       "
       (playAudio)="handlePlayAudio($event)"
       (stop)="handleStopAudio()"
-     />
+    />
 
     <div class="p-4">
-      <app-chat-input [value]="userInput()"
+      <app-chat-input
+        [value]="userInput()"
         [disabled]="loading()"
         [isLoading]="loading()"
         [isPlaying]="ttsService.isPlaying()"
@@ -88,7 +83,7 @@
         (stop)="handleStopAudio()"
         (recordingStateChange)="handleRecordingStateChange($event)"
         (liveToggled)="toggleLiveMode()"
-       />
+      />
 
       <div class="text-center mt-2">
         <p class="text-[10px] text-base-content/50">Powered by Angular 21</p>
