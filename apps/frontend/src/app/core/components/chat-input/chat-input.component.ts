@@ -30,7 +30,7 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
           <input
             type="text"
             [ngModel]="value()"
-            (ngModelChange)="onInputChange($event)"
+            (ngModelChange)="valueChange.emit($event)"
             (keyup.enter)="onSubmit()"
             placeholder="Ask anything"
             [disabled]="disabled()"
@@ -124,10 +124,6 @@ export class ChatInputComponent {
   liveToggled = output<void>();
 
   readonly audioRecorder = viewChild(AudioRecorderComponent);
-
-  onInputChange(val: string) {
-    this.valueChange.emit(val);
-  }
 
   onSubmit() {
     if (this.value().trim() && !this.disabled() && !this.isLoading()) {
