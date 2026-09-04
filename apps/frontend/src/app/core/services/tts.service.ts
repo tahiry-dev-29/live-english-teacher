@@ -46,11 +46,17 @@ export class TtsService {
       onError?: (error: SpeechSynthesisErrorEvent) => void;
     }
   ): void {
-    if (this.isPlaying()) return;
-
+    // Always cancel previous speech before starting new one
     window.speechSynthesis.cancel();
+    this.isPlaying.set(false);
+    this.currentAudioTime.set(0);
 
     const cleanText = this.cleanMarkdown(text);
+    if (!cleanText.trim()) {
+      options?.onEnd?.();
+      return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
     this.currentUtterance = utterance;
 
@@ -89,7 +95,7 @@ export class TtsService {
     };
 
     utterance.onerror = (e) => {
-      console.error('TTS Error:', e);
+      console.error('TTS Error:', e.error, e);
       clearInterval(progressInterval);
       this.isPlaying.set(false);
       this.currentAudioTime.set(0);
@@ -98,7 +104,14 @@ export class TtsService {
       options?.onError?.(e);
     };
 
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      console.error('TTS speak() failed:', error);
+      this.isPlaying.set(false);
+      this.currentAudioTime.set(0);
+      this.currentUtterance = null;
+    }
   }
 
   stop(): void {
