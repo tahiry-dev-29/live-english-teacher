@@ -13,10 +13,7 @@ import {
 } from './gemini-live.util';
 
 /** Low-level Gemini REST helpers shared by all Gemini Live service methods. */
-const postJson = async (
-  url: string,
-  payload: unknown
-): Promise<Response> =>
+const postJson = async (url: string, payload: unknown): Promise<Response> =>
   fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -134,6 +131,8 @@ export class GeminiLiveService {
       }
     }
 
-    throw new Error('Failed to get response from Gemini after multiple retries.');
+    throw new Error(
+      'Failed to get response from Gemini after multiple retries.'
+    );
   }
 }

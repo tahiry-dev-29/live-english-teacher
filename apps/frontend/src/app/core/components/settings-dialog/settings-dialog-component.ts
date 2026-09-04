@@ -25,10 +25,13 @@ interface Language {
   template: `
     <!-- daisyUI 5: dialog element with showModal() -->
     <dialog #dialogEl class="modal">
-      <div class="modal-box max-w-lg p-0 max-h-[90vh] flex flex-col overflow-hidden">
-
+      <div
+        class="modal-box max-w-lg p-0 max-h-[90vh] flex flex-col overflow-hidden"
+      >
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-base-300 shrink-0">
+        <div
+          class="flex items-center justify-between px-6 py-4 border-b border-base-300 shrink-0"
+        >
           <h3 class="font-bold text-lg">Settings</h3>
           <form method="dialog">
             <button
@@ -43,21 +46,20 @@ interface Language {
 
         <!-- Body -->
         <div class="p-6 space-y-6 overflow-y-auto flex-1">
-
           <!-- Language fieldset -->
           <fieldset class="fieldset">
             <legend class="fieldset-legend">Learning Language</legend>
             <div class="grid grid-cols-3 gap-2">
               @for (lang of languagesList; track lang.code) {
-                <button
-                  type="button"
-                  class="btn btn-outline justify-start gap-2 h-auto py-3 px-3"
-                  [class.btn-primary]="tempLanguage() === lang.code"
-                  (click)="onLanguageSelect(lang.code)"
-                >
-                  <span class="text-xl leading-none">{{ lang.flag }}</span>
-                  <span class="text-xs font-medium">{{ lang.name }}</span>
-                </button>
+              <button
+                type="button"
+                class="btn btn-outline justify-start gap-2 h-auto py-3 px-3"
+                [class.btn-primary]="tempLanguage() === lang.code"
+                (click)="onLanguageSelect(lang.code)"
+              >
+                <span class="text-xl leading-none">{{ lang.flag }}</span>
+                <span class="text-xs font-medium">{{ lang.name }}</span>
+              </button>
               }
             </div>
           </fieldset>
@@ -65,52 +67,75 @@ interface Language {
           <!-- Voice fieldset -->
           <fieldset class="fieldset">
             <legend class="fieldset-legend">AI Tutor Voice</legend>
-            <div class="space-y-1 max-h-48 overflow-y-auto rounded-box border border-base-300 p-1">
-              @for (voice of filteredVoices(); track voice.name) {
-                <div
-                  class="flex items-center gap-2 p-2 rounded-box cursor-pointer transition-colors"
-                  [class.bg-primary]="tempVoiceName() === voice.name"
-                  [class.text-primary-content]="tempVoiceName() === voice.name"
-                  [class.hover:bg-base-200]="tempVoiceName() !== voice.name"
-                  (click)="tempVoiceName.set(voice.name)"
+            <div
+              class="space-y-1 max-h-48 overflow-y-auto rounded-box border border-base-300 p-1"
+            >
+              @if (showingFallbackVoices()) {
+              <div class="px-3 pt-1 text-xs text-base-content/40">
+                No exact voices for {{ tempLanguage() }} — showing all available
+              </div>
+              } @for (voice of filteredVoices(); track voice.name) {
+              <button
+                type="button"
+                class="flex items-center gap-2 p-2 rounded-box cursor-pointer transition-colors w-full text-left"
+                [class.bg-primary]="tempVoiceName() === voice.name"
+                [class.text-primary-content]="tempVoiceName() === voice.name"
+                [class.hover:bg-base-200]="tempVoiceName() !== voice.name"
+                (click)="tempVoiceName.set(voice.name)"
+              >
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium truncate">{{ voice.name }}</p>
+                  <p class="text-xs opacity-60 truncate">{{ voice.lang }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-circle shrink-0"
+                  (click)="previewVoice(voice); $event.stopPropagation()"
+                  [attr.aria-label]="
+                    playingVoice() === voice.name ? 'Stop' : 'Preview'
+                  "
                 >
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium truncate">{{ voice.name }}</p>
-                    <p class="text-xs opacity-60 truncate">{{ voice.lang }}</p>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-xs btn-circle shrink-0"
-                    (click)="previewVoice(voice); $event.stopPropagation()"
-                    [attr.aria-label]="playingVoice() === voice.name ? 'Stop' : 'Preview'"
-                  >
-                    @if (playingVoice() === voice.name) {
-                      <svg lucideSquare class="w-3.5 h-3.5"></svg>
-                    } @else {
-                      <svg lucideMic class="w-3.5 h-3.5"></svg>
-                    }
-                  </button>
-                  @if (tempVoiceName() === voice.name) {
-                    <span class="badge badge-primary badge-sm shrink-0">✓</span>
+                  @if (playingVoice() === voice.name) {
+                  <svg lucideSquare class="w-3.5 h-3.5"></svg>
+                  } @else {
+                  <svg lucideMic class="w-3.5 h-3.5"></svg>
                   }
-                </div>
+                </button>
+                @if (tempVoiceName() === voice.name) {
+                <span class="badge badge-primary badge-sm shrink-0">✓</span>
+                }
+              </button>
               } @empty {
-                <div class="text-center py-8 text-sm text-base-content/50">
-                  No voices available for this language
-                </div>
+              <div class="text-center py-8 text-sm text-base-content/50">
+                <p>No voices available on this device</p>
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs mt-2"
+                  (click)="requestVoiceReload.emit()"
+                >
+                  Reload voices
+                </button>
+              </div>
               }
             </div>
           </fieldset>
-
         </div>
 
         <!-- Footer actions -->
         <div class="modal-action px-6 py-4 border-t border-base-300 shrink-0">
           <form method="dialog" class="flex gap-2">
-            <button type="submit" class="btn btn-ghost" (click)="handleCancel()">
+            <button
+              type="submit"
+              class="btn btn-ghost"
+              (click)="handleCancel()"
+            >
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary" (click)="handleSave()">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              (click)="handleSave()"
+            >
               Save
             </button>
           </form>
@@ -136,6 +161,7 @@ export class SettingsDialogComponent {
   closed = output<void>();
   languageChange = output<string>();
   voiceChange = output<string>();
+  requestVoiceReload = output<void>();
 
   tempLanguage = signal<string>('en');
   tempVoiceName = signal<string>('');
@@ -155,12 +181,20 @@ export class SettingsDialogComponent {
     return langs.length > 0 ? langs : this.defaultLanguages;
   }
 
-  filteredVoices = computed(() => {
+  languageVoices = computed(() => {
     const lang = this.tempLanguage();
     return this.voices().filter((v) =>
       v.lang.toLowerCase().startsWith(lang.toLowerCase())
     );
   });
+
+  filteredVoices = computed(() =>
+    this.languageVoices().length > 0 ? this.languageVoices() : this.voices()
+  );
+
+  showingFallbackVoices = computed(
+    () => this.voices().length > 0 && this.languageVoices().length === 0
+  );
 
   private readonly sampleTexts: Record<string, string> = {
     en: 'Hello! This is a sample of my voice. Nice to meet you!',
@@ -179,6 +213,8 @@ export class SettingsDialogComponent {
       if (this.isOpen()) {
         this.tempLanguage.set(this.selectedLanguage());
         this.tempVoiceName.set(this.selectedVoiceName());
+        // Les voix peuvent n'arriver qu'après le boot: refresh à l'ouverture.
+        this.requestVoiceReload.emit();
         if (!dialog.open) dialog.showModal();
       } else {
         if (dialog.open) dialog.close();

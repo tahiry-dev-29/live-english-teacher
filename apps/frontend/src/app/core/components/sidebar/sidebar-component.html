@@ -20,6 +20,7 @@
 >
   <div
     class="p-5 border-b border-base-300 flex items-center gap-3 bg-base-300/50"
+    [class.justify-center]="isCollapsed() && !isMobile"
   >
     @if (!isCollapsed()) {
     <div
@@ -45,7 +46,6 @@
     <button
       (click)="toggleCollapse()"
       class="btn btn-ghost btn-circle"
-      [class.mx-auto]="isCollapsed()"
       title="Toggle sidebar"
     >
       @if (isCollapsed()) {

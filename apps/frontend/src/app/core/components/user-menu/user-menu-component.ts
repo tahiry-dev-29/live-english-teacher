@@ -29,7 +29,10 @@ import { LucideEllipsis } from '@lucide/angular';
         title="Settings"
         aria-label="Settings"
       >
-        <svg lucideEllipsis class="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300"></svg>
+        <svg
+          lucideEllipsis
+          class="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300"
+        ></svg>
       </button>
     </div>
   `,

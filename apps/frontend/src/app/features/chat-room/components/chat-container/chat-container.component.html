@@ -7,8 +7,7 @@
       [currentTime]="currentAudioTime()"
       [totalDuration]="totalAudioDuration()"
       (stopped)="onStopAudio()"
-    >
-    </app-voice-control>
+    />
   </div>
   }
 
@@ -20,15 +19,14 @@
     @if (showVoiceControl()) {
     <div class="h-16"></div>
     } @if (messages().length === 0 && !loading()) {
-    <app-chat-welcome [learningLanguage]="learningLanguage()"></app-chat-welcome>
+    <app-chat-welcome [learningLanguage]="learningLanguage()" />
     } @for (message of messages(); track $index) {
     <app-message-item
       [message]="message"
       [isPlaying]="isPlaying() && playingMessageIndex() === $index"
       (playRequested)="onPlayMessage($index, message.text)"
       (stop)="onStopAudio()"
-    >
-    </app-message-item>
+    />
     } @if (loading()) {
     <div class="flex justify-start animate-pulse">
       <div

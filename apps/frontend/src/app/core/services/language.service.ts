@@ -46,37 +46,78 @@ export class LanguageService {
     }
   }
 
-  private loadVoices() {
+  private voicesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private emptyPolls = 0;
+  private warmupDone = false;
+
+  /** Recharge la liste des voix (utile quand Chromium ne les expose qu'après
+   *  le premier événement voiceschanged). */
+  reloadVoices(): void {
+    this.emptyPolls = 0;
+    this.loadVoices();
+  }
+
+  private loadVoices(): void {
     if (typeof window === 'undefined') return;
 
     const voices = window.speechSynthesis.getVoices();
     if (voices.length > 0) {
-      this.availableVoices.set(voices);
-
-      if (!this.selectedVoice()) {
-        this.selectBestVoiceForLanguage(this.selectedLanguageCode());
+      if (this.voicesRefreshTimer) {
+        clearTimeout(this.voicesRefreshTimer);
+        this.voicesRefreshTimer = null;
       }
+      this.emptyPolls = 0;
+      this.availableVoices.set(voices);
+      this.selectBestVoiceForLanguage(this.selectedLanguageCode());
+      return;
+    }
+
+    // Chromium/Linux: getVoices() reste [] tant que le moteur speech-dispatcher
+    // n'a pas été réveillé. Après 2 polls vides, utterance muette (volume 0)
+    // pour forcer l'initialisation du moteur.
+    this.emptyPolls += 1;
+    if (this.emptyPolls === 2 && !this.warmupDone) {
+      this.warmupDone = true;
+      this.warmUpEngine();
+    }
+
+    // Backoff: 4x 500ms puis 6x 1000ms. reloadVoices() repart de zéro.
+    if (!this.voicesRefreshTimer && this.emptyPolls <= 10) {
+      const delay = this.emptyPolls <= 4 ? 500 : 1000;
+      this.voicesRefreshTimer = setTimeout(() => {
+        this.voicesRefreshTimer = null;
+        this.loadVoices();
+      }, delay);
     }
   }
 
-  private selectBestVoiceForLanguage(langCode: string) {
+  private warmUpEngine(): void {
+    try {
+      const warmup = new SpeechSynthesisUtterance('.');
+      warmup.volume = 0;
+      window.speechSynthesis.speak(warmup);
+    } catch {
+      // moteur indisponible: le polling continue tel quel
+    }
+  }
+
+  private selectBestVoiceForLanguage(langCode: string): void {
     const voices = this.availableVoices();
     if (voices.length === 0) return;
 
-    const matchingVoice = voices.find((v) =>
-      v.lang.toLowerCase().startsWith(langCode.toLowerCase())
-    );
+    const langPrefix = langCode.toLowerCase();
+    const current = this.selectedVoice();
+    const currentExists =
+      current !== null && voices.some((v) => v.name === current.name);
+    const currentMatches =
+      current !== null && current.lang.toLowerCase().startsWith(langPrefix);
 
-    if (matchingVoice) {
-      this.selectedVoice.set(matchingVoice);
-    } else {
-      if (
-        !this.selectedVoice()
-          ?.lang.toLowerCase()
-          .startsWith(langCode.toLowerCase())
-      ) {
-        this.selectedVoice.set(voices[0]);
-      }
-    }
+    // Préserve le choix utilisateur tant qu'il existe et correspond.
+    if (currentExists && currentMatches) return;
+
+    const matching = voices.find((v) =>
+      v.lang.toLowerCase().startsWith(langPrefix)
+    );
+    this.selectedVoice.set(matching ?? voices[0]);
   }
 }

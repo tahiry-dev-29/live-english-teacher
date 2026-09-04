@@ -10,20 +10,20 @@ L'objectif est de basculer entièrement sur **daisyUI 5** avec le thème `hallow
 
 ### État actuel des composants (analyse)
 
-| Composant | Classes daisyUI actuelles | Classes Tailwind personnalisées | Statut |
-|-----------|--------------------------|--------------------------------|--------|
-| chat-page | none | `bg-gray-950`, `from-blue-400 to-purple-400`, `btn` (non daisyUI), `text-white` | À migrer |
-| sidebar | none | `bg-gray-950`, `border-gray-800`, `text-gray-400/50`, `bg-blue-600/50` | À migrer |
-| user-menu | none | classes personnalisées avatar, gradient | À migrer |
-| settings-dialog | none | classes modal personnalisées | À migrer |
-| chat-input | `bg-base-200/80`, `border-base-300`, `loading loading-dots` | `bg-transparent`, `border-none`, `focus-within:border-primary/60` | Partiel |
-| message-item | `chat`, `chat-bubble-primary`, `chat-bubble-neutral` | `prose prose-sm`, `max-w-none` | Partiel |
-| voice-control | none | `bg-green-100/10`, `text-green-500/20`, `bg-gray-600`, `bg-gray-800/50` | À migrer |
-| audio-message-player | `bg-base-200/70`, `bg-primary`, `bg-base-300` | `bg-transparent`, `hover:bg-base-200` | Partiel |
-| call-interface | none | classes personnalisées d'état | À migrer |
-| not-found-page | none | gradients custom | À migrer |
-| tts-tester | none | classes card personnalisées | À migrer |
-| audio-recorder | Aucun template HTML | - | À vérifier |
+| Composant            | Classes daisyUI actuelles                                   | Classes Tailwind personnalisées                                                 | Statut     |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------- |
+| chat-page            | none                                                        | `bg-gray-950`, `from-blue-400 to-purple-400`, `btn` (non daisyUI), `text-white` | À migrer   |
+| sidebar              | none                                                        | `bg-gray-950`, `border-gray-800`, `text-gray-400/50`, `bg-blue-600/50`          | À migrer   |
+| user-menu            | none                                                        | classes personnalisées avatar, gradient                                         | À migrer   |
+| settings-dialog      | none                                                        | classes modal personnalisées                                                    | À migrer   |
+| chat-input           | `bg-base-200/80`, `border-base-300`, `loading loading-dots` | `bg-transparent`, `border-none`, `focus-within:border-primary/60`               | Partiel    |
+| message-item         | `chat`, `chat-bubble-primary`, `chat-bubble-neutral`        | `prose prose-sm`, `max-w-none`                                                  | Partiel    |
+| voice-control        | none                                                        | `bg-green-100/10`, `text-green-500/20`, `bg-gray-600`, `bg-gray-800/50`         | À migrer   |
+| audio-message-player | `bg-base-200/70`, `bg-primary`, `bg-base-300`               | `bg-transparent`, `hover:bg-base-200`                                           | Partiel    |
+| call-interface       | none                                                        | classes personnalisées d'état                                                   | À migrer   |
+| not-found-page       | none                                                        | gradients custom                                                                | À migrer   |
+| tts-tester           | none                                                        | classes card personnalisées                                                     | À migrer   |
+| audio-recorder       | Aucun template HTML                                         | -                                                                               | À vérifier |
 
 ## Implémentation
 

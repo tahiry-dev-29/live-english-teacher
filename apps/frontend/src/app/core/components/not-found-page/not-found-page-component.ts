@@ -7,14 +7,19 @@ import { StarBackgroundComponent } from '../star-background/star-background.comp
 @Component({
   selector: 'app-not-found-page',
   standalone: true,
-  imports: [RouterLink, StarBackgroundComponent, SpaceIllustrationComponent, LucideHome],
+  imports: [
+    RouterLink,
+    StarBackgroundComponent,
+    SpaceIllustrationComponent,
+    LucideHome,
+  ],
   template: `
     <div
       class="min-h-screen bg-base-100 text-base-content flex flex-col items-center justify-center p-6 overflow-hidden relative"
     >
-      <app-star-background></app-star-background>
+      <app-star-background />
 
-      <app-space-illustration></app-space-illustration>
+      <app-space-illustration />
 
       <!-- Content -->
       <div class="relative z-10 text-center mt-8">

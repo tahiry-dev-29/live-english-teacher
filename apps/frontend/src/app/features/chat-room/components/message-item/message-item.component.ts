@@ -7,31 +7,38 @@ import { LucideSquare, LucideMic } from '@lucide/angular';
   standalone: true,
   imports: [CommonModule, LucideSquare, LucideMic],
   template: `
-    <div class="chat" [class.chat-end]="message().role === 'user'" [class.chat-start]="message().role === 'ai'">
+    <div
+      class="chat"
+      [class.chat-end]="message().role === 'user'"
+      [class.chat-start]="message().role === 'ai'"
+    >
       <div
         class="chat-bubble max-w-[80%]"
         [class.chat-bubble-primary]="message().role === 'user'"
         [class.chat-bubble-neutral]="message().role === 'ai'"
       >
-        <div class="prose prose-sm max-w-none" [innerHTML]="formatMessage(message().text)"></div>
+        <div
+          class="prose prose-sm max-w-none"
+          [innerHTML]="formatMessage(message().text)"
+        ></div>
 
         @if (message().role === 'ai') {
-          <div class="mt-2 flex items-center gap-1">
-            <button
-              (click)="handlePlayStop()"
-              class="btn btn-ghost btn-xs gap-1"
-              [class.text-primary]="!isPlaying()"
-              [class.text-error]="isPlaying()"
-            >
-              @if (isPlaying()) {
-                <svg lucideSquare class="w-3 h-3"></svg>
-                <span>Stop</span>
-              } @else {
-                <svg lucideMic class="w-3 h-3"></svg>
-                <span>Listen</span>
-              }
-            </button>
-          </div>
+        <div class="mt-2 flex items-center gap-1">
+          <button
+            (click)="handlePlayStop()"
+            class="btn btn-ghost btn-xs gap-1"
+            [class.text-primary]="!isPlaying()"
+            [class.text-error]="isPlaying()"
+          >
+            @if (isPlaying()) {
+            <svg lucideSquare class="w-3 h-3"></svg>
+            <span>Stop</span>
+            } @else {
+            <svg lucideMic class="w-3 h-3"></svg>
+            <span>Listen</span>
+            }
+          </button>
+        </div>
         }
       </div>
     </div>

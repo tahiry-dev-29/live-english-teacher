@@ -1,4 +1,4 @@
-import { Component, input, output, signal, effect } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
 
 @Component({
@@ -6,17 +6,19 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
   standalone: true,
   imports: [LucidePlay, LucidePause, LucideSquare],
   template: `
-    <div class="voice-control-whatsapp bg-base-200 backdrop-blur-md rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg border border-base-300 max-w-md">
-      
+    <div
+      class="voice-control-whatsapp bg-base-200 backdrop-blur-md rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg border border-base-300 max-w-md"
+    >
       <!-- Play/Pause Button -->
-      <button 
+      <button
         (click)="togglePlayPause()"
         class="btn btn-circle btn-success shadow-md"
-        [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'">
+        [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
+      >
         @if (isPlaying()) {
-          <svg lucidePause class="w-5 h-5"></svg>
+        <svg lucidePause class="w-5 h-5"></svg>
         } @else {
-          <svg lucidePlay class="w-5 h-5 ml-0.5"></svg>
+        <svg lucidePlay class="w-5 h-5 ml-0.5"></svg>
         }
       </button>
 
@@ -26,11 +28,11 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
         <div class="text-sm font-medium text-success">
           {{ formatTime(currentTime()) }}
         </div>
-        
+
         <!-- Waveform Visualization with Progress Bar -->
         <div class="relative">
           <!-- Waveform -->
-          <div 
+          <div
             class="h-6 flex items-center gap-0.5 cursor-pointer relative"
             (click)="seekToPosition($event)"
             (keydown)="handleKeydown($event)"
@@ -39,34 +41,34 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
             [attr.aria-label]="'Seek audio position'"
             [attr.aria-valuemin]="0"
             [attr.aria-valuemax]="totalDuration()"
-            [attr.aria-valuenow]="currentTime()">
-            
+            [attr.aria-valuenow]="currentTime()"
+          >
             @for (bar of waveformBars(); track $index) {
-              <div 
-                class="w-1 rounded-full transition-all duration-75"
-                [class.bg-success]="isBarPlayed($index)"
-                [class.bg-base-300]="!isBarPlayed($index)"
-                [style.height.px]="getBarHeight(bar)">
-              </div>
+            <div
+              class="w-1 rounded-full transition-all duration-75"
+              [class.bg-success]="isBarPlayed($index)"
+              [class.bg-base-300]="!isBarPlayed($index)"
+              [style.height.px]="getBarHeight(bar)"
+            ></div>
             }
           </div>
 
           <!-- Progress Bar Overlay (for precision) -->
-          <div 
+          <div
             class="absolute bottom-0 left-0 h-0.5 bg-success rounded-full pointer-events-none transition-all duration-75"
-            [style.width.%]="getProgress()">
-          </div>
+            [style.width.%]="getProgress()"
+          ></div>
         </div>
       </div>
 
       <!-- Stop Button -->
-      <button 
+      <button
         (click)="stopPlayback()"
         class="btn btn-circle btn-sm btn-error"
-        [attr.aria-label]="'Stop'">
+        [attr.aria-label]="'Stop'"
+      >
         <svg lucideSquare class="w-4 h-4"></svg>
       </button>
-
     </div>
   `,
   styles: `
@@ -83,14 +85,14 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
         transform: translateY(0);
       }
     }
-  `
+  `,
 })
 export class VoiceControlComponent {
   currentTime = input<number>(0);
   totalDuration = input<number>(0);
-  
+
   stopped = output<void>();
-  seeked = output<number>();
+  audioSeeked = output<number>();
   paused = output<void>();
   resumed = output<void>();
 
@@ -102,7 +104,7 @@ export class VoiceControlComponent {
   }
 
   togglePlayPause() {
-    this.isPlaying.update(v => !v);
+    this.isPlaying.update((v) => !v);
     if (this.isPlaying()) {
       this.resumed.emit();
     } else {
@@ -121,7 +123,7 @@ export class VoiceControlComponent {
     const clickX = event.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, clickX / rect.width));
     const newTime = percentage * this.totalDuration();
-    this.seeked.emit(newTime);
+    this.audioSeeked.emit(newTime);
   }
 
   handleKeydown(event: KeyboardEvent) {
@@ -130,11 +132,11 @@ export class VoiceControlComponent {
 
     if (event.key === 'ArrowRight') {
       newTime = Math.min(this.totalDuration(), newTime + step);
-      this.seeked.emit(newTime);
+      this.audioSeeked.emit(newTime);
       event.preventDefault();
     } else if (event.key === 'ArrowLeft') {
       newTime = Math.max(0, newTime - step);
-      this.seeked.emit(newTime);
+      this.audioSeeked.emit(newTime);
       event.preventDefault();
     } else if (event.key === ' ' || event.key === 'Enter') {
       this.togglePlayPause();

@@ -41,7 +41,9 @@ export function resolveGeminiUrl(
   model: string,
   apiKey: string
 ): string {
-  return `${baseUrl || GEMINI_API_BASE_URL}${model}:generateContent?key=${apiKey}`;
+  return `${
+    baseUrl || GEMINI_API_BASE_URL
+  }${model}:generateContent?key=${apiKey}`;
 }
 
 export function buildChatPayload(
@@ -69,7 +71,9 @@ export function buildChatPayload(
 
   return {
     contents,
-    systemInstruction: { parts: [{ text: buildTutorSystemPrompt(targetLanguage) }] },
+    systemInstruction: {
+      parts: [{ text: buildTutorSystemPrompt(targetLanguage) }],
+    },
   };
 }
 
@@ -97,7 +101,9 @@ export function getVoiceForLanguage(language: string): string {
   return 'Kore';
 }
 
-export function extractResponseText(result: GeminiApiResponse): string | undefined {
+export function extractResponseText(
+  result: GeminiApiResponse
+): string | undefined {
   const cand = result.candidates?.[0];
   const content = cand?.content;
   if (!content) return undefined;

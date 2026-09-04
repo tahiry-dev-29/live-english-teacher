@@ -11,7 +11,8 @@ import { FeatureLiveModule } from '@live-languages-teacher/feature-live';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: true,
-      playground: true,
+      playground: process.env.NODE_ENV !== 'production',
+      introspection: process.env.NODE_ENV !== 'production',
     }),
   ],
   controllers: [],

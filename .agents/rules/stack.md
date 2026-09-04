@@ -5,6 +5,7 @@
 - Angular ~20.3 (standalone, Signals, `resource()`, inline templates) — Nx workspace
 - Apollo Angular (GraphQL queries/mutations) — `apollo-angular@12`
 - TailwindCSS v4, PostCSS, daisyUI 5
+- Icônes : `@lucide/angular` uniquement (`<svg lucideXxx>`), aucun SVG inline en dur (`xmlns`/`viewBox`/`<path>` interdits dans `apps/frontend/src`)
 - Services : chat.service.ts, message.service.ts, tts.service.ts, voice-call.service.ts, vad.service.ts
 
 ## Backend

@@ -191,7 +191,10 @@ export class VoiceCallService {
     this.recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
       if (event.error === 'network') {
         setTimeout(() => {
-          if (this.callState() === CallState.LISTENING && !this.isRecognitionActive) {
+          if (
+            this.callState() === CallState.LISTENING &&
+            !this.isRecognitionActive
+          ) {
             try {
               this.recognition?.start();
               this.isRecognitionActive = true;
@@ -207,7 +210,10 @@ export class VoiceCallService {
       this.isRecognitionActive = false;
       if (this.callState() === CallState.LISTENING) {
         setTimeout(() => {
-          if (this.callState() === CallState.LISTENING && !this.isRecognitionActive) {
+          if (
+            this.callState() === CallState.LISTENING &&
+            !this.isRecognitionActive
+          ) {
             try {
               this.recognition?.start();
               this.isRecognitionActive = true;

@@ -78,7 +78,7 @@ export class AudioMessagePlayerComponent implements OnDestroy {
 
   playRequested = output<void>();
   pauseRequested = output<void>();
-  ended = output<void>();
+  audioEnded = output<void>();
 
   isPlaying = signal(false);
   currentTime = signal(0);
@@ -132,7 +132,7 @@ export class AudioMessagePlayerComponent implements OnDestroy {
       this.audio.onended = () => {
         this.isPlaying.set(false);
         this.currentTime.set(0);
-        this.ended.emit();
+        this.audioEnded.emit();
         this.stopProgressTracking();
       };
 

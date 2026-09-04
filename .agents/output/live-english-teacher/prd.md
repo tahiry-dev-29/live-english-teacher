@@ -32,6 +32,7 @@ Migration du design system frontend vers **daisyUI 5** avec thème `halloween`. 
 ## Contraintes techniques connues à ce stade
 
 Voir `.agents/rules/stack.md` pour le détail. Contraintes clés :
+
 - Angular 20.3 standalone, Signals
 - daisyUI 5 + thème halloween
 - Aucune classe CSS custom `/deep/` ou `@apply` personalisé

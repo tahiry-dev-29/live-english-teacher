@@ -1,4 +1,7 @@
-export const WELCOME_MESSAGES: Record<string, { title: string; subtitle: string }> = {
+export const WELCOME_MESSAGES: Record<
+  string,
+  { title: string; subtitle: string }
+> = {
   en: {
     title: 'Conversation Room',
     subtitle: 'Start chatting to practice English!',
