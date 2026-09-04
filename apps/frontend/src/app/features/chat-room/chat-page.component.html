@@ -105,6 +105,7 @@
         [disabled]="loading()"
         [isLoading]="loading()"
         [isPlaying]="ttsService.isPlaying()"
+        [isRecording]="isAudioRecording()"
         [showLiveButton]="true"
         [isLiveActive]="isLiveMode()"
         (liveToggled)="toggleLiveMode()"
@@ -112,6 +113,7 @@
         (messageSent)="sendMessage()"
         (audioRecorded)="handleAudioRecorded($event)"
         (stop)="handleStopAudio()"
+        (recordingStateChange)="handleRecordingStateChange($event)"
       >
       </app-chat-input>
 

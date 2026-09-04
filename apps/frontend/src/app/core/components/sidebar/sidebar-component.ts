@@ -5,7 +5,6 @@ import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import {
-  LucideX,
   LucidePlus,
   LucideSearch,
   LucideChevronDown,
@@ -22,7 +21,6 @@ import {
     FormsModule,
     UserMenuComponent,
     SidebarSessionListComponent,
-    LucideX,
     LucidePlus,
     LucideSearch,
     LucideChevronDown,

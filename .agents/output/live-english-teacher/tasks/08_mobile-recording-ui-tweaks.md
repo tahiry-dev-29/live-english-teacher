@@ -1,6 +1,6 @@
 # Task 08 — Ajustements UI mobile & recording
 
-**Status: TODO**
+**Status: DONE**
 
 ## Contexte
 

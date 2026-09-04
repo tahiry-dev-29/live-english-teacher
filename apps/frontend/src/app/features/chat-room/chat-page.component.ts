@@ -61,6 +61,7 @@ export class ChatPageComponent implements OnInit {
   showVoiceControl = signal(false);
   playingMessageIndex = signal<number | null>(null);
   vocalEnabled = signal(false);
+  isAudioRecording = signal(false);
 
   currentSession = computed(() => {
     const id = this.chatService.activeSessionId();
@@ -196,6 +197,10 @@ export class ChatPageComponent implements OnInit {
     this.ttsService.stop();
     this.playingMessageIndex.set(null);
     this.showVoiceControl.set(false);
+  }
+
+  handleRecordingStateChange(isRecording: boolean): void {
+    this.isAudioRecording.set(isRecording);
   }
 
   private speakText(text: string): void {

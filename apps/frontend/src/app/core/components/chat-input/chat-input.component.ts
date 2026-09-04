@@ -23,24 +23,28 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
         <!-- Mic / Audio Recorder -->
         <app-audio-recorder
           (audioRecorded)="onAudioRecorded($event)"
+          (recordingStateChange)="recordingStateChange.emit($event)"
           class="shrink-0"
         ></app-audio-recorder>
 
         <!-- Input area -->
         <div class="flex-1 min-w-0">
+          @if (isRecording()) {
+          <div class="flex items-center gap-2 text-error">
+            <span class="loading loading-dots loading-sm"></span>
+            <span class="text-sm font-medium">Recording…</span>
+          </div>
+          } @else {
           <input
             type="text"
             [ngModel]="value()"
             (ngModelChange)="onInputChange($event)"
             (keyup.enter)="onSubmit()"
-            [placeholder]="
-              audioRecorder?.isRecording()
-                ? 'UI recording'
-                : 'Type a message...'
-            "
+            placeholder="Type a message..."
             [disabled]="disabled()"
             class="w-full bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40 text-sm"
           />
+          }
         </div>
 
         <!-- Live button -->
@@ -94,6 +98,7 @@ export class ChatInputComponent {
   disabled = input<boolean>(false);
   isLoading = input<boolean>(false);
   isPlaying = input<boolean>(false);
+  isRecording = input<boolean>(false);
   showLiveButton = input<boolean>(false);
   isLiveActive = input<boolean>(false);
 
@@ -102,6 +107,7 @@ export class ChatInputComponent {
   audioRecorded = output<{ base64: string }>();
   stop = output<void>();
   liveToggled = output<void>();
+  recordingStateChange = output<boolean>();
 
   @ViewChild(AudioRecorderComponent) audioRecorder?: AudioRecorderComponent;
 

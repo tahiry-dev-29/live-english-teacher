@@ -30,6 +30,7 @@ import { AudioRecorderService } from '@core/services/audio-recorder-service';
 })
 export class AudioRecorderComponent {
   audioRecorded = output<{ base64: string }>();
+  recordingStateChange = output<boolean>();
 
   private audioRecorderService = inject(AudioRecorderService);
   isRecording = signal(false);
@@ -39,6 +40,7 @@ export class AudioRecorderComponent {
     try {
       await this.audioRecorderService.startRecording();
       this.isRecording.set(true);
+      this.recordingStateChange.emit(true);
     } catch (error) {
       console.error('Failed to start recording', error);
     }
@@ -49,10 +51,12 @@ export class AudioRecorderComponent {
     try {
       const result = await this.audioRecorderService.stopRecording();
       this.isRecording.set(false);
+      this.recordingStateChange.emit(false);
       this.audioRecorded.emit({ base64: result.base64 });
     } catch (error) {
       console.error('Failed to stop recording', error);
       this.isRecording.set(false);
+      this.recordingStateChange.emit(false);
     }
   }
 }
