@@ -9,8 +9,9 @@ import {
   LucideSearch,
   LucideChevronDown,
   LucideChevronUp,
-  LucideChevronLeft,
   LucideSettings,
+  LucidePanelRightClose,
+  LucidePanelRightOpen,
 } from '@lucide/angular';
 
 @Component({
@@ -25,8 +26,9 @@ import {
     LucideSearch,
     LucideChevronDown,
     LucideChevronUp,
-    LucideChevronLeft,
     LucideSettings,
+    LucidePanelRightClose,
+    LucidePanelRightOpen,
   ],
   templateUrl: './sidebar-component.html',
 })
