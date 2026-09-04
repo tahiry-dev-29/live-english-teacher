@@ -1,7 +1,7 @@
-import { Component, input, output, ViewChild } from '@angular/core';
+import { Component, input, output, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideSquare, LucideSend, LucideMic } from '@lucide/angular';
+import { LucideSquare, LucideMic, LucidePlus } from '@lucide/angular';
 import { AudioRecorderComponent } from '@features/chat-room/components/audio-recorder/audio-recorder';
 
 @Component({
@@ -11,21 +11,24 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
     CommonModule,
     FormsModule,
     LucideSquare,
-    LucideSend,
     LucideMic,
+    LucidePlus,
     AudioRecorderComponent,
   ],
   template: `
     <div class="w-full max-w-4xl mx-auto px-4 pb-2">
       <div
-        class="flex items-center gap-2 bg-base-200/80 backdrop-blur-sm rounded-2xl border border-base-300 focus-within:border-primary/60 transition-all px-3 py-2 shadow-lg"
+        class="flex items-center gap-3 bg-base-300 rounded-2xl px-4 py-3 shadow-lg"
       >
-        <!-- Mic / Audio Recorder -->
-        <app-audio-recorder
-          (audioRecorded)="onAudioRecorded($event)"
-          (recordingStateChange)="recordingStateChange.emit($event)"
-          class="shrink-0"
-        ></app-audio-recorder>
+        <!-- + Button -->
+        <button
+          (click)="onNewChat()"
+          class="btn btn-circle btn-sm bg-base-content text-base-300 hover:bg-base-content/90 shrink-0"
+          title="New Chat"
+          aria-label="New Chat"
+        >
+          <svg lucidePlus class="w-5 h-5"></svg>
+        </button>
 
         <!-- Input area -->
         <div class="flex-1 min-w-0">
@@ -40,47 +43,70 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
             [ngModel]="value()"
             (ngModelChange)="onInputChange($event)"
             (keyup.enter)="onSubmit()"
-            placeholder="Type a message..."
+            placeholder="Ask anything"
             [disabled]="disabled()"
-            class="w-full bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40 text-sm"
+            class="w-full bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40 text-base"
           />
           }
         </div>
 
-        <!-- Live button -->
-        @if (showLiveButton()) {
-        <button
-          (click)="liveToggled.emit()"
-          class="btn btn-circle btn-sm shrink-0 transition-all md:hidden"
-          [class.btn-error]="isLiveActive()"
-          [class.btn-ghost]="!isLiveActive()"
-          [title]="isLiveActive() ? 'Stop live call' : 'Start live call'"
-          aria-label="Toggle Live Call"
-        >
-          <svg lucideMic class="w-4 h-4"></svg>
-        </button>
-        }
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Microphone button -->
+          <app-audio-recorder
+            (audioRecorded)="onAudioRecorded($event)"
+            (recordingStateChange)="recordingStateChange.emit($event)"
+            class="shrink-0"
+          ></app-audio-recorder>
 
-        <!-- Stop button -->
-        @if (isLoading() || isPlaying()) {
-        <button
-          (click)="onStop()"
-          class="btn btn-circle btn-sm btn-error shrink-0"
-          title="Stop"
-          aria-label="Stop"
-        >
-          <svg lucideSquare class="w-4 h-4"></svg>
-        </button>
-        } @else if (!audioRecorder?.isRecording()) {
-        <button
-          (click)="onSubmit()"
-          [disabled]="!value().trim() || disabled()"
-          class="btn btn-circle btn-sm btn-primary shrink-0"
-          aria-label="Send message"
-        >
-          <svg lucideSend class="w-4 h-4"></svg>
-        </button>
-        }
+          <!-- Live button -->
+          @if (showLiveButton()) {
+          <button
+            (click)="liveToggled.emit()"
+            class="btn btn-circle btn-sm transition-all md:hidden"
+            [class.btn-error]="isLiveActive()"
+            [class.btn-ghost]="!isLiveActive()"
+            [title]="isLiveActive() ? 'Stop live call' : 'Start live call'"
+            aria-label="Toggle Live Call"
+          >
+            <svg lucideMic class="w-4 h-4"></svg>
+          </button>
+          }
+
+          <!-- Stop button -->
+          @if (isLoading() || isPlaying()) {
+          <button
+            (click)="onStop()"
+            class="btn btn-circle btn-sm btn-error"
+            title="Stop"
+            aria-label="Stop"
+          >
+            <svg lucideSquare class="w-4 h-4"></svg>
+          </button>
+          } @else if (!audioRecorder()?.isRecording()) {
+          <!-- Main action button with waves -->
+          <button
+            (click)="onSubmit()"
+            [disabled]="!value().trim() || disabled()"
+            class="btn btn-circle btn-primary"
+            aria-label="Send message"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-5 h-5"
+            >
+              <path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5-8 5 5 0 0 0-5-5 8 8 0 0 1-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5Z" />
+              <path d="M12 12a5 5 0 0 0-5 5 8 8 0 0 1 5-8 5 5 0 0 0 5 5 8 8 0 0 1-5-5 5 5 0 0 0-5-5Z" />
+            </svg>
+          </button>
+          }
+        </div>
       </div>
     </div>
   `,
@@ -108,8 +134,9 @@ export class ChatInputComponent {
   stop = output<void>();
   liveToggled = output<void>();
   recordingStateChange = output<boolean>();
+  newChat = output<void>();
 
-  @ViewChild(AudioRecorderComponent) audioRecorder?: AudioRecorderComponent;
+  readonly audioRecorder = viewChild(AudioRecorderComponent);
 
   onInputChange(val: string) {
     this.valueChange.emit(val);
@@ -127,5 +154,9 @@ export class ChatInputComponent {
 
   onStop() {
     this.stop.emit();
+  }
+
+  onNewChat() {
+    this.newChat.emit();
   }
 }
