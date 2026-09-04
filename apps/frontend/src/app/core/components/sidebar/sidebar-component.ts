@@ -86,6 +86,9 @@ export class SidebarComponent {
 
   toggle() {
     this.isOpen.update((v) => !v);
+    if (this.isMobile && this.isOpen()) {
+      this.isCollapsed.set(false);
+    }
   }
 
   toggleCollapse() {
