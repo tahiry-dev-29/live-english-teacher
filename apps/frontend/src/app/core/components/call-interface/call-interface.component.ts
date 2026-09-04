@@ -7,20 +7,20 @@ import { LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis } from '@lucide
   standalone: true,
   imports: [CommonModule, LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis],
   template: `
-    <div class="fixed inset-0 z-50 flex flex-col items-center justify-between bg-gray-950 text-white overflow-hidden font-sans">
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-gray-950 to-gray-950 pointer-events-none"></div>
+    <div class="fixed inset-0 z-50 flex flex-col items-center justify-between bg-base-100 text-base-content overflow-hidden font-sans">
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-base-100 to-base-100 pointer-events-none"></div>
 
       <div class="relative z-10 w-full p-6 flex justify-between items-center">
         <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span class="text-sm font-medium text-gray-400 tracking-wider uppercase">Live Call</span>
+          <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+          <span class="text-sm font-medium text-base-content/60 tracking-wider uppercase">Live Call</span>
         </div>
-        <div class="text-sm font-medium text-gray-500">{{ duration() }}</div>
+        <div class="text-sm font-medium text-base-content/40">{{ duration() }}</div>
       </div>
 
       <div class="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4">
         <div class="mb-8 text-center transition-all duration-500">
-          <h2 class="text-3xl md:text-4xl font-light tracking-tight text-white/90">
+          <h2 class="text-3xl md:text-4xl font-light tracking-tight text-base-content/90">
             @if (callState() === 'speaking') {
               Speaking...
             } @else if (callState() === 'processing') {
@@ -32,7 +32,7 @@ import { LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis } from '@lucide
             }
           </h2>
           @if (transcript() && callState() === 'listening') {
-            <p class="mt-4 text-lg text-blue-400 italic animate-pulse">
+            <p class="mt-4 text-lg text-primary italic animate-pulse">
               "{{ transcript() }}"
             </p>
           }
@@ -42,10 +42,10 @@ import { LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis } from '@lucide
           @for (bar of bars; track $index) {
             <div 
               class="w-1.5 md:w-2 rounded-full transition-all duration-75 ease-in-out"
-              [class.bg-blue-500]="callState() === 'listening'"
-              [class.bg-purple-500]="callState() === 'speaking'"
-              [class.bg-amber-500]="callState() === 'processing'"
-              [class.bg-gray-600]="callState() === 'idle'"
+              [class.bg-primary]="callState() === 'listening'"
+              [class.bg-secondary]="callState() === 'speaking'"
+              [class.bg-warning]="callState() === 'processing'"
+              [class.bg-base-300]="callState() === 'idle'"
               [style.height.%]="getBarHeight($index)"
               [style.opacity]="getBarOpacity($index)">
             </div>
@@ -56,22 +56,22 @@ import { LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis } from '@lucide
       <div class="relative z-10 w-full p-8 md:p-12 flex items-center justify-center gap-6 md:gap-8">
         <button 
           (click)="toggleMuteState()"
-          class="p-4 rounded-full bg-gray-800/50 hover:bg-gray-800 border border-gray-700 text-white transition-all transform hover:scale-105 active:scale-95 backdrop-blur-sm group">
+          class="btn btn-circle btn-ghost">
           @if (isMuted()) {
-            <svg lucideMicOff class="w-6 h-6 text-red-400"></svg>
+            <svg lucideMicOff class="w-6 h-6 text-error"></svg>
           } @else {
-            <svg lucideMic class="w-6 h-6 group-hover:text-blue-400"></svg>
+            <svg lucideMic class="w-6 h-6"></svg>
           }
         </button>
 
         <button 
           (click)="onEndCall()"
-          class="p-6 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-900/30 transition-all transform hover:scale-110 active:scale-95">
+          class="btn btn-circle btn-error btn-lg">
           <svg lucidePhoneOff class="w-8 h-8"></svg>
         </button>
 
         <button 
-          class="p-4 rounded-full bg-gray-800/50 hover:bg-gray-800 border border-gray-700 text-white transition-all transform hover:scale-105 active:scale-95 backdrop-blur-sm group opacity-50 cursor-not-allowed"
+          class="btn btn-circle btn-ghost opacity-50 cursor-not-allowed"
           disabled
           title="Coming soon">
           <svg lucideEllipsis class="w-6 h-6"></svg>

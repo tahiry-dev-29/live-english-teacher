@@ -1,6 +1,6 @@
 # Task 06 — Refactor UI avec daisyUI 5 + thème halloween
 
-**Status: TODO**
+**Status: DONE**
 
 ## Contexte
 

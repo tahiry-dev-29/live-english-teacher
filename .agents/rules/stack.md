@@ -4,7 +4,7 @@
 
 - Angular ~20.3 (standalone, Signals, `resource()`, inline templates) — Nx workspace
 - Apollo Angular (GraphQL queries/mutations) — `apollo-angular@12`
-- TailwindCSS v4, PostCSS
+- TailwindCSS v4, PostCSS, daisyUI 5
 - Services : chat.service.ts, message.service.ts, tts.service.ts, voice-call.service.ts, vad.service.ts
 
 ## Backend

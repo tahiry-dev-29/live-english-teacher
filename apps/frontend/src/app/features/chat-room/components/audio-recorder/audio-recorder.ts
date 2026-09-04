@@ -11,7 +11,7 @@ import { AudioRecorderService } from '@core/services/audio-recorder-service';
       @if (!isRecording()) {
       <button
         (click)="startRecording()"
-        class="btn btn-circle btn-error shadow-lg shadow-error/30 transition-transform hover:scale-105 active:scale-95"
+        class="btn btn-circle btn-error"
         title="Start Recording"
       >
         <svg lucideMic class="w-6 h-6"></svg>
@@ -19,10 +19,10 @@ import { AudioRecorderService } from '@core/services/audio-recorder-service';
       } @if (isRecording()) {
       <button
         (click)="stopRecording()"
-        class="btn btn-circle btn-outline btn-error border-2 shadow-lg animate-pulse"
+        class="btn btn-circle bg-base-300 text-error border-2 border-error animate-pulse"
         title="Stop Recording"
       >
-        <svg lucideSquare class="w-6 h-6 text-red-500"></svg>
+        <svg lucideSquare class="w-6 h-6"></svg>
       </button>
       }
     </div>

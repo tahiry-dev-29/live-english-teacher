@@ -7,11 +7,19 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
 @Component({
   selector: 'app-chat-input',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideSquare, LucideSend, LucideMic, AudioRecorderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideSquare,
+    LucideSend,
+    LucideMic,
+    AudioRecorderComponent,
+  ],
   template: `
     <div class="w-full max-w-4xl mx-auto px-4 pb-2">
-      <div class="flex items-center gap-2 bg-base-200/80 backdrop-blur-sm rounded-2xl border border-base-300 focus-within:border-primary/60 transition-all px-3 py-2 shadow-lg">
-        
+      <div
+        class="flex items-center gap-2 bg-base-200/80 backdrop-blur-sm rounded-2xl border border-base-300 focus-within:border-primary/60 transition-all px-3 py-2 shadow-lg"
+      >
         <!-- Mic / Audio Recorder -->
         <app-audio-recorder
           (audioRecorded)="onAudioRecorded($event)"
@@ -20,57 +28,54 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
 
         <!-- Input area -->
         <div class="flex-1 min-w-0">
-          @if (audioRecorder?.isRecording()) {
-            <div class="flex items-center gap-2 py-1">
-              <span class="loading loading-dots loading-sm text-error"></span>
-              <span class="text-sm text-base-content/60">Recording...</span>
-            </div>
-          } @else {
-            <input
-              type="text"
-              [ngModel]="value()"
-              (ngModelChange)="onInputChange($event)"
-              (keyup.enter)="onSubmit()"
-              placeholder="Type a message..."
-              [disabled]="disabled()"
-              class="w-full bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40 text-sm"
-            />
-          }
+          <input
+            type="text"
+            [ngModel]="value()"
+            (ngModelChange)="onInputChange($event)"
+            (keyup.enter)="onSubmit()"
+            [placeholder]="
+              audioRecorder?.isRecording()
+                ? 'UI recording'
+                : 'Type a message...'
+            "
+            [disabled]="disabled()"
+            class="w-full bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40 text-sm"
+          />
         </div>
 
         <!-- Live button -->
         @if (showLiveButton()) {
-          <button
-            (click)="liveToggled.emit()"
-            class="btn btn-circle btn-sm shrink-0 transition-all"
-            [class.btn-error]="isLiveActive()"
-            [class.btn-ghost]="!isLiveActive()"
-            [title]="isLiveActive() ? 'Stop live call' : 'Start live call'"
-            aria-label="Toggle Live Call"
-          >
-            <svg lucideMic class="w-4 h-4"></svg>
-          </button>
+        <button
+          (click)="liveToggled.emit()"
+          class="btn btn-circle btn-sm shrink-0 transition-all md:hidden"
+          [class.btn-error]="isLiveActive()"
+          [class.btn-ghost]="!isLiveActive()"
+          [title]="isLiveActive() ? 'Stop live call' : 'Start live call'"
+          aria-label="Toggle Live Call"
+        >
+          <svg lucideMic class="w-4 h-4"></svg>
+        </button>
         }
 
         <!-- Stop button -->
         @if (isLoading() || isPlaying()) {
-          <button
-            (click)="onStop()"
-            class="btn btn-circle btn-sm btn-error shrink-0"
-            title="Stop"
-            aria-label="Stop"
-          >
-            <svg lucideSquare class="w-4 h-4"></svg>
-          </button>
+        <button
+          (click)="onStop()"
+          class="btn btn-circle btn-sm btn-error shrink-0"
+          title="Stop"
+          aria-label="Stop"
+        >
+          <svg lucideSquare class="w-4 h-4"></svg>
+        </button>
         } @else if (!audioRecorder?.isRecording()) {
-          <button
-            (click)="onSubmit()"
-            [disabled]="!value().trim() || disabled()"
-            class="btn btn-circle btn-sm btn-primary shrink-0"
-            aria-label="Send message"
-          >
-            <svg lucideSend class="w-4 h-4"></svg>
-          </button>
+        <button
+          (click)="onSubmit()"
+          [disabled]="!value().trim() || disabled()"
+          class="btn btn-circle btn-sm btn-primary shrink-0"
+          aria-label="Send message"
+        >
+          <svg lucideSend class="w-4 h-4"></svg>
+        </button>
         }
       </div>
     </div>

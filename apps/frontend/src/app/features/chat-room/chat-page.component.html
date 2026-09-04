@@ -1,4 +1,4 @@
-<div class="flex h-screen bg-gray-950 text-white overflow-hidden">
+<div class="flex h-screen bg-base-100 text-base-content overflow-hidden">
   @if (isLiveMode()) {
   <app-call-interface
     [callState]="voiceCallService.callState()"
@@ -37,19 +37,23 @@
     class="flex-1 flex flex-col relative w-full h-full transition-all duration-300"
   >
     <div
-      class="md:hidden p-4 bg-gray-900 border-b border-gray-800 flex items-center justify-between"
+      class="md:hidden p-4 bg-base-200 border-b border-base-300 flex items-center justify-between"
     >
-      <button
-        (click)="sidebar.toggle()"
-        class="text-gray-400 hover:text-white"
-      >
+      <button (click)="sidebar.toggle()" class="btn btn-ghost btn-circle">
         ☰
       </button>
       <span
-        class="font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+        class="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
         >Live Teacher</span
       >
-      <div class="w-6"></div>
+      <button
+        (click)="onNewChat()"
+        class="btn btn-primary btn-sm"
+        title="New Chat"
+      >
+        <svg lucidePlus class="w-4 h-4"></svg>
+        <span class="text-sm font-medium">New</span>
+      </button>
     </div>
 
     <div
@@ -101,6 +105,9 @@
         [disabled]="loading()"
         [isLoading]="loading()"
         [isPlaying]="ttsService.isPlaying()"
+        [showLiveButton]="true"
+        [isLiveActive]="isLiveMode()"
+        (liveToggled)="toggleLiveMode()"
         (valueChange)="userInput.set($event)"
         (messageSent)="sendMessage()"
         (audioRecorded)="handleAudioRecorded($event)"
@@ -109,7 +116,7 @@
       </app-chat-input>
 
       <div class="text-center mt-2">
-        <p class="text-[10px] text-gray-600">Powered by Angular 21</p>
+        <p class="text-[10px] text-base-content/50">Powered by Angular 21</p>
       </div>
     </div>
   </main>

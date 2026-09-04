@@ -6,7 +6,7 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
   standalone: true,
   imports: [LucidePlay, LucidePause, LucideSquare],
   template: `
-    <div class="voice-control-whatsapp bg-green-100/10 backdrop-blur-md rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg border border-green-500/20 max-w-md">
+    <div class="voice-control-whatsapp bg-base-200 backdrop-blur-md rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg border border-base-300 max-w-md">
       
       <!-- Play/Pause Button -->
       <button 
@@ -45,7 +45,7 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
               <div 
                 class="w-1 rounded-full transition-all duration-75"
                 [class.bg-success]="isBarPlayed($index)"
-                [class.bg-gray-600]="!isBarPlayed($index)"
+                [class.bg-base-300]="!isBarPlayed($index)"
                 [style.height.px]="getBarHeight(bar)">
               </div>
             }
