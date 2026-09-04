@@ -37,13 +37,19 @@
     <div
       class="lg:hidden p-4 bg-base-200 border-b border-base-300 flex items-center justify-between"
     >
-      <button (click)="sidebar.toggle()" class="btn btn-ghost btn-circle">
-        ☰
-      </button>
-      <span
-        class="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
-        >Live Teacher</span
-      >
+      <div class="flex items-center gap-2">
+        <button
+          (click)="sidebar.toggle()"
+          class="btn btn-ghost btn-circle btn-sm"
+          title="Toggle sidebar"
+        >
+          <svg lucidePanelRightOpen class="w-5 h-5"></svg>
+        </button>
+        <span
+          class="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+          >Live Teacher</span
+        >
+      </div>
       <button
         (click)="onNewChat()"
         class="btn btn-primary btn-circle btn-sm"

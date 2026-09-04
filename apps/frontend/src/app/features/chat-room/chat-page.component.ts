@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { LucideMessageCircle } from '@lucide/angular';
+import { LucideMessageCircle, LucidePanelRightOpen } from '@lucide/angular';
 import { CallInterfaceComponent } from '@core/components/call-interface/call-interface.component';
 import { ChatInputComponent } from '@core/components/chat-input/chat-input.component';
 import { SidebarComponent } from '@core/components/sidebar/sidebar-component';
@@ -29,6 +29,7 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
     FormsModule,
     CommonModule,
     LucideMessageCircle,
+    LucidePanelRightOpen,
     SidebarComponent,
     CallInterfaceComponent,
     ChatInputComponent,
