@@ -1,7 +1,7 @@
 import { Component, input, output, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideSquare, LucideAudioWaveform } from '@lucide/angular';
+import { LucideSquare, LucideAudioWaveform, LucideSend } from '@lucide/angular';
 import { AudioRecorderComponent } from '@features/chat-room/components/audio-recorder/audio-recorder';
 
 @Component({
@@ -12,6 +12,7 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
     FormsModule,
     LucideSquare,
     LucideAudioWaveform,
+    LucideSend,
     AudioRecorderComponent,
   ],
   template: `
@@ -42,10 +43,11 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
         <!-- Action buttons -->
         <div class="flex items-center gap-2 shrink-0">
           <!-- Microphone button for recording -->
-          <app-audio-recorder (audioRecorded)="onAudioRecorded($event)"
+          <app-audio-recorder
+            (audioRecorded)="onAudioRecorded($event)"
             (recordingStateChange)="recordingStateChange.emit($event)"
             class="shrink-0"
-           />
+          />
 
           <!-- Stop button -->
           @if (isLoading() || isPlaying()) {
@@ -58,7 +60,7 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
             <svg lucideSquare class="w-4 h-4"></svg>
           </button>
           } @else if (!audioRecorder()?.isRecording()) {
-          <!-- Main action button: Send (waves) or Live call -->
+          <!-- Main action button: Send or Live call -->
           @if (value().trim()) {
           <!-- Send message button -->
           <button
@@ -67,19 +69,7 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
             class="btn btn-circle btn-primary"
             aria-label="Send message"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="w-5 h-5"
-            >
-              <path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5-8 5 5 0 0 0-5-5 8 8 0 0 1-5-5 5 5 0 0 0-5 5 5 5 0 0 0 5 5Z" />
-              <path d="M12 12a5 5 0 0 0-5 5 8 8 0 0 1 5-8 5 5 0 0 0 5 5 8 8 0 0 1-5-5 5 5 0 0 0-5-5Z" />
-            </svg>
+            <svg lucideSend class="w-5 h-5"></svg>
           </button>
           } @else {
           <!-- Live call button -->
@@ -93,8 +83,7 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
           >
             <svg lucideAudioWaveform class="w-5 h-5"></svg>
           </button>
-          }
-          }
+          } }
         </div>
       </div>
     </div>
