@@ -22,13 +22,9 @@
   <app-settings-dialog
     [isOpen]="showSettings()"
     [languages]="languageService.languages"
-    [voices]="languageService.availableVoices()"
     [selectedLanguage]="languageService.selectedLanguageCode()"
-    [selectedVoiceName]="languageService.selectedVoice()?.name ?? ''"
     (closed)="showSettings.set(false)"
     (languageChange)="languageService.setLanguage($event)"
-    (voiceChange)="languageService.setVoice($event)"
-    (requestVoiceReload)="languageService.reloadVoices()"
   />
 
   <main
@@ -92,7 +88,7 @@
       />
 
       <div class="text-center mt-2">
-        <p class="text-[10px] text-base-content/50">Powered by Angular 21</p>
+        <p class="text-[10px] text-base-content/50"><a href="https://tahiry29.is-a.dev" target="_blank" rel="noopener">Powered by tahiry29</a></p>
       </div>
     </div>
   </main>
