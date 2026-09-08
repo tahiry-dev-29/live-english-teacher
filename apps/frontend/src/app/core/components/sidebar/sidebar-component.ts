@@ -1,9 +1,10 @@
-import { Component, signal, output, input, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, output, input, computed, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
+import { PwaService } from '@core/services/pwa.service';
 import {
   LucideMessageCirclePlus,
   LucideSearch,
@@ -13,7 +14,7 @@ import {
   LucidePanelRightClose,
   LucidePanelRightOpen,
   LucideX,
-  LucideGraduationCap,
+  LucideDownload,
 } from '@lucide/angular';
 
 @Component({
@@ -33,11 +34,13 @@ import {
     LucidePanelRightClose,
     LucidePanelRightOpen,
     LucideX,
-    LucideGraduationCap,
+    LucideDownload,
   ],
   templateUrl: './sidebar-component.html',
 })
 export class SidebarComponent {
+  private readonly pwa = inject(PwaService);
+
   readonly isOpen = signal<boolean>(true);
   readonly isCollapsed = signal<boolean>(false);
   isMobile = false;
@@ -82,6 +85,8 @@ export class SidebarComponent {
   readonly deleteSession = output<string>();
   readonly openSettings = output<void>();
 
+  readonly canInstall = computed<boolean>(() => this.pwa.canInstall() && !this.pwa.isInstalled());
+
   constructor() {
     this.checkScreenSize();
     window.addEventListener('resize', () => this.checkScreenSize());
@@ -122,6 +127,10 @@ export class SidebarComponent {
 
   showLess(): void {
     this.showingAll.set(false);
+  }
+
+  async onInstall(): Promise<void> {
+    await this.pwa.install();
   }
 
   onSessionClick(sessionId: string): void {

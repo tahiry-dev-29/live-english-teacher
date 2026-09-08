@@ -30,13 +30,20 @@ export class AiProviderService {
       audioData?: string;
       mimeType?: string;
       targetLanguage?: string;
+      model?: string;
+      provider?: 'gemini' | 'groq';
+      groqApiKey?: string;
+      geminiApiKey?: string;
     } = {}
   ): Promise<string> {
-    if (this.provider === 'groq' && !options.audioData) {
+    const activeProvider = options.provider || this.provider;
+    if (activeProvider === 'groq' && !options.audioData) {
       return this.groqLiveService.getGroqChatResponse(
         history,
         content,
-        options.targetLanguage || 'English'
+        options.targetLanguage || 'English',
+        options.model,
+        options.groqApiKey
       );
     }
     return this.geminiLiveService.getGeminiChatResponse(
@@ -55,13 +62,17 @@ export class AiProviderService {
   async *generateStreamText(
     history: AiHistoryMessage[],
     content: string,
-    targetLanguage = 'English'
+    targetLanguage = 'English',
+    options: { model?: string; provider?: 'gemini' | 'groq'; groqApiKey?: string; geminiApiKey?: string } = {}
   ): AsyncGenerator<string, void, unknown> {
-    if (this.provider === 'groq') {
+    const activeProvider = options.provider || this.provider;
+    if (activeProvider === 'groq') {
       yield* this.groqLiveService.generateStream(
         history,
         content,
-        targetLanguage
+        targetLanguage,
+        options.model,
+        options.groqApiKey
       );
       return;
     }

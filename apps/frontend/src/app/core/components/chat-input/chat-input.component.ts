@@ -1,8 +1,9 @@
-import { Component, input, output, viewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, viewChild, signal, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideSquare, LucideAudioWaveform, LucideSend } from '@lucide/angular';
 import { AudioRecorderComponent } from '@features/chat-room/components/audio-recorder/audio-recorder';
+import { LanguageService } from '@core/services/language.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,9 +19,28 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
   ],
   template: `
     <div class="w-full max-w-4xl mx-auto px-4 pb-2">
-      <div
-        class="flex items-center gap-3 bg-base-300 rounded-2xl px-4 py-3 shadow-lg"
-      >
+      <div class="flex items-center gap-3 bg-base-300 rounded-2xl px-4 py-3 shadow-lg">
+
+        <!-- Language quick-select -->
+        <div class="dropdown dropdown-top shrink-0">
+          <button tabindex="0" class="btn btn-ghost btn-circle btn-sm" title="Learning language">
+            <span class="text-lg leading-none">{{ currentFlag() }}</span>
+          </button>
+          <ul tabindex="0" class="dropdown-content menu bg-base-200 border border-base-300 rounded-box z-50 w-40 p-2 shadow-lg mb-2">
+            @for (lang of languages; track lang.code) {
+            <li>
+              <button
+                class="flex items-center gap-2"
+                [class.active]="lang.code === selectedLangCode()"
+                (click)="onLanguageChange(lang.code)">
+                <span>{{ lang.flag }}</span>
+                <span>{{ lang.name }}</span>
+              </button>
+            </li>
+            }
+          </ul>
+        </div>
+
         <!-- Input area -->
         <div class="flex-1 min-w-0">
           @if (isRecording()) {
@@ -99,6 +119,11 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
   ],
 })
 export class ChatInputComponent {
+  private readonly languageService = inject(LanguageService);
+
+  readonly languages = this.languageService.languages;
+  readonly selectedLangCode = this.languageService.selectedLanguageCode;
+
   readonly value = input<string>('');
   readonly disabled = input<boolean>(false);
   readonly isLoading = input<boolean>(false);
@@ -114,6 +139,26 @@ export class ChatInputComponent {
   readonly liveToggled = output<void>();
 
   readonly audioRecorder = viewChild(AudioRecorderComponent);
+
+  currentFlag = signal<string>('🇬🇧');
+
+  constructor() {
+    // Sync flag with language
+    const updateFlag = () => {
+      const code = this.languageService.selectedLanguageCode();
+      const lang = this.languages.find(l => l.code === code);
+      if (lang) this.currentFlag.set(lang.flag);
+    };
+    updateFlag();
+    // Re-check on language change
+    setInterval(updateFlag, 500);
+  }
+
+  onLanguageChange(code: string): void {
+    this.languageService.setLanguage(code);
+    const lang = this.languages.find(l => l.code === code);
+    if (lang) this.currentFlag.set(lang.flag);
+  }
 
   onSubmit(): void {
     if (this.value().trim() && !this.disabled() && !this.isLoading()) {

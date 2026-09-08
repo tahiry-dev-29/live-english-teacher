@@ -1,12 +1,21 @@
-import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideSquare, LucideMic } from '@lucide/angular';
+import { MarkdownModule } from 'ngx-markdown';
+import {
+  LucideSquare, LucideMic, LucideMoreHorizontal,
+  LucideCopy, LucideRefreshCw, LucideGitFork,
+} from '@lucide/angular';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-message-item',
   standalone: true,
-  imports: [CommonModule, LucideSquare, LucideMic],
+  imports: [
+    CommonModule,
+    MarkdownModule,
+    LucideSquare, LucideMic, LucideMoreHorizontal,
+    LucideCopy, LucideRefreshCw, LucideGitFork,
+  ],
   template: `
     <div
       class="chat"
@@ -14,16 +23,31 @@ import { LucideSquare, LucideMic } from '@lucide/angular';
       [class.chat-start]="message().role === 'ai'"
     >
       <div
-        class="chat-bubble max-w-[80%]"
-        [class.chat-bubble-primary]="message().role === 'user'"
-        [class.chat-bubble-neutral]="message().role === 'ai'"
+        class="chat-bubble max-w-[80%] relative group"
+        [class.chat-bubble-primary]="message().role === 'user' && !isError()"
+        [class.chat-bubble-neutral]="message().role === 'ai' && !isError()"
+        [class.chat-bubble-error]="isError()"
       >
-        <div
-          class="prose prose-sm max-w-none"
-          [innerHTML]="formattedContent()"
-        ></div>
+        <!-- Markdown content -->
+        <div class="prose prose-sm max-w-none">
+          <markdown [data]="message().text"></markdown>
+        </div>
 
-        @if (message().role === 'ai') {
+        <!-- Error retry button -->
+        @if (isError() && message().role === 'ai') {
+        <div class="mt-2">
+          <button
+            (click)="retry.emit()"
+            class="btn btn-ghost btn-xs gap-1 text-error-content"
+          >
+            <svg lucideRefreshCw class="w-3 h-3"></svg>
+            Retry
+          </button>
+        </div>
+        }
+
+        <!-- AI message actions -->
+        @if (message().role === 'ai' && !isError()) {
         <div class="mt-2 flex items-center gap-1">
           <button
             (click)="handlePlayStop()"
@@ -39,6 +63,43 @@ import { LucideSquare, LucideMic } from '@lucide/angular';
             <span>Listen</span>
             }
           </button>
+        </div>
+        }
+
+        <!-- Context menu (⋯) on AI messages -->
+        @if (message().role === 'ai') {
+        <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="dropdown dropdown-end">
+            <button tabindex="0" class="btn btn-ghost btn-xs btn-circle">
+              <svg lucideMoreHorizontal class="w-4 h-4"></svg>
+            </button>
+            <ul tabindex="0" class="dropdown-content menu bg-base-200 border border-base-300 rounded-box z-50 w-40 p-2 shadow-lg">
+              <li>
+                <button (click)="onCopy()">
+                  <svg lucideCopy class="w-4 h-4"></svg>
+                  Copy
+                </button>
+              </li>
+              <li>
+                <button (click)="retry.emit()">
+                  <svg lucideRefreshCw class="w-4 h-4"></svg>
+                  Retry
+                </button>
+              </li>
+              <li>
+                <button (click)="handlePlayStop()">
+                  <svg lucideMic class="w-4 h-4"></svg>
+                  Listen
+                </button>
+              </li>
+              <li>
+                <button (click)="fork.emit()">
+                  <svg lucideGitFork class="w-4 h-4"></svg>
+                  Fork
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
         }
       </div>
@@ -57,6 +118,25 @@ import { LucideSquare, LucideMic } from '@lucide/angular';
       .prose p {
         margin: 0;
       }
+
+      .prose pre {
+        background: oklch(var(--b3));
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+      }
+
+      .prose code {
+        background: oklch(var(--b3));
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
+      }
+
+      .prose pre code {
+        background: none;
+        padding: 0;
+      }
     `,
   ],
 })
@@ -66,14 +146,12 @@ export class MessageItemComponent {
 
   readonly playRequested = output<void>();
   readonly stop = output<void>();
+  readonly retry = output<void>();
+  readonly fork = output<void>();
+  readonly copied = output<void>();
 
-  readonly formattedContent = computed<string>(() => {
-    const text = this.message().text || '';
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code class="bg-base-300 px-1 rounded">$1</code>')
-      .replace(/\n/g, '<br>');
+  readonly isError = computed<boolean>(() => {
+    return this.message().text.startsWith('Error:');
   });
 
   handlePlayStop(): void {
@@ -81,6 +159,21 @@ export class MessageItemComponent {
       this.stop.emit();
     } else {
       this.playRequested.emit();
+    }
+  }
+
+  async onCopy(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.message().text);
+      this.copied.emit();
+    } catch {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = this.message().text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
     }
   }
 }

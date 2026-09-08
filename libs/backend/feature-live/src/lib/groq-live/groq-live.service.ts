@@ -47,16 +47,18 @@ export class GroqLiveService {
 
   private async createCompletion(
     messages: { role: string; content: string }[],
-    options: { stream?: boolean; useFallback?: boolean } = {}
+    options: { stream?: boolean; useFallback?: boolean; modelOverride?: string; apiKey?: string } = {}
   ): Promise<Response> {
+    const model = options.modelOverride || (options.useFallback ? this.fallbackModel : this.model);
+    const apiKey = options.apiKey || this.apiKey;
     return fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: options.useFallback ? this.fallbackModel : this.model,
+        model,
         messages,
         max_tokens: 1024,
         stream: options.stream ?? false,
@@ -67,24 +69,28 @@ export class GroqLiveService {
   async getGroqChatResponse(
     history: GroqHistoryMessage[],
     newMessage: string,
-    targetLanguage = 'English'
+    targetLanguage = 'English',
+    modelOverride?: string,
+    customApiKey?: string
   ): Promise<string> {
-    if (!this.apiKey) {
+    const apiKey = customApiKey || this.apiKey;
+    if (!apiKey) {
       this.logger.warn('GROQ_API_KEY is not set.');
-      return "I'm experiencing connectivity issues. Please try again later.";
+      return 'Error: No API key configured. Add your Groq API key in Settings > AI Model, or contact the admin.';
     }
 
     const messages = this.buildMessages(history, newMessage, targetLanguage);
 
     try {
-      const response = await this.createCompletion(messages);
+      const response = await this.createCompletion(messages, { modelOverride, apiKey });
 
       if (!response.ok) {
         this.logger.error(
-          `Groq API error with ${this.model}: ${response.status} - ${response.statusText}`
+          `Groq API error with ${modelOverride || this.model}: ${response.status} - ${response.statusText}`
         );
         const fallback = await this.createCompletion(messages, {
           useFallback: true,
+          apiKey,
         });
         if (!fallback.ok) {
           throw new Error(
@@ -98,7 +104,7 @@ export class GroqLiveService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error in getGroqChatResponse: ${message}`);
-      return "I'm experiencing connectivity issues. Please try again later.";
+      return 'Error: Could not reach Groq API. Check your internet connection or try a different model in Settings.';
     }
   }
 
@@ -118,24 +124,28 @@ export class GroqLiveService {
   async *generateStream(
     history: GroqHistoryMessage[],
     newMessage: string,
-    targetLanguage = 'English'
+    targetLanguage = 'English',
+    modelOverride?: string,
+    customApiKey?: string
   ): AsyncGenerator<string, void, unknown> {
-    if (!this.apiKey) {
+    const apiKey = customApiKey || this.apiKey;
+    if (!apiKey) {
       this.logger.warn('GROQ_API_KEY is not set.');
-      yield "I'm experiencing connectivity issues. Please try again later.";
+      yield 'Error: No API key configured. Add your Groq API key in Settings > AI Model, or contact the admin.';
       return;
     }
 
     const messages = this.buildMessages(history, newMessage, targetLanguage);
 
-    let response = await this.createCompletion(messages, { stream: true });
+    let response = await this.createCompletion(messages, { stream: true, modelOverride, apiKey });
     if (!response.ok || !response.body) {
       this.logger.error(
-        `Groq API error with ${this.model}: ${response.status} - ${response.statusText}`
+        `Groq API error with ${modelOverride || this.model}: ${response.status} - ${response.statusText}`
       );
       response = await this.createCompletion(messages, {
         stream: true,
         useFallback: true,
+        apiKey,
       });
     }
 

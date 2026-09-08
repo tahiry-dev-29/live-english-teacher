@@ -26,7 +26,7 @@
     <div
       class="font-bold text-lg whitespace-nowrap flex items-center gap-2 flex-1"
     >
-      <svg lucideGraduationCap class="w-6 h-6 shrink-0 text-primary"></svg>
+      <img src="apple-touch-icon.png" alt="Live Teacher" class="w-6 h-6 shrink-0" />
       <span
         class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
       >
@@ -124,6 +124,18 @@
   }
 
   <div class="p-4 border-t border-base-300 bg-base-300/50">
+    @if (canInstall()) {
+    <button
+      (click)="onInstall()"
+      class="btn btn-sm btn-outline btn-secondary w-full mb-2 gap-2"
+      title="Install app"
+    >
+      <svg lucideDownload class="w-4 h-4"></svg>
+      @if (!isCollapsed()) {
+      <span>Install App</span>
+      }
+    </button>
+    }
     @if (!isCollapsed()) {
     <app-user-menu (openSettings)="openSettings.emit()" />
     } @else {

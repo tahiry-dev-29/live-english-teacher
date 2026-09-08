@@ -1,6 +1,6 @@
 # Task 19 — Gestion manuelle des clés d'API (Groq & Gemini) avec tutoriel & liens directs
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟡 Moyenne
 
 ## Goal

@@ -86,7 +86,9 @@ export class LiveResolver {
     @Args('audioData', { nullable: true }) audioData?: string,
     @Args('mimeType', { nullable: true }) mimeType?: string,
     @Args('targetLanguage', { nullable: true, defaultValue: 'en' })
-    targetLanguage?: string
+    targetLanguage?: string,
+    @Args('model', { nullable: true }) model?: string,
+    @Args('provider', { nullable: true }) provider?: string
   ): Promise<ChatResponse> {
     let session = await this.chatHistoryService.getSession(sessionId);
     if (!session) {
@@ -108,6 +110,8 @@ export class LiveResolver {
       audioData,
       mimeType,
       targetLanguage,
+      model,
+      provider: provider as 'groq' | 'gemini' | undefined,
     });
 
     await this.chatHistoryService.addMessage(sessionId, 'model', text);

@@ -1,6 +1,8 @@
 import { Injectable, inject, resource, signal } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { environment } from '@environment';
+import { AiConfigService } from '@core/services/ai-config.service';
+import { ApiKeyService } from '@core/services/api-key.service';
 
 export interface Message {
   role: 'user' | 'ai';
@@ -16,6 +18,8 @@ const CHAT_MUTATION = gql`
     $audioData: String
     $mimeType: String
     $targetLanguage: String
+    $model: String
+    $provider: String
   ) {
     chat(
       content: $content
@@ -23,6 +27,8 @@ const CHAT_MUTATION = gql`
       audioData: $audioData
       mimeType: $mimeType
       targetLanguage: $targetLanguage
+      model: $model
+      provider: $provider
     ) {
       text
       sessionId
@@ -45,6 +51,8 @@ const GET_SESSION_MESSAGES = gql`
 })
 export class MessageService {
   private readonly apollo = inject(Apollo);
+  private readonly aiConfig = inject(AiConfigService);
+  private readonly apiKeyService = inject(ApiKeyService);
 
   readonly currentSessionId = signal<string | null>(null);
   readonly messages = signal<Message[]>([]);
@@ -115,7 +123,10 @@ export class MessageService {
       console.error('SSE streaming failed, falling back to GraphQL:', error);
       this.removeStreamingPlaceholder();
       this.loading.set(false);
-      return await this.sendViaGraphQL(content, sessionId, targetLanguage);
+      // Show error message instead of silent fallback
+      const errorMsg = 'Error: Could not connect to AI. Please check your connection and try again.';
+      this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
+      return { text: errorMsg, sessionId };
     }
   }
 
@@ -138,13 +149,21 @@ export class MessageService {
   ): Promise<{ text: string; sessionId: string }> {
     const url = `${environment.apiBaseUrl}/ai/chat/stream`;
 
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const groqKey = this.apiKeyService.getGroqKeyHeader();
+    const geminiKey = this.apiKeyService.getGeminiKeyHeader();
+    if (groqKey) headers['x-groq-api-key'] = groqKey;
+    if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         message: content,
         sessionId: sessionId || undefined,
         targetLanguage,
+        model: this.aiConfig.selectedModelId(),
+        provider: this.aiConfig.provider(),
       }),
     });
 
@@ -158,6 +177,7 @@ export class MessageService {
     let resolvedSessionId = sessionId;
     let fullText = '';
     let streamFailed = false;
+    let streamErrorMessage = '';
 
     const pushToken = (token: string): void => {
       fullText += token;
@@ -197,6 +217,7 @@ export class MessageService {
 
             if (data.error) {
               streamFailed = true;
+              streamErrorMessage = (data as { message?: string }).message || 'AI service error';
             } else {
               if (data.sessionId) resolvedSessionId = data.sessionId;
               if (data.token) pushToken(data.token);
@@ -209,7 +230,10 @@ export class MessageService {
     }
 
     if (streamFailed) {
-      throw new Error('SSE stream reported an error');
+      this.streamingIndex = null;
+      const errorMsg = `Error: ${streamErrorMessage || 'AI service unavailable. Please try again.'}`;
+      this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
+      return { text: errorMsg, sessionId: resolvedSessionId || sessionId };
     }
 
     this.streamingIndex = null;
@@ -229,6 +253,8 @@ export class MessageService {
             content,
             sessionId,
             targetLanguage,
+            model: this.aiConfig.selectedModelId(),
+            provider: this.aiConfig.provider(),
           },
         })
         .toPromise();
@@ -258,7 +284,7 @@ export class MessageService {
         ...msgs,
         {
           role: 'ai',
-          text: 'Error: Could not connect to AI.',
+          text: 'Error: Could not connect to AI. Please check your connection and try again.',
         },
       ]);
 
@@ -304,7 +330,7 @@ export class MessageService {
       console.error('Error sending audio message:', error);
       this.messages.update((msgs) => [
         ...msgs,
-        { role: 'ai', text: 'Error: Could not process audio.' },
+        { role: 'ai', text: 'Error: Could not process audio. Please try again or send a text message.' },
       ]);
       return null;
     }

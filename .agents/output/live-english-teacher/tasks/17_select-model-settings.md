@@ -1,6 +1,6 @@
 # Task 17 — Sélecteur de modèle IA (Groq / Gemini) dans les paramètres
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟡 Moyenne
 
 ## Goal

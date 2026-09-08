@@ -8,6 +8,8 @@ import {
   ValidationPipe,
   HttpException,
   HttpStatus,
+  Headers,
+  Logger,
 } from '@nestjs/common';
 import {
   IsArray,
@@ -40,6 +42,14 @@ class StreamChatDto {
   @IsOptional()
   @IsString()
   targetLanguage?: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
+
+  @IsOptional()
+  @IsString()
+  provider?: string;
 }
 
 /**
@@ -52,6 +62,8 @@ class StreamChatDto {
 @UsePipes(new ValidationPipe({ transform: true }))
 @Controller('ai')
 export class AiStreamController {
+  private readonly logger = new Logger(AiStreamController.name);
+
   constructor(
     private readonly aiProviderService: AiProviderService,
     private readonly chatHistoryService: ChatHistoryService,
@@ -67,7 +79,9 @@ export class AiStreamController {
   @Post('chat/stream')
   async stream(
     @Body() dto: StreamChatDto,
-    @Res() res: Response
+    @Res() res: Response,
+    @Headers('x-groq-api-key') groqApiKey?: string,
+    @Headers('x-gemini-api-key') geminiApiKey?: string
   ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -105,7 +119,13 @@ export class AiStreamController {
       const stream = this.aiProviderService.generateStreamText(
         history,
         dto.message,
-        dto.targetLanguage || 'English'
+        dto.targetLanguage || 'English',
+        {
+          model: dto.model,
+          provider: dto.provider as 'groq' | 'gemini' | undefined,
+          groqApiKey,
+          geminiApiKey,
+        }
       );
 
       for await (const token of stream) {
@@ -116,8 +136,10 @@ export class AiStreamController {
       if (fullText) {
         await this.chatHistoryService.addMessage(sessionId, 'model', fullText);
       }
-    } catch {
-      res.write(`data: ${JSON.stringify({ error: true })}\n\n`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger?.error?.(`SSE stream error: ${errorMsg}`);
+      res.write(`data: ${JSON.stringify({ error: true, message: `Error: ${errorMsg}` })}\n\n`);
     } finally {
       res.end('data: [DONE]\n\n');
     }

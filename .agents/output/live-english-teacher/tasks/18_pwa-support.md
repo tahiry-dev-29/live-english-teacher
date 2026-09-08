@@ -1,6 +1,6 @@
 # Task 18 — Configuration PWA (Progressive Web App)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟡 Moyenne
 
 ## Goal
