@@ -1,7 +1,8 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-voice-control',
   standalone: true,
   imports: [LucidePlay, LucidePause, LucideSquare],
@@ -43,6 +44,7 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
             [attr.aria-valuemax]="totalDuration()"
             [attr.aria-valuenow]="currentTime()"
           >
+            <!-- $index volontaire : échantillonnage d'ondes audio sans identifiant unique -->
             @for (bar of waveformBars(); track $index) {
             <div
               class="w-1 rounded-full transition-all duration-75"
@@ -56,7 +58,7 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
           <!-- Progress Bar Overlay (for precision) -->
           <div
             class="absolute bottom-0 left-0 h-0.5 bg-success rounded-full pointer-events-none transition-all duration-75"
-            [style.width.%]="getProgress()"
+            [style.width.%]="progress()"
           ></div>
         </div>
       </div>
@@ -88,22 +90,27 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
   `,
 })
 export class VoiceControlComponent {
-  currentTime = input<number>(0);
-  totalDuration = input<number>(0);
+  readonly currentTime = input<number>(0);
+  readonly totalDuration = input<number>(0);
 
-  stopped = output<void>();
-  audioSeeked = output<number>();
-  paused = output<void>();
-  resumed = output<void>();
+  readonly stopped = output<void>();
+  readonly audioSeeked = output<number>();
+  readonly paused = output<void>();
+  readonly resumed = output<void>();
 
-  isPlaying = signal(true);
-  waveformBars = signal<number[]>([]);
+  readonly isPlaying = signal<boolean>(true);
+  readonly waveformBars = signal<number[]>([]);
+
+  protected readonly progress = computed<number>(() => {
+    if (this.totalDuration() === 0) return 0;
+    return (this.currentTime() / this.totalDuration()) * 100;
+  });
 
   constructor() {
     this.generateWaveform();
   }
 
-  togglePlayPause() {
+  togglePlayPause(): void {
     this.isPlaying.update((v) => !v);
     if (this.isPlaying()) {
       this.resumed.emit();
@@ -112,12 +119,12 @@ export class VoiceControlComponent {
     }
   }
 
-  stopPlayback() {
+  stopPlayback(): void {
     this.isPlaying.set(false);
     this.stopped.emit();
   }
 
-  seekToPosition(event: MouseEvent) {
+  seekToPosition(event: MouseEvent): void {
     const container = event.currentTarget as HTMLElement;
     const rect = container.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
@@ -126,7 +133,7 @@ export class VoiceControlComponent {
     this.audioSeeked.emit(newTime);
   }
 
-  handleKeydown(event: KeyboardEvent) {
+  handleKeydown(event: KeyboardEvent): void {
     const step = 5;
     let newTime = this.currentTime();
 
@@ -144,16 +151,11 @@ export class VoiceControlComponent {
     }
   }
 
-  getProgress(): number {
-    if (this.totalDuration() === 0) return 0;
-    return (this.currentTime() / this.totalDuration()) * 100;
-  }
-
   isBarPlayed(index: number): boolean {
     const totalBars = this.waveformBars().length;
     if (totalBars === 0) return false;
     const barProgress = (index / totalBars) * 100;
-    return barProgress <= this.getProgress();
+    return barProgress <= this.progress();
   }
 
   getBarHeight(value: number): number {
@@ -166,7 +168,7 @@ export class VoiceControlComponent {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
-  private generateWaveform() {
+  private generateWaveform(): void {
     const bars: number[] = [];
     const count = 30;
     for (let i = 0; i < count; i++) {

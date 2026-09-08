@@ -1,13 +1,4 @@
-import {
-  Component,
-  input,
-  output,
-  viewChild,
-  ElementRef,
-  signal,
-  AfterViewInit,
-  OnDestroy,
-} from '@angular/core';
+import { Component, input, output, viewChild, ElementRef, signal, AfterViewInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideArrowDown } from '@lucide/angular';
 import { MessageItemComponent } from '../message-item/message-item.component';
@@ -20,6 +11,7 @@ export interface Message {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-container',
   standalone: true,
   imports: [
@@ -33,22 +25,22 @@ export interface Message {
   styleUrl: './chat-container.component.css',
 })
 export class ChatContainerComponent implements AfterViewInit, OnDestroy {
-  messages = input<Message[]>([]);
-  loading = input(false);
-  isPlaying = input(false);
-  showVoiceControl = input(false);
-  currentAudioTime = input(0);
-  totalAudioDuration = input(0);
-  playingMessageIndex = input<number | null>(null);
-  learningLanguage = input('en');
+  readonly messages = input<Message[]>([]);
+  readonly loading = input<boolean>(false);
+  readonly isPlaying = input<boolean>(false);
+  readonly showVoiceControl = input<boolean>(false);
+  readonly currentAudioTime = input<number>(0);
+  readonly totalAudioDuration = input<number>(0);
+  readonly playingMessageIndex = input<number | null>(null);
+  readonly learningLanguage = input<string>('en');
 
-  playAudio = output<{ text: string; index: number }>();
-  stop = output<void>();
+  readonly playAudio = output<{ text: string; index: number }>();
+  readonly stop = output<void>();
 
   readonly scrollContainer = viewChild<ElementRef>('scrollContainer');
 
-  showScrollButton = signal(false);
-  hasNewMessages = signal(false);
+  readonly showScrollButton = signal<boolean>(false);
+  readonly hasNewMessages = signal<boolean>(false);
 
   private scrollObserver?: IntersectionObserver;
 

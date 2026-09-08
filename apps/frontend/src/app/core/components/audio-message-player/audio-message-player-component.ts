@@ -5,12 +5,14 @@ import {
   output,
   signal,
   effect,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { LucidePlay, LucidePause } from '@lucide/angular';
 import { formatTime } from '@core/utils/time.util';
 import { base64ToBlob } from '@core/utils/text.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-audio-message-player',
   standalone: true,
   imports: [LucidePlay, LucidePause],
@@ -44,6 +46,7 @@ import { base64ToBlob } from '@core/utils/text.util';
           (keydown.arrowleft)="seekBy(-5)"
           #waveformContainer
         >
+          <!-- $index volontaire : échantillon waveform fixe sans ID unique -->
           @for (bar of waveformBars(); track $index) {
           <div
             class="w-1 rounded-full transition-all duration-75"
@@ -72,18 +75,18 @@ import { base64ToBlob } from '@core/utils/text.util';
   ],
 })
 export class AudioMessagePlayerComponent implements OnDestroy {
-  audioData = input.required<string>();
-  mimeType = input<string>('audio/wav');
-  isPlayingInput = input<boolean>(false);
+  readonly audioData = input.required<string>();
+  readonly mimeType = input<string>('audio/wav');
+  readonly isPlayingInput = input<boolean>(false);
 
-  playRequested = output<void>();
-  pauseRequested = output<void>();
-  audioEnded = output<void>();
+  readonly playRequested = output<void>();
+  readonly pauseRequested = output<void>();
+  readonly audioEnded = output<void>();
 
-  isPlaying = signal(false);
-  currentTime = signal(0);
-  duration = signal(0);
-  waveformBars = signal<number[]>([]);
+  readonly isPlaying = signal<boolean>(false);
+  readonly currentTime = signal<number>(0);
+  readonly duration = signal<number>(0);
+  readonly waveformBars = signal<number[]>([]);
 
   private audio: HTMLAudioElement | null = null;
   private animationFrameId: number | null = null;

@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideHome } from '@lucide/angular';
 import { SpaceIllustrationComponent } from '../space-illustration/space-illustration.component';
 import { StarBackgroundComponent } from '../star-background/star-background.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-not-found-page',
   standalone: true,
   imports: [

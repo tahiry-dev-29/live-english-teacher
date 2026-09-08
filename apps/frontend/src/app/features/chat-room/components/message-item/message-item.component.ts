@@ -1,8 +1,9 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideSquare, LucideMic } from '@lucide/angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-message-item',
   standalone: true,
   imports: [CommonModule, LucideSquare, LucideMic],
@@ -19,7 +20,7 @@ import { LucideSquare, LucideMic } from '@lucide/angular';
       >
         <div
           class="prose prose-sm max-w-none"
-          [innerHTML]="formatMessage(message().text)"
+          [innerHTML]="formattedContent()"
         ></div>
 
         @if (message().role === 'ai') {
@@ -60,25 +61,26 @@ import { LucideSquare, LucideMic } from '@lucide/angular';
   ],
 })
 export class MessageItemComponent {
-  message = input.required<{ role: 'user' | 'ai'; text: string }>();
-  isPlaying = input<boolean>(false);
+  readonly message = input.required<{ role: 'user' | 'ai'; text: string }>();
+  readonly isPlaying = input<boolean>(false);
 
-  playRequested = output<void>();
-  stop = output<void>();
+  readonly playRequested = output<void>();
+  readonly stop = output<void>();
 
-  handlePlayStop() {
-    if (this.isPlaying()) {
-      this.stop.emit();
-    } else {
-      this.playRequested.emit();
-    }
-  }
-
-  formatMessage(text: string): string {
+  readonly formattedContent = computed<string>(() => {
+    const text = this.message().text || '';
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`([^`]+)`/g, '<code class="bg-base-300 px-1 rounded">$1</code>')
       .replace(/\n/g, '<br>');
+  });
+
+  handlePlayStop(): void {
+    if (this.isPlaying()) {
+      this.stop.emit();
+    } else {
+      this.playRequested.emit();
+    }
   }
 }

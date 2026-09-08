@@ -1,8 +1,9 @@
-import { Component, inject, signal, output } from '@angular/core';
+import { Component, inject, signal, output, ChangeDetectionStrategy } from '@angular/core';
 import { LucideMic, LucideSquare } from '@lucide/angular';
 import { AudioRecorderService } from '@core/services/audio-recorder-service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-audio-recorder',
   standalone: true,
   imports: [LucideMic, LucideSquare],

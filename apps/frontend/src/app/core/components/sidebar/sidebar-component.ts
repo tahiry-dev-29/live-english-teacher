@@ -1,4 +1,4 @@
-import { Component, signal, output, input, computed } from '@angular/core';
+import { Component, signal, output, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Session } from '@models/session.model';
@@ -13,9 +13,11 @@ import {
   LucidePanelRightClose,
   LucidePanelRightOpen,
   LucideX,
+  LucideGraduationCap,
 } from '@lucide/angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sidebar',
   standalone: true,
   imports: [
@@ -31,25 +33,26 @@ import {
     LucidePanelRightClose,
     LucidePanelRightOpen,
     LucideX,
+    LucideGraduationCap,
   ],
   templateUrl: './sidebar-component.html',
 })
 export class SidebarComponent {
-  isOpen = signal(true);
-  isCollapsed = signal(false);
+  readonly isOpen = signal<boolean>(true);
+  readonly isCollapsed = signal<boolean>(false);
   isMobile = false;
-  showSearchModal = signal(false);
+  readonly showSearchModal = signal<boolean>(false);
 
-  sessions = input<Session[]>([]);
-  activeSessionId = input<string | null>(null);
+  readonly sessions = input<Session[]>([]);
+  readonly activeSessionId = input<string | null>(null);
 
-  searchTerm = signal('');
+  readonly searchTerm = signal<string>('');
 
-  initialLimit = 5;
-  visibleLimit = signal(5);
-  showingAll = signal(false);
+  readonly initialLimit = 5;
+  readonly visibleLimit = signal<number>(5);
+  readonly showingAll = signal<boolean>(false);
 
-  filteredSessions = computed(() => {
+  readonly filteredSessions = computed<Session[]>(() => {
     const term = this.searchTerm().toLowerCase();
     if (!term) return this.sessions();
     return this.sessions().filter((session) =>
@@ -57,76 +60,76 @@ export class SidebarComponent {
     );
   });
 
-  displayedSessions = computed(() => {
+  readonly displayedSessions = computed<Session[]>(() => {
     const sessions = this.filteredSessions();
     if (this.showingAll()) return sessions;
     return sessions.slice(0, this.visibleLimit());
   });
 
-  hasMoreSessions = computed(() => {
+  readonly hasMoreSessions = computed<boolean>(() => {
     return (
       !this.showingAll() && this.filteredSessions().length > this.visibleLimit()
     );
   });
 
-  remainingCount = computed(() => {
+  readonly remainingCount = computed<number>(() => {
     return this.filteredSessions().length - this.visibleLimit();
   });
 
-  newChat = output<void>();
-  sessionSelected = output<string>();
-  renameSession = output<{ id: string; title: string }>();
-  deleteSession = output<string>();
-  openSettings = output<void>();
+  readonly newChat = output<void>();
+  readonly sessionSelected = output<string>();
+  readonly renameSession = output<{ id: string; title: string }>();
+  readonly deleteSession = output<string>();
+  readonly openSettings = output<void>();
 
   constructor() {
     this.checkScreenSize();
     window.addEventListener('resize', () => this.checkScreenSize());
   }
 
-  toggle() {
+  toggle(): void {
     this.isOpen.update((v) => !v);
     if (this.isMobile && this.isOpen()) {
       this.isCollapsed.set(false);
     }
   }
 
-  toggleCollapse() {
+  toggleCollapse(): void {
     this.isCollapsed.update((v) => !v);
   }
 
-  onNewChat() {
+  onNewChat(): void {
     this.newChat.emit();
     if (this.isMobile) this.isOpen.set(false);
   }
 
-  openSearch() {
+  openSearch(): void {
     this.showSearchModal.set(true);
   }
 
-  closeSearch() {
+  closeSearch(): void {
     this.showSearchModal.set(false);
     this.searchTerm.set('');
   }
 
-  onSearchInput(term: string) {
+  onSearchInput(term: string): void {
     this.searchTerm.set(term);
   }
 
-  showMore() {
+  showMore(): void {
     this.showingAll.set(true);
   }
 
-  showLess() {
+  showLess(): void {
     this.showingAll.set(false);
   }
 
-  onSessionClick(sessionId: string) {
+  onSessionClick(sessionId: string): void {
     this.sessionSelected.emit(sessionId);
     if (this.isMobile) this.isOpen.set(false);
   }
 
-  private checkScreenSize() {
+  private checkScreenSize(): void {
     this.isMobile = window.innerWidth < 768;
     if (this.isMobile) {
       this.isOpen.set(false);

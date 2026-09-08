@@ -1,12 +1,6 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  inject,
-  signal,
-  viewChild,
-  OnInit,
-  computed,
-} from '@angular/core';
+import { Component, inject, signal, viewChild, OnInit, computed, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { LucideMessageCircle, LucidePanelRightOpen } from '@lucide/angular';
@@ -22,6 +16,7 @@ import { LanguageService } from '@core/services/language.service';
 import { ChatContainerComponent } from './components/chat-container/chat-container.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-page',
   standalone: true,
   imports: [
@@ -42,27 +37,28 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
 export class ChatPageComponent implements OnInit {
   readonly sidebar = viewChild<SidebarComponent>('sidebar');
 
-  protected chatService = inject(ChatService);
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  protected messageService = inject(MessageService);
-  protected ttsService = inject(TtsService);
-  protected voiceCallService = inject(VoiceCallService);
-  protected languageService = inject(LanguageService);
+  protected readonly chatService = inject(ChatService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly messageService = inject(MessageService);
+  protected readonly ttsService = inject(TtsService);
+  protected readonly voiceCallService = inject(VoiceCallService);
+  protected readonly languageService = inject(LanguageService);
 
-  sessions = this.chatService.sessions;
-  messages = this.messageService.messages;
-  loading = this.messageService.loading;
+  readonly sessions = this.chatService.sessions;
+  readonly messages = this.messageService.messages;
+  readonly loading = this.messageService.loading;
 
-  isLiveMode = signal(false);
-  showSettings = signal(false);
-  userInput = signal('');
-  showVoiceControl = signal(false);
-  playingMessageIndex = signal<number | null>(null);
-  vocalEnabled = signal(false);
-  isAudioRecording = signal(false);
+  readonly isLiveMode = signal<boolean>(false);
+  readonly showSettings = signal<boolean>(false);
+  readonly userInput = signal<string>('');
+  readonly showVoiceControl = signal<boolean>(false);
+  readonly playingMessageIndex = signal<number | null>(null);
+  readonly vocalEnabled = signal<boolean>(false);
+  readonly isAudioRecording = signal<boolean>(false);
 
-  currentSession = computed(() => {
+  readonly currentSession = computed(() => {
     const id = this.chatService.activeSessionId();
     const list = this.sessions();
     if (!id || !list) return null;
@@ -70,7 +66,7 @@ export class ChatPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const sessionId = params['sessionId'];
       if (sessionId) {
         this.loadSession(sessionId);

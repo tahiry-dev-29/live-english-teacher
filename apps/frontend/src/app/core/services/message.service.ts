@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, resource, signal } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { environment } from '@environment';
 
@@ -44,52 +44,56 @@ const GET_SESSION_MESSAGES = gql`
   providedIn: 'root',
 })
 export class MessageService {
-  private apollo = inject(Apollo);
+  private readonly apollo = inject(Apollo);
 
-  messages = signal<Message[]>([]);
-  loading = signal(false);
+  readonly currentSessionId = signal<string | null>(null);
+  readonly messages = signal<Message[]>([]);
+  readonly loading = signal<boolean>(false);
+
+  /**
+   * Resource réactive pour charger automatiquement les messages de session
+   */
+  readonly messagesResource = resource<Message[], unknown>({
+    loader: async () => {
+      const sessionId = this.currentSessionId();
+      if (!sessionId) return [];
+      try {
+        const result = await this.apollo
+          .query<{
+            sessionMessages: {
+              role: string;
+              content: string;
+              createdAt: string;
+            }[];
+          }>({
+            query: GET_SESSION_MESSAGES,
+            variables: { sessionId },
+            fetchPolicy: 'network-only',
+          })
+          .toPromise();
+
+        const sessionMessages = result?.data?.sessionMessages ?? [];
+        const formatted: Message[] = sessionMessages.map((msg): Message => ({
+          role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
+          text: msg.content,
+        }));
+        this.messages.set(formatted);
+        return formatted;
+      } catch (error) {
+        console.error('Error in messagesResource loader:', error);
+        this.messages.set([]);
+        return [];
+      }
+    },
+  });
 
   async loadSessionMessages(sessionId: string): Promise<void> {
-    this.loading.set(true);
-
-    try {
-      const result = await this.apollo
-        .query<{
-          sessionMessages: {
-            role: string;
-            content: string;
-            createdAt: string;
-          }[];
-        }>({
-          query: GET_SESSION_MESSAGES,
-          variables: { sessionId },
-          fetchPolicy: 'network-only',
-        })
-        .toPromise();
-
-      if (result?.data) {
-        const sessionMessages = result.data.sessionMessages ?? [];
-        const formattedMessages: Message[] = sessionMessages.map(
-          (msg): Message => ({
-            role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
-            text: msg.content,
-          })
-        );
-
-        this.messages.set(formattedMessages);
-      }
-    } catch (error) {
-      console.error('Error loading session messages:', error);
-      this.messages.set([]);
-    } finally {
-      this.loading.set(false);
-    }
+    this.currentSessionId.set(sessionId);
+    await this.messagesResource.reload();
   }
 
   /**
-   * Envoie un message via l'endpoint SSE POST /api/ai/chat/stream : la réponse
-   * IA est streamée token par token dans le signal `messages`. Fallback
-   * automatique sur la mutation GraphQL si le streaming échoue.
+   * Envoie un message via l'endpoint SSE POST /api/ai/chat/stream
    */
   async sendTextMessage(
     content: string,
@@ -306,7 +310,32 @@ export class MessageService {
     }
   }
 
+  /**
+   * Transcribe audio using Groq Whisper via backend endpoint
+   */
+  async transcribeAudio(
+    audioData: string,
+    mimeType = 'audio/webm',
+    language?: string
+  ): Promise<string | null> {
+    try {
+      const res = await fetch(`${environment.apiBaseUrl}/ai/transcribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioData, mimeType, language }),
+      });
+
+      if (!res.ok) return null;
+      const data = (await res.json()) as { transcript?: string };
+      return data.transcript || null;
+    } catch (error) {
+      console.warn('Transcription request failed:', error);
+      return null;
+    }
+  }
+
   clearMessages(): void {
+    this.currentSessionId.set(null);
     this.messages.set([]);
   }
 

@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-tts-tester',
   standalone: true,
   imports: [FormsModule],
@@ -80,26 +81,22 @@ import { FormsModule } from '@angular/forms';
   `,
 })
 export class TtsTesterComponent {
-  text = signal('');
-  voices = signal<SpeechSynthesisVoice[]>([]);
-  selectedVoice = signal<SpeechSynthesisVoice | null>(null);
-  isSpeaking = signal(false);
+  readonly text = signal<string>('');
+  readonly voices = signal<SpeechSynthesisVoice[]>([]);
+  readonly selectedVoice = signal<SpeechSynthesisVoice | null>(null);
+  readonly isSpeaking = signal<boolean>(false);
 
   constructor() {
-    // Load voices
     this.loadVoices();
-
-    // Handle dynamic voice loading (Chrome needs this)
     window.speechSynthesis.onvoiceschanged = () => {
       this.loadVoices();
     };
   }
 
-  private loadVoices() {
+  private loadVoices(): void {
     const availableVoices = window.speechSynthesis.getVoices();
     this.voices.set(availableVoices);
 
-    // Default to first English voice if available
     if (!this.selectedVoice() && availableVoices.length > 0) {
       const defaultVoice =
         availableVoices.find((v) => v.lang.startsWith('en')) ||
@@ -108,14 +105,14 @@ export class TtsTesterComponent {
     }
   }
 
-  onVoiceChange(voiceName: string) {
+  onVoiceChange(voiceName: string): void {
     const voice = this.voices().find((v) => v.name === voiceName);
     if (voice) {
       this.selectedVoice.set(voice);
     }
   }
 
-  speak() {
+  speak(): void {
     if (!this.text()) return;
 
     this.stop();
@@ -139,7 +136,7 @@ export class TtsTesterComponent {
     window.speechSynthesis.speak(utterance);
   }
 
-  stop() {
+  stop(): void {
     window.speechSynthesis.cancel();
     this.isSpeaking.set(false);
   }

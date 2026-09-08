@@ -1,13 +1,9 @@
-import { Component, OnDestroy, input, output, signal } from '@angular/core';
+import { Component, OnDestroy, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  LucideMic,
-  LucideMicOff,
-  LucidePhoneOff,
-  LucideEllipsis,
-} from '@lucide/angular';
+import { LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis } from '@lucide/angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-call-interface',
   standalone: true,
   imports: [
@@ -59,6 +55,7 @@ import {
         <div
           class="relative h-32 w-full flex items-center justify-center gap-1.5"
         >
+          <!-- $index volontaire : tableau de barres de visualiseur dynamique généré à la volée -->
           @for (bar of bars; track $index) {
           <div
             class="w-1.5 md:w-2 rounded-full transition-all duration-75 ease-in-out"
@@ -100,17 +97,17 @@ import {
   `,
 })
 export class CallInterfaceComponent implements OnDestroy {
-  callState = input<string>('idle');
-  transcript = input<string>('');
+  readonly callState = input<string>('idle');
+  readonly transcript = input<string>('');
 
-  endCall = output<void>();
-  toggleMute = output<void>();
+  readonly endCall = output<void>();
+  readonly toggleMute = output<void>();
 
-  isMuted = signal(false);
-  duration = signal('00:00');
+  readonly isMuted = signal<boolean>(false);
+  readonly duration = signal<string>('00:00');
 
-  loading = input(false);
-  isThinking = input(false);
+  readonly loading = input<boolean>(false);
+  readonly isThinking = input<boolean>(false);
 
   bars = new Array(20).fill(0);
   private animationFrameId: number | null = null;
@@ -122,21 +119,21 @@ export class CallInterfaceComponent implements OnDestroy {
     this.startTimer();
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
     if (this.timerInterval) clearInterval(this.timerInterval);
   }
 
-  toggleMuteState() {
+  toggleMuteState(): void {
     this.isMuted.update((v) => !v);
     this.toggleMute.emit();
   }
 
-  onEndCall() {
+  onEndCall(): void {
     this.endCall.emit();
   }
 
-  private startTimer() {
+  private startTimer(): void {
     this.timerInterval = setInterval(() => {
       const diff = Math.floor((Date.now() - this.startTime) / 1000);
       const mins = Math.floor(diff / 60)
@@ -147,7 +144,7 @@ export class CallInterfaceComponent implements OnDestroy {
     }, 1000);
   }
 
-  private startVisualizer() {
+  private startVisualizer(): void {
     const animate = () => {
       const state = this.callState();
       const isActive = state === 'speaking' || state === 'processing';

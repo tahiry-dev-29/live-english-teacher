@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { LucideRocket, LucideOrbit } from '@lucide/angular';
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-space-illustration',
   standalone: true,
   imports: [LucideRocket, LucideOrbit],

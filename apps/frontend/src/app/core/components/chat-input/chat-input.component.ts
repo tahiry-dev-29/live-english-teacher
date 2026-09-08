@@ -1,10 +1,11 @@
-import { Component, input, output, viewChild } from '@angular/core';
+import { Component, input, output, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideSquare, LucideAudioWaveform, LucideSend } from '@lucide/angular';
 import { AudioRecorderComponent } from '@features/chat-room/components/audio-recorder/audio-recorder';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-input',
   standalone: true,
   imports: [
@@ -98,33 +99,33 @@ import { AudioRecorderComponent } from '@features/chat-room/components/audio-rec
   ],
 })
 export class ChatInputComponent {
-  value = input<string>('');
-  disabled = input<boolean>(false);
-  isLoading = input<boolean>(false);
-  isPlaying = input<boolean>(false);
-  isRecording = input<boolean>(false);
-  isLiveActive = input<boolean>(false);
+  readonly value = input<string>('');
+  readonly disabled = input<boolean>(false);
+  readonly isLoading = input<boolean>(false);
+  readonly isPlaying = input<boolean>(false);
+  readonly isRecording = input<boolean>(false);
+  readonly isLiveActive = input<boolean>(false);
 
-  valueChange = output<string>();
-  messageSent = output<void>();
-  audioRecorded = output<{ base64: string }>();
-  stop = output<void>();
-  recordingStateChange = output<boolean>();
-  liveToggled = output<void>();
+  readonly valueChange = output<string>();
+  readonly messageSent = output<void>();
+  readonly audioRecorded = output<{ base64: string }>();
+  readonly stop = output<void>();
+  readonly recordingStateChange = output<boolean>();
+  readonly liveToggled = output<void>();
 
   readonly audioRecorder = viewChild(AudioRecorderComponent);
 
-  onSubmit() {
+  onSubmit(): void {
     if (this.value().trim() && !this.disabled() && !this.isLoading()) {
       this.messageSent.emit();
     }
   }
 
-  onAudioRecorded(event: { base64: string }) {
+  onAudioRecorded(event: { base64: string }): void {
     this.audioRecorded.emit(event);
   }
 
-  onStop() {
+  onStop(): void {
     this.stop.emit();
   }
 }

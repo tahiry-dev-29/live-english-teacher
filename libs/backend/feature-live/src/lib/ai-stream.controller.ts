@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   Res,
   UsePipes,
   ValidationPipe,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   IsArray,
@@ -16,6 +19,9 @@ import {
 import type { Response } from 'express';
 import { AiProviderService } from './ai-provider.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
+import { ElevenLabsService, VoiceInfo } from './elevenlabs/elevenlabs.service';
+import { GroqTranscribeService } from './groq-transcribe/groq-transcribe.service';
+import { TranscribeDto, GenerateTtsDto } from './dto/transcribe.dto';
 
 class StreamChatDto {
   @IsString()
@@ -37,17 +43,26 @@ class StreamChatDto {
 }
 
 /**
- * Endpoint SSE : chemin de chat complet avec streaming token par token.
- * POST /api/ai/chat/stream — persiste session et messages, comme la
- * mutation GraphQL `chat`. Consommé côté frontend via fetch + ReadableStream.
+ * Endpoints IA :
+ * POST /api/ai/chat/stream — Streaming SSE
+ * POST /api/ai/transcribe — STT Whisper
+ * POST /api/ai/tts — TTS ElevenLabs
+ * GET /api/ai/voices — Liste des voix ElevenLabs
  */
 @UsePipes(new ValidationPipe({ transform: true }))
 @Controller('ai')
 export class AiStreamController {
   constructor(
     private readonly aiProviderService: AiProviderService,
-    private readonly chatHistoryService: ChatHistoryService
+    private readonly chatHistoryService: ChatHistoryService,
+    private readonly elevenLabsService: ElevenLabsService,
+    private readonly groqTranscribeService: GroqTranscribeService
   ) {}
+
+  @Get('voices')
+  getVoices(): VoiceInfo[] {
+    return this.elevenLabsService.getVoices();
+  }
 
   @Post('chat/stream')
   async stream(
@@ -106,5 +121,44 @@ export class AiStreamController {
     } finally {
       res.end('data: [DONE]\n\n');
     }
+  }
+
+  @Post('transcribe')
+  async transcribe(
+    @Body() dto: TranscribeDto
+  ): Promise<{ transcript: string }> {
+    const transcript = await this.groqTranscribeService.transcribe(
+      dto.audioData,
+      dto.mimeType,
+      dto.language
+    );
+
+    if (transcript === null) {
+      throw new HttpException(
+        'Transcription failed or service unavailable',
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
+    }
+
+    return { transcript };
+  }
+
+  @Post('tts')
+  async tts(
+    @Body() dto: GenerateTtsDto
+  ): Promise<{ audioData: string; mimeType: string }> {
+    const audio = await this.elevenLabsService.generateTtsAudio(
+      dto.text,
+      dto.voiceId
+    );
+
+    if (!audio) {
+      throw new HttpException(
+        'ElevenLabs TTS not available',
+        HttpStatus.SERVICE_UNAVAILABLE
+      );
+    }
+
+    return audio;
   }
 }

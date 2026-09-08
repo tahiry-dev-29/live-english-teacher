@@ -143,10 +143,18 @@
 <div
   class="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20"
   (click)="closeSearch()"
+  (keyup.escape)="closeSearch()"
+  tabindex="0"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Search conversations"
 >
   <div
     class="bg-base-200 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
     (click)="$event.stopPropagation()"
+    (keyup)="$event.stopPropagation()"
+    tabindex="0"
+    role="document"
   >
     <div class="p-4 border-b border-base-300 flex items-center gap-3">
       <svg lucideSearch class="w-5 h-5 text-base-content/50"></svg>
@@ -156,11 +164,11 @@
         [ngModel]="searchTerm()"
         (ngModelChange)="onSearchInput($event)"
         class="flex-1 bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40"
-        autofocus
       />
       <button
         (click)="closeSearch()"
         class="btn btn-ghost btn-circle btn-sm"
+        aria-label="Close search dialog"
       >
         <svg lucideX class="w-4 h-4"></svg>
       </button>

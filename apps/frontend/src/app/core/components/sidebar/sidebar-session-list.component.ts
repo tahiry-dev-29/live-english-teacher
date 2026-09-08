@@ -1,15 +1,10 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Session } from '@models/session.model';
-import {
-  LucideMessageCircle,
-  LucidePencil,
-  LucideTrash2,
-  LucideCheck,
-  LucideX,
-} from '@lucide/angular';
+import { LucideMessageCircle, LucidePencil, LucideTrash2, LucideCheck, LucideX } from '@lucide/angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sidebar-session-list',
   standalone: true,
   imports: [
@@ -23,26 +18,26 @@ import {
   templateUrl: './sidebar-session-list.component.html',
 })
 export class SidebarSessionListComponent {
-  sessions = input<Session[]>([]);
-  totalSessions = input(0);
-  activeSessionId = input<string | null>(null);
+  readonly sessions = input<Session[]>([]);
+  readonly totalSessions = input<number>(0);
+  readonly activeSessionId = input<string | null>(null);
 
-  sessionClick = output<string>();
-  renameSession = output<{ id: string; title: string }>();
-  deleteSession = output<string>();
+  readonly sessionClick = output<string>();
+  readonly renameSession = output<{ id: string; title: string }>();
+  readonly deleteSession = output<string>();
 
-  editingSessionId = signal<string | null>(null);
-  editTitle = signal('');
-  confirmDeleteId = signal<string | null>(null);
+  readonly editingSessionId = signal<string | null>(null);
+  readonly editTitle = signal<string>('');
+  readonly confirmDeleteId = signal<string | null>(null);
   private deleteTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  startRename(sessionId: string, currentTitle: string) {
+  startRename(sessionId: string, currentTitle: string): void {
     this.editingSessionId.set(sessionId);
     this.editTitle.set(currentTitle);
     this.confirmDeleteId.set(null);
   }
 
-  saveRename(sessionId: string) {
+  saveRename(sessionId: string): void {
     const newTitle = this.editTitle().trim();
     if (newTitle) {
       this.renameSession.emit({ id: sessionId, title: newTitle });
@@ -50,11 +45,11 @@ export class SidebarSessionListComponent {
     this.editingSessionId.set(null);
   }
 
-  cancelRename() {
+  cancelRename(): void {
     this.editingSessionId.set(null);
   }
 
-  initDelete(sessionId: string) {
+  initDelete(sessionId: string): void {
     this.confirmDeleteId.set(sessionId);
     this.editingSessionId.set(null);
 
@@ -64,7 +59,7 @@ export class SidebarSessionListComponent {
     }, 3000);
   }
 
-  confirmDelete(sessionId: string) {
+  confirmDelete(sessionId: string): void {
     this.deleteSession.emit(sessionId);
     this.confirmDeleteId.set(null);
     if (this.deleteTimeout) clearTimeout(this.deleteTimeout);

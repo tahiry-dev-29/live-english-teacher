@@ -1,7 +1,8 @@
-import { Component, output } from '@angular/core';
+import { Component, output, ChangeDetectionStrategy } from '@angular/core';
 import { LucideEllipsis } from '@lucide/angular';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-user-menu',
   standalone: true,
   imports: [LucideEllipsis],

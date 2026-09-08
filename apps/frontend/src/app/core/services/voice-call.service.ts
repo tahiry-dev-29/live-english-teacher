@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { VadService } from './vad.service';
+import { MessageService } from './message.service';
 
 export enum CallState {
   IDLE = 'idle',
@@ -40,21 +41,27 @@ type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
   providedIn: 'root',
 })
 export class VoiceCallService {
-  private vadService = inject(VadService);
+  private readonly vadService = inject(VadService);
+  private readonly messageService = inject(MessageService);
 
-  callState = signal<CallState>(CallState.IDLE);
-  currentTranscript = signal<string>('');
+  readonly callState = signal<CallState>(CallState.IDLE);
+  readonly currentTranscript = signal<string>('');
 
-  // Speech Recognition
+  // MediaRecorder for Whisper STT
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+
+  // Fallback Speech Recognition
   private recognition: SpeechRecognitionLike | null = null;
   private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly INACTIVITY_TIMEOUT = 10000; // 10 seconds
+  private readonly INACTIVITY_TIMEOUT = 10000;
 
   // Callbacks
   private onTranscriptReady?: (text: string) => void;
   private onInactivity?: () => void;
   private onStateChange?: (state: CallState) => void;
   private language = 'en-US';
+  private targetLanguageCode = 'en';
 
   async startCall(callbacks: {
     onTranscriptReady?: (text: string) => void;
@@ -65,6 +72,7 @@ export class VoiceCallService {
     this.onTranscriptReady = callbacks.onTranscriptReady;
     this.onInactivity = callbacks.onInactivity;
     this.onStateChange = callbacks.onStateChange;
+    this.targetLanguageCode = callbacks.language || 'en';
     const langMap: Record<string, string> = {
       en: 'en-US',
       fr: 'fr-FR',
@@ -82,12 +90,11 @@ export class VoiceCallService {
         onSpeechEnd: () => this.handleSpeechEnd(),
       });
 
+      this.setupMediaRecorder();
       this.setupSpeechRecognition();
 
       this.setState(CallState.LISTENING);
       this.startInactivityTimer();
-
-      console.log('Voice call started');
     } catch (error) {
       console.error('Error starting voice call:', error);
       throw error;
@@ -99,11 +106,21 @@ export class VoiceCallService {
   stopCall(): void {
     this.vadService.stop();
 
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try {
+        this.mediaRecorder.stop();
+      } catch {
+        // ignore
+      }
+    }
+    this.mediaRecorder = null;
+    this.audioChunks = [];
+
     if (this.recognition) {
       try {
         this.recognition.stop();
       } catch {
-        // ignore already stopped
+        // ignore
       }
       this.isRecognitionActive = false;
       this.recognition = null;
@@ -113,8 +130,6 @@ export class VoiceCallService {
 
     this.setState(CallState.IDLE);
     this.currentTranscript.set('');
-
-    console.log('Voice call stopped');
   }
 
   startSpeaking(): void {
@@ -145,6 +160,52 @@ export class VoiceCallService {
     }
   }
 
+  private setupMediaRecorder(): void {
+    try {
+      // Create MediaRecorder from VAD stream or userMedia
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : 'audio/mp4';
+        this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.audioChunks.push(event.data);
+          }
+        };
+
+        this.mediaRecorder.onstop = async () => {
+          if (this.audioChunks.length === 0) return;
+          const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+          this.audioChunks = [];
+
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = (reader.result as string).split(',')[1];
+            if (base64) {
+              const transcript = await this.messageService.transcribeAudio(
+                base64,
+                mimeType,
+                this.targetLanguageCode
+              );
+
+              if (transcript && transcript.trim()) {
+                this.currentTranscript.set(transcript);
+                this.processTranscript(transcript);
+              }
+            }
+          };
+          reader.readAsDataURL(audioBlob);
+        };
+      }).catch((e) => {
+        console.warn('Could not setup MediaRecorder for Whisper:', e);
+      });
+    } catch (e) {
+      console.warn('MediaRecorder error:', e);
+    }
+  }
+
   private setupSpeechRecognition(): void {
     const SpeechRecognition =
       (
@@ -157,7 +218,6 @@ export class VoiceCallService {
         .webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      console.error('Speech Recognition not supported');
       return;
     }
 
@@ -179,10 +239,8 @@ export class VoiceCallService {
         }
       }
 
-      // Update current transcript
       this.currentTranscript.set(interimTranscript || finalTranscript);
 
-      // If final transcript, process it
       if (finalTranscript) {
         this.processTranscript(finalTranscript);
       }
@@ -234,20 +292,31 @@ export class VoiceCallService {
   }
 
   private handleSpeechStart(): void {
-    console.log('VAD: Speech detected');
-
     this.clearInactivityTimer();
     this.startInactivityTimer();
+
+    if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
+      this.audioChunks = [];
+      try {
+        this.mediaRecorder.start();
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private handleSpeechEnd(): void {
-    console.log('VAD: Speech ended');
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      try {
+        this.mediaRecorder.stop();
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private processTranscript(transcript: string): void {
     if (!transcript.trim()) return;
-
-    console.log('Processing transcript:', transcript);
 
     this.setState(CallState.PROCESSING);
     this.clearInactivityTimer();
@@ -268,7 +337,6 @@ export class VoiceCallService {
     this.clearInactivityTimer();
 
     this.inactivityTimer = setTimeout(() => {
-      console.log('Inactivity timeout');
       this.onInactivity?.();
     }, this.INACTIVITY_TIMEOUT);
   }
@@ -283,7 +351,6 @@ export class VoiceCallService {
   private setState(state: CallState): void {
     this.callState.set(state);
     this.onStateChange?.(state);
-    console.log('Call state changed:', state);
   }
 
   getCurrentState(): CallState {
