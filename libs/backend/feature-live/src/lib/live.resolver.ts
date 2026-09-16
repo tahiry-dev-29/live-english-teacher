@@ -1,12 +1,4 @@
-import {
-  Args,
-  Mutation,
-  Query,
-  Resolver,
-  Field,
-  ObjectType,
-  InputType,
-} from '@nestjs/graphql';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { AudioResponse, ChatResponse } from './dto/live-response.dto';
 import {
   SessionResponse,
@@ -17,8 +9,9 @@ import {
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
 import { AiProviderService } from './ai-provider.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
+import { QuotaExceededError } from './groq-live/groq-live.service';
 
-@ObjectType()
+@Resolver()
 export class LiveResolver {
   constructor(
     private readonly geminiLiveService: GeminiLiveService,
@@ -82,15 +75,23 @@ export class LiveResolver {
   @Mutation(() => ChatResponse)
   async chat(
     @Args('content') content: string,
-    @Args('sessionId') sessionId: string,
+    @Args('sessionId', { nullable: true }) sessionId?: string,
     @Args('audioData', { nullable: true }) audioData?: string,
     @Args('mimeType', { nullable: true }) mimeType?: string,
     @Args('targetLanguage', { nullable: true, defaultValue: 'en' })
     targetLanguage?: string,
     @Args('model', { nullable: true }) model?: string,
-    @Args('provider', { nullable: true }) provider?: string
+    @Args('provider', { nullable: true }) provider?: string,
+    @Context() context?: { req?: { headers?: Record<string, string> } }
   ): Promise<ChatResponse> {
-    let session = await this.chatHistoryService.getSession(sessionId);
+    const groqApiKey = context?.req?.headers?.['x-groq-api-key'];
+    const geminiApiKey = context?.req?.headers?.['x-gemini-api-key'];
+
+    // New chat : aucun sessionId envoyé par le frontend -> le backend
+    // crée la session (Prisma @default(uuid())) et retourne son id.
+    let session = sessionId
+      ? await this.chatHistoryService.getSession(sessionId)
+      : null;
     if (!session) {
       const newSession = await this.chatHistoryService.createSession(
         targetLanguage
@@ -106,13 +107,21 @@ export class LiveResolver {
       await this.chatHistoryService.addMessage(sessionId, 'user', content);
     }
 
-    const text = await this.aiProviderService.generateText(history, content, {
-      audioData,
-      mimeType,
-      targetLanguage,
-      model,
-      provider: provider as 'groq' | 'gemini' | undefined,
-    });
+    let text: string;
+    try {
+      text = await this.aiProviderService.generateText(history, content, {
+        audioData,
+        mimeType,
+        targetLanguage,
+        model,
+        provider: provider as 'groq' | 'gemini' | undefined,
+        groqApiKey,
+        geminiApiKey,
+      });
+    } catch (err) {
+      if (err instanceof QuotaExceededError) throw err;
+      throw err;
+    }
 
     await this.chatHistoryService.addMessage(sessionId, 'model', text);
 
@@ -122,7 +131,8 @@ export class LiveResolver {
     try {
       const audioResult = await this.geminiLiveService.getGeminiTtsAudio(
         text,
-        targetLanguage
+        targetLanguage,
+        geminiApiKey
       );
       if (audioResult) {
         responseAudioData = audioResult.audioData;

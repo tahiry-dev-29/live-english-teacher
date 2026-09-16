@@ -1,7 +1,17 @@
-# Task 20 — Intégration du microservice d'authentification (NestJS Backend & Frontend)
+# Task 28 — Intégration du microservice d'authentification (NestJS Backend & Frontend)
 
 **Status: TODO**
-**Priorité:** 🔴 Haute
+**Priorité:** 🔴 Haute — après le chantier design (Tasks 22–27)
+
+## Goal
+
+Intégrer le système d'authentification utilisateur (Inscription, Connexion, JWT Token, Refresh Token, Guard NestJS, Session utilisateur) entre le backend NestJS et le frontend Angular.
+
+## Note de périmètre (clean 2026-09-16)
+
+- Ancien doublon de numéro 20 résolu : la Task 20 restante est `20_settings-dialog-redesign.md` (DONE) ; l'auth est renumérotée 28.
+- Les pages/modales Login & Register devront suivre le design system (tokens daisyUI, 2 thèmes) issu des Tasks 22–27.
+- Après l'auth : on pourra rouvrir la synchro DB des préférences (thème, langue) supprimée de la Task 21.
 
 ## Goal
 

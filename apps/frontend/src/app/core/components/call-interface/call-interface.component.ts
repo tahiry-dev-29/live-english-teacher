@@ -1,6 +1,18 @@
-import { Component, OnDestroy, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  input,
+  output,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideMic, LucideMicOff, LucidePhoneOff, LucideEllipsis } from '@lucide/angular';
+import {
+  LucideMic,
+  LucideMicOff,
+  LucidePhoneOff,
+  LucideEllipsis,
+} from '@lucide/angular';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,

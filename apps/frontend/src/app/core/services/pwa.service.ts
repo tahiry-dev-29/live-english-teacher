@@ -24,7 +24,8 @@ export class PwaService {
     // Check if already running as installed PWA
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      (window.navigator as unknown as { standalone?: boolean }).standalone ===
+        true;
 
     this.isInstalled.set(isStandalone);
   }

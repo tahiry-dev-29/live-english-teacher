@@ -7,11 +7,19 @@ export class ApiKeyService {
   private static readonly STORAGE_KEY_GROQ = 'custom_groq_api_key';
   private static readonly STORAGE_KEY_GEMINI = 'custom_gemini_api_key';
 
-  readonly customGroqKey = signal<string>(this.load(ApiKeyService.STORAGE_KEY_GROQ));
-  readonly customGeminiKey = signal<string>(this.load(ApiKeyService.STORAGE_KEY_GEMINI));
+  readonly customGroqKey = signal<string>(
+    this.load(ApiKeyService.STORAGE_KEY_GROQ)
+  );
+  readonly customGeminiKey = signal<string>(
+    this.load(ApiKeyService.STORAGE_KEY_GEMINI)
+  );
 
-  readonly hasCustomGroqKey = computed<boolean>(() => this.customGroqKey().length > 0);
-  readonly hasCustomGeminiKey = computed<boolean>(() => this.customGeminiKey().length > 0);
+  readonly hasCustomGroqKey = computed<boolean>(
+    () => this.customGroqKey().length > 0
+  );
+  readonly hasCustomGeminiKey = computed<boolean>(
+    () => this.customGeminiKey().length > 0
+  );
 
   setGroqKey(key: string): void {
     const trimmed = key.trim();

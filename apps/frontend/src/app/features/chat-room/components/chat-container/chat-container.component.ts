@@ -1,4 +1,14 @@
-import { Component, input, output, viewChild, ElementRef, signal, AfterViewInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  viewChild,
+  ElementRef,
+  signal,
+  AfterViewInit,
+  OnDestroy,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideArrowDown } from '@lucide/angular';
 import { MessageItemComponent } from '../message-item/message-item.component';

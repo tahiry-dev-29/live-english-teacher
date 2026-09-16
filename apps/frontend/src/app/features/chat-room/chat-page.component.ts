@@ -1,5 +1,14 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject, signal, viewChild, OnInit, computed, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
+import { CommonModule, UpperCasePipe } from '@angular/common';
+import {
+  Component,
+  inject,
+  signal,
+  viewChild,
+  OnInit,
+  computed,
+  ChangeDetectionStrategy,
+  DestroyRef,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -23,6 +32,7 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
     RouterModule,
     FormsModule,
     CommonModule,
+    UpperCasePipe,
     LucideMessageCircle,
     LucidePanelRightOpen,
     SidebarComponent,
@@ -52,6 +62,7 @@ export class ChatPageComponent implements OnInit {
 
   readonly isLiveMode = signal<boolean>(false);
   readonly showSettings = signal<boolean>(false);
+  readonly settingsInitialTab = signal<'general' | 'ai_model' | 'voices' | 'language'>('general');
   readonly userInput = signal<string>('');
   readonly showVoiceControl = signal<boolean>(false);
   readonly playingMessageIndex = signal<number | null>(null);
@@ -66,16 +77,24 @@ export class ChatPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const sessionId = params['sessionId'];
-      if (sessionId) {
-        this.loadSession(sessionId);
-      }
-    });
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const sessionId = params['sessionId'] as string | undefined;
+        if (sessionId) {
+          this.loadSession(sessionId);
+        } else {
+          // État "new chat" : pas d'id côté frontend, le backend génère l'uuid
+          // au premier message (Prisma @default(uuid())).
+          this.chatService.createNewSession();
+          this.userInput.set('');
+        }
+      });
   }
 
-  get sessionId(): string {
-    return this.chatService.activeSessionId() || crypto.randomUUID();
+  /** Session existante ou null si "new chat" (id géré par le backend). */
+  get sessionId(): string | null {
+    return this.chatService.activeSessionId();
   }
 
   toggleLiveMode(): void {
@@ -93,10 +112,12 @@ export class ChatPageComponent implements OnInit {
               this.sessionId,
               this.languageService.selectedLanguageCode()
             );
-            if (result) {
+            if (result?.sessionId) {
               this.chatService.activeSessionId.set(result.sessionId);
               this.chatService.sessionsResource.reload();
               this.router.navigate(['/chat', result.sessionId]);
+              this.speakText(result.text);
+            } else if (result) {
               this.speakText(result.text);
             } else {
               this.voiceCallService.finishSpeaking();
@@ -123,13 +144,20 @@ export class ChatPageComponent implements OnInit {
   }
 
   onNewChat(): void {
-    const newId = this.chatService.createNewSession();
-    this.router.navigate(['/chat', newId]);
+    // Pas d'id généré ici : le backend crée la session au premier message.
+    this.chatService.createNewSession();
+    this.router.navigate(['/']);
     this.userInput.set('');
+  }
+
+  /** Opens Settings dialog and immediately switches to the AI Model / keys tab. */
+  openSettingsOnApiTab(): void {
+    this.showSettings.set(true);
   }
 
   loadSession(sessionId: string): void {
     this.chatService.loadSession(sessionId);
+    this.router.navigate(['/chat', sessionId]);
     this.userInput.set('');
   }
 
@@ -139,6 +167,11 @@ export class ChatPageComponent implements OnInit {
 
   onDeleteSession(sessionId: string): void {
     this.chatService.deleteSession(sessionId);
+    // Si on supprime la session active, on revient à l'état "new chat" (sans id).
+    if (this.chatService.activeSessionId() === sessionId) {
+      this.chatService.createNewSession();
+      this.router.navigate(['/']);
+    }
   }
 
   async sendMessage(): Promise<void> {
@@ -153,11 +186,17 @@ export class ChatPageComponent implements OnInit {
       this.languageService.selectedLanguageCode()
     );
 
-    if (result) {
+    if (result?.sessionId) {
       this.chatService.activeSessionId.set(result.sessionId);
       this.chatService.sessionsResource.reload();
       this.router.navigate(['/chat', result.sessionId]);
 
+      if (this.isLiveMode()) {
+        this.speakText(result.text);
+      }
+    } else if (result) {
+      // Erreur (ex: pas de sessionId résolu) : le message d'erreur
+      // est déjà affiché dans le thread, on ne navigue pas.
       if (this.isLiveMode()) {
         this.speakText(result.text);
       }
@@ -172,11 +211,15 @@ export class ChatPageComponent implements OnInit {
       this.languageService.selectedLanguageCode()
     );
 
-    if (result) {
+    if (result?.sessionId) {
       this.chatService.activeSessionId.set(result.sessionId);
       this.chatService.sessionsResource.reload();
       this.router.navigate(['/chat', result.sessionId]);
 
+      if (this.isLiveMode()) {
+        this.speakText(result.text);
+      }
+    } else if (result) {
       if (this.isLiveMode()) {
         this.speakText(result.text);
       }

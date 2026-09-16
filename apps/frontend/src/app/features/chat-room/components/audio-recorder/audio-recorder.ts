@@ -1,4 +1,10 @@
-import { Component, inject, signal, output, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  output,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { LucideMic, LucideSquare } from '@lucide/angular';
 import { AudioRecorderService } from '@core/services/audio-recorder-service';
 

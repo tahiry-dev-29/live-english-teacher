@@ -1,4 +1,11 @@
-import { Component, input, output, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
 
 @Component({

@@ -1,14 +1,45 @@
-import { Component, input, output, signal, computed, effect, viewChild, ElementRef, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  computed,
+  effect,
+  viewChild,
+  ElementRef,
+  ChangeDetectionStrategy,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  LucideX, LucideSquare, LucidePlay,
-  LucideMessageSquare, LucideSparkle, LucideEye, LucideEyeOff,
-  LucideKey, LucideSettings, LucidePalette, LucideBot, LucideMic,
-  LucideLanguages, LucideSun, LucideMoon, LucideMonitor,
+  LucideX,
+  LucideSquare,
+  LucidePlay,
+  LucideMessageSquare,
+  LucideSparkle,
+  LucideEye,
+  LucideEyeOff,
+  LucideKey,
+  LucideSettings,
+  LucidePalette,
+  LucideBot,
+  LucideMic,
+  LucideLanguages,
+  LucideSun,
+  LucideMoon,
+  LucideMonitor,
+  LucideRotateCw,
 } from '@lucide/angular';
-import { ElevenLabsVoiceService, TtsVoice } from '@core/services/elevenlabs-voice.service';
-import { AiConfigService, AiProvider, AiModel } from '@core/services/ai-config.service';
+import {
+  ElevenLabsVoiceService,
+  TtsVoice,
+} from '@core/services/elevenlabs-voice.service';
+import {
+  AiConfigService,
+  AiProvider,
+  AiModel,
+} from '@core/services/ai-config.service';
 import { ApiKeyService } from '@core/services/api-key.service';
 import { ThemeService, Theme } from '@core/services/theme.service';
 import { I18nService, AppLanguage } from '@core/services/i18n.service';
@@ -26,11 +57,25 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
   selector: 'app-settings-dialog',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
-  LucideX, LucideSquare, LucidePlay,
-    LucideMessageSquare, LucideSparkle, LucideEye, LucideEyeOff,
-    LucideKey, LucideSettings, LucidePalette, LucideBot, LucideMic,
-    LucideLanguages, LucideSun, LucideMoon, LucideMonitor,
+    CommonModule,
+    FormsModule,
+    LucideX,
+    LucideSquare,
+    LucidePlay,
+    LucideMessageSquare,
+    LucideSparkle,
+    LucideEye,
+    LucideEyeOff,
+    LucideKey,
+    LucideSettings,
+    LucidePalette,
+    LucideBot,
+    LucideMic,
+    LucideLanguages,
+    LucideSun,
+    LucideMoon,
+    LucideMonitor,
+    LucideRotateCw,
   ],
   template: `
     <dialog #dialogEl class="modal">
@@ -182,7 +227,18 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
               <fieldset class="fieldset">
                 <legend class="fieldset-legend font-semibold text-sm flex items-center justify-between w-full">
                   <span>{{ t('ai.provider') }}</span>
-                  <span class="text-xs badge badge-accent badge-outline">{{ t('ai.provider.beta') }}</span>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-xs gap-1"
+                      (click)="refreshModels()"
+                      title="Refresh live models"
+                    >
+                      <svg lucideRotateCw class="w-3.5 h-3.5" [class.animate-spin]="isModelsLoading()"></svg>
+                      <span class="text-xs">Live Sync</span>
+                    </button>
+                    <span class="text-xs badge badge-accent badge-outline">{{ t('ai.provider.beta') }}</span>
+                  </div>
                 </legend>
                 <div class="flex gap-2 mb-4">
                   <button type="button" class="flex-1 btn btn-sm btn-outline gap-2 normal-case"
@@ -199,28 +255,38 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
                   </button>
                 </div>
                 <div class="space-y-2">
-                  @for (model of filteredModels(); track model.id) {
-                  <div class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer"
-                    [class.border-primary]="tempModelId() === model.id"
-                    [class.bg-primary/10]="tempModelId() === model.id"
-                    [class.border-base-300]="tempModelId() !== model.id"
-                    [class.bg-base-100/50]="tempModelId() !== model.id"
-                    (click)="onModelSelect(model.id)"
-                    (keyup.enter)="onModelSelect(model.id)"
-                    tabindex="0" role="button">
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2">
-                        <p class="text-sm font-semibold">{{ model.name }}</p>
-                        @if (tempModelId() === model.id) {
-                        <span class="badge badge-primary badge-xs">Selected</span>
-                        }
-                      </div>
-                      <p class="text-xs text-base-content/60 truncate">{{ model.id }} · {{ model.description }}</p>
+                  @if (isModelsLoading() && filteredModels().length === 0) {
+                    <div class="text-center py-6 text-xs text-base-content/60">
+                      <span class="loading loading-spinner loading-sm text-primary mb-2"></span>
+                      <p>Discovering available models from provider...</p>
                     </div>
-                    @if (model.size) {
-                    <div class="badge badge-sm badge-ghost">{{ model.size }}</div>
+                  } @else {
+                    @for (model of filteredModels(); track model.id) {
+                    <div class="flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer"
+                      [class.border-primary]="tempModelId() === model.id"
+                      [class.bg-primary/10]="tempModelId() === model.id"
+                      [class.border-base-300]="tempModelId() !== model.id"
+                      [class.bg-base-100/50]="tempModelId() !== model.id"
+                      (click)="onModelSelect(model.id)"
+                      (keyup.enter)="onModelSelect(model.id)"
+                      tabindex="0" role="button">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <p class="text-sm font-semibold">{{ model.name }}</p>
+                          @if (tempModelId() === model.id) {
+                          <span class="badge badge-primary badge-xs">Selected</span>
+                          }
+                          @if (model.isDefault) {
+                          <span class="badge badge-ghost badge-xs">Recommended</span>
+                          }
+                        </div>
+                        <p class="text-xs text-base-content/60 truncate">{{ model.id }} · {{ model.description }}</p>
+                      </div>
+                      @if (model.size) {
+                      <div class="badge badge-sm badge-ghost">{{ model.size }}</div>
+                      }
+                    </div>
                     }
-                  </div>
                   }
                 </div>
               </fieldset>
@@ -389,7 +455,7 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
         </div>
       </div>
 
-      <form method="dialog" class="modal-backdrop">
+      <form method="dialog" class="modal-backdrop backdrop-blur-sm">
         <button (click)="handleCancel()">close</button>
       </form>
     </dialog>
@@ -408,6 +474,7 @@ export class SettingsDialogComponent {
   readonly languages = input<Language[]>([]);
   readonly selectedLanguage = input<string>('en');
   readonly selectedVoiceName = input<string>('');
+  readonly initialTab = input<SettingsTab>('general');
 
   readonly closed = output<void>();
   readonly languageChange = output<string>();
@@ -443,8 +510,17 @@ export class SettingsDialogComponent {
 
   private audioPreview: HTMLAudioElement | null = null;
 
-  readonly availableVoicesList = computed<TtsVoice[]>(() => this.elevenLabs.voices());
-  readonly filteredModels = computed<AiModel[]>(() => this.aiConfig.getModelsForProvider(this.tempProvider()));
+  readonly availableVoicesList = computed<TtsVoice[]>(() =>
+    this.elevenLabs.voices()
+  );
+  readonly filteredModels = computed<AiModel[]>(() =>
+    this.aiConfig.getModelsForProvider(this.tempProvider())
+  );
+  readonly isModelsLoading = computed<boolean>(() => this.aiConfig.loading());
+
+  async refreshModels(): Promise<void> {
+    await this.aiConfig.fetchModels();
+  }
 
   private readonly defaultLanguages: Language[] = [
     { code: 'en', name: 'English', flag: '🇬🇧' },
@@ -462,7 +538,7 @@ export class SettingsDialogComponent {
 
   private readonly sampleTexts: Record<string, string> = {
     en: 'Hello! I am your AI English tutor. How can I help you improve today?',
-    fr: 'Bonjour ! Je suis votre tuteur IA. Comment puis-je vous aider aujourd\'hui ?',
+    fr: "Bonjour ! Je suis votre tuteur IA. Comment puis-je vous aider aujourd'hui ?",
     es: '¡Hola! Soy tu tutor de IA. ¿Cómo puedo ayudarte hoy?',
     de: 'Hallo! Ich bin dein KI-Tutor. Wie kann ich dir heute helfen?',
     it: 'Ciao! Sono il tuo tutor AI. Come posso aiutarti oggi?',
@@ -484,7 +560,7 @@ export class SettingsDialogComponent {
         this.tempAppLang.set(this.i18n.lang());
         this.showGroqKey.set(false);
         this.showGeminiKey.set(false);
-        this.activeTab.set('general');
+        this.activeTab.set(this.initialTab());
         if (!dialog.open) dialog.showModal();
       } else {
         this.stopAudioPreview();
@@ -522,18 +598,30 @@ export class SettingsDialogComponent {
     const text = this.sampleTexts[langCode] ?? this.sampleTexts['en'];
 
     try {
-      const audioResult = await this.elevenLabs.generateSpeechAudio(text, voice.id, langCode);
+      const audioResult = await this.elevenLabs.generateSpeechAudio(
+        text,
+        voice.id,
+        langCode
+      );
       if (audioResult) {
         const byteCharacters = atob(audioResult.audioData);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
-        const blob = new Blob([new Uint8Array(byteNumbers)], { type: audioResult.mimeType });
+        const blob = new Blob([new Uint8Array(byteNumbers)], {
+          type: audioResult.mimeType,
+        });
         const url = URL.createObjectURL(blob);
         this.audioPreview = new Audio(url);
-        this.audioPreview.onended = () => { this.playingVoiceId.set(null); URL.revokeObjectURL(url); };
-        this.audioPreview.onerror = () => { this.playingVoiceId.set(null); URL.revokeObjectURL(url); };
+        this.audioPreview.onended = () => {
+          this.playingVoiceId.set(null);
+          URL.revokeObjectURL(url);
+        };
+        this.audioPreview.onerror = () => {
+          this.playingVoiceId.set(null);
+          URL.revokeObjectURL(url);
+        };
         await this.audioPreview.play();
         return;
       }
@@ -553,6 +641,11 @@ export class SettingsDialogComponent {
 
   handleSave(): void {
     this.stopAudioPreview();
+    const groqChanged =
+      this.apiKeyService.customGroqKey() !== this.tempGroqKey();
+    const geminiChanged =
+      this.apiKeyService.customGeminiKey() !== this.tempGeminiKey();
+
     this.elevenLabs.selectedVoiceId.set(this.tempVoiceId());
     this.aiConfig.provider.set(this.tempProvider());
     this.aiConfig.selectedModelId.set(this.tempModelId());
@@ -560,6 +653,11 @@ export class SettingsDialogComponent {
     this.apiKeyService.setGeminiKey(this.tempGeminiKey());
     this.themeService.setTheme(this.tempTheme());
     this.i18n.setLang(this.tempAppLang());
+
+    if (groqChanged || geminiChanged) {
+      void this.aiConfig.fetchModels();
+    }
+
     this.languageChange.emit(this.tempLanguage());
     this.voiceChange.emit(this.tempVoiceId());
     this.closed.emit();

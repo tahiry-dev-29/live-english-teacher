@@ -19,11 +19,13 @@ import {
   MaxLength,
 } from 'class-validator';
 import type { Response } from 'express';
+import { AiModelsService, DiscoveredAiModel } from './ai-models.service';
 import { AiProviderService } from './ai-provider.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
 import { ElevenLabsService, VoiceInfo } from './elevenlabs/elevenlabs.service';
 import { GroqTranscribeService } from './groq-transcribe/groq-transcribe.service';
 import { TranscribeDto, GenerateTtsDto } from './dto/transcribe.dto';
+import { QuotaExceededError } from './groq-live/groq-live.service';
 
 class StreamChatDto {
   @IsString()
@@ -54,6 +56,7 @@ class StreamChatDto {
 
 /**
  * Endpoints IA :
+ * GET /api/ai/models — Modèles découverts dynamiquement (Groq/Gemini)
  * POST /api/ai/chat/stream — Streaming SSE
  * POST /api/ai/transcribe — STT Whisper
  * POST /api/ai/tts — TTS ElevenLabs
@@ -65,11 +68,20 @@ export class AiStreamController {
   private readonly logger = new Logger(AiStreamController.name);
 
   constructor(
+    private readonly aiModelsService: AiModelsService,
     private readonly aiProviderService: AiProviderService,
     private readonly chatHistoryService: ChatHistoryService,
     private readonly elevenLabsService: ElevenLabsService,
     private readonly groqTranscribeService: GroqTranscribeService
   ) {}
+
+  @Get('models')
+  async getModels(
+    @Headers('x-groq-api-key') groqApiKey?: string,
+    @Headers('x-gemini-api-key') geminiApiKey?: string
+  ): Promise<DiscoveredAiModel[]> {
+    return this.aiModelsService.getModels({ groqApiKey, geminiApiKey });
+  }
 
   @Get('voices')
   getVoices(): VoiceInfo[] {
@@ -137,9 +149,22 @@ export class AiStreamController {
         await this.chatHistoryService.addMessage(sessionId, 'model', fullText);
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      this.logger?.error?.(`SSE stream error: ${errorMsg}`);
-      res.write(`data: ${JSON.stringify({ error: true, message: `Error: ${errorMsg}` })}\n\n`);
+      if (error instanceof QuotaExceededError) {
+        this.logger?.warn?.(`Quota exceeded for ${error.provider}, prompting user for own key.`);
+        res.write(
+          `data: ${JSON.stringify({
+            error: true,
+            errorCode: 'QUOTA_EXCEEDED',
+            provider: error.provider,
+          })}\n\n`
+        );
+      } else {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        this.logger?.error?.(`SSE stream error: ${errorMsg}`);
+        res.write(
+          `data: ${JSON.stringify({ error: true, message: errorMsg })}\n\n`
+        );
+      }
     } finally {
       res.end('data: [DONE]\n\n');
     }

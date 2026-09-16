@@ -20,9 +20,17 @@ async function bootstrap() {
 
   // Redirect root to GraphQL docs in local (port 3000)
   if (port == 3000) {
-    app.getHttpAdapter().get('/', (req: any, res: any) => {
-      res.redirect('/graphql');
-    });
+    app
+      .getHttpAdapter()
+      .get(
+        '/',
+        (
+          req: { originalUrl?: string },
+          res: { redirect: (url: string) => void }
+        ) => {
+          res.redirect('/graphql');
+        }
+      );
   }
 
   await app.listen(port);

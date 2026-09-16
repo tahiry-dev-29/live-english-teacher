@@ -1,7 +1,19 @@
-import { Component, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Session } from '@models/session.model';
-import { LucideMessageCircle, LucidePencil, LucideTrash2, LucideCheck, LucideX } from '@lucide/angular';
+import {
+  LucideMessageCircle,
+  LucidePencil,
+  LucideTrash2,
+  LucideCheck,
+  LucideX,
+} from '@lucide/angular';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,

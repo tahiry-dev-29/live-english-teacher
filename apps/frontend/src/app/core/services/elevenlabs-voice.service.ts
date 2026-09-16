@@ -13,14 +13,54 @@ export interface TtsVoice {
 })
 export class ElevenLabsVoiceService {
   readonly voices = signal<TtsVoice[]>([
-    { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (Warm & Engaging)', lang: 'en-US', description: 'Deep, warm male voice' },
-    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah (Soft & Natural)', lang: 'en-US', description: 'Calm, friendly female voice' },
-    { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni (Dynamic & Clear)', lang: 'en-US', description: 'Energetic male voice' },
-    { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold (Crisp & Clear)', lang: 'en-US', description: 'Authoritative male voice' },
-    { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam (Smooth & Natural)', lang: 'en-US', description: 'Conversational male voice' },
-    { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Deep British)', lang: 'en-GB', description: 'Professional British male' },
-    { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica (Bright & Playful)', lang: 'en-US', description: 'Young friendly female' },
-    { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris (Casual & Friendly)', lang: 'en-US', description: 'Casual conversational voice' },
+    {
+      id: 'JBFqnCBsd6RMkjVDRZzb',
+      name: 'George (Warm & Engaging)',
+      lang: 'en-US',
+      description: 'Deep, warm male voice',
+    },
+    {
+      id: 'EXAVITQu4vr4xnSDxMaL',
+      name: 'Sarah (Soft & Natural)',
+      lang: 'en-US',
+      description: 'Calm, friendly female voice',
+    },
+    {
+      id: 'ErXwobaYiN019PkySvjV',
+      name: 'Antoni (Dynamic & Clear)',
+      lang: 'en-US',
+      description: 'Energetic male voice',
+    },
+    {
+      id: 'VR6AewLTigWG4xSOukaG',
+      name: 'Arnold (Crisp & Clear)',
+      lang: 'en-US',
+      description: 'Authoritative male voice',
+    },
+    {
+      id: 'pNInz6obpgDQGcFmaJgB',
+      name: 'Adam (Smooth & Natural)',
+      lang: 'en-US',
+      description: 'Conversational male voice',
+    },
+    {
+      id: 'onwK4e9ZLuTAKqWW03F9',
+      name: 'Daniel (Deep British)',
+      lang: 'en-GB',
+      description: 'Professional British male',
+    },
+    {
+      id: 'cgSgspJ2msm6clMCkdW9',
+      name: 'Jessica (Bright & Playful)',
+      lang: 'en-US',
+      description: 'Young friendly female',
+    },
+    {
+      id: 'iP95p4xoKVk53GoZ742B',
+      name: 'Chris (Casual & Friendly)',
+      lang: 'en-US',
+      description: 'Casual conversational voice',
+    },
   ]);
 
   readonly selectedVoiceId = signal<string>('JBFqnCBsd6RMkjVDRZzb');

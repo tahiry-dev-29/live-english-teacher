@@ -1,4 +1,5 @@
 import { Injectable, inject, resource, signal } from '@angular/core';
+import { HttpHeaders } from '@angular/common/http';
 import { Apollo, gql } from 'apollo-angular';
 import { environment } from '@environment';
 import { AiConfigService } from '@core/services/ai-config.service';
@@ -14,7 +15,7 @@ export interface Message {
 const CHAT_MUTATION = gql`
   mutation Chat(
     $content: String!
-    $sessionId: String!
+    $sessionId: String
     $audioData: String
     $mimeType: String
     $targetLanguage: String
@@ -57,6 +58,8 @@ export class MessageService {
   readonly currentSessionId = signal<string | null>(null);
   readonly messages = signal<Message[]>([]);
   readonly loading = signal<boolean>(false);
+  /** Set when the server API key quota is exhausted — prompts user to add their own key. */
+  readonly quotaExceeded = signal<'groq' | 'gemini' | null>(null);
 
   /**
    * Resource réactive pour charger automatiquement les messages de session
@@ -81,10 +84,12 @@ export class MessageService {
           .toPromise();
 
         const sessionMessages = result?.data?.sessionMessages ?? [];
-        const formatted: Message[] = sessionMessages.map((msg): Message => ({
-          role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
-          text: msg.content,
-        }));
+        const formatted: Message[] = sessionMessages.map(
+          (msg): Message => ({
+            role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
+            text: msg.content,
+          })
+        );
         this.messages.set(formatted);
         return formatted;
       } catch (error) {
@@ -101,13 +106,15 @@ export class MessageService {
   }
 
   /**
-   * Envoie un message via l'endpoint SSE POST /api/ai/chat/stream
+   * Envoie un message via l'endpoint SSE POST /api/ai/chat/stream.
+   * `sessionId` est null pour un new chat : le backend crée la session
+   * (Prisma uuid) et retourne son id dans le premier event SSE.
    */
   async sendTextMessage(
     content: string,
-    sessionId: string,
+    sessionId: string | null,
     targetLanguage: string
-  ): Promise<{ text: string; sessionId: string } | null> {
+  ): Promise<{ text: string; sessionId: string | null } | null> {
     this.messages.update((msgs) => [...msgs, { role: 'user', text: content }]);
     this.loading.set(true);
 
@@ -124,7 +131,9 @@ export class MessageService {
       this.removeStreamingPlaceholder();
       this.loading.set(false);
       // Show error message instead of silent fallback
-      const errorMsg = 'Error: Could not connect to AI. Please check your connection and try again.';
+      const errorMsg = this.formatApiError(
+        error instanceof Error ? error.message : String(error)
+      );
       this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
       return { text: errorMsg, sessionId };
     }
@@ -144,12 +153,14 @@ export class MessageService {
 
   private async streamViaSSE(
     content: string,
-    sessionId: string,
+    sessionId: string | null,
     targetLanguage: string
-  ): Promise<{ text: string; sessionId: string }> {
+  ): Promise<{ text: string; sessionId: string | null }> {
     const url = `${environment.apiBaseUrl}/ai/chat/stream`;
 
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
     const groqKey = this.apiKeyService.getGroqKeyHeader();
     const geminiKey = this.apiKeyService.getGeminiKeyHeader();
     if (groqKey) headers['x-groq-api-key'] = groqKey;
@@ -213,11 +224,20 @@ export class MessageService {
               sessionId?: string;
               token?: string;
               error?: boolean;
+              errorCode?: string;
+              provider?: 'groq' | 'gemini';
             };
 
             if (data.error) {
-              streamFailed = true;
-              streamErrorMessage = (data as { message?: string }).message || 'AI service error';
+              if (data.errorCode === 'QUOTA_EXCEEDED') {
+                streamFailed = true;
+                streamErrorMessage = 'QUOTA_EXCEEDED';
+                this.quotaExceeded.set(data.provider ?? 'groq');
+              } else {
+                streamFailed = true;
+                streamErrorMessage =
+                  (data as { message?: string }).message || 'AI service error';
+              }
             } else {
               if (data.sessionId) resolvedSessionId = data.sessionId;
               if (data.token) pushToken(data.token);
@@ -231,7 +251,7 @@ export class MessageService {
 
     if (streamFailed) {
       this.streamingIndex = null;
-      const errorMsg = `Error: ${streamErrorMessage || 'AI service unavailable. Please try again.'}`;
+      const errorMsg = this.formatApiError(streamErrorMessage);
       this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
       return { text: errorMsg, sessionId: resolvedSessionId || sessionId };
     }
@@ -240,9 +260,18 @@ export class MessageService {
     return { text: fullText, sessionId: resolvedSessionId || sessionId };
   }
 
+  private getApiHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    const groqKey = this.apiKeyService.getGroqKeyHeader();
+    const geminiKey = this.apiKeyService.getGeminiKeyHeader();
+    if (groqKey) headers['x-groq-api-key'] = groqKey;
+    if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
+    return headers;
+  }
+
   private async sendViaGraphQL(
     content: string,
-    sessionId: string,
+    sessionId: string | null,
     targetLanguage: string
   ): Promise<{ text: string; sessionId: string } | null> {
     try {
@@ -255,6 +284,9 @@ export class MessageService {
             targetLanguage,
             model: this.aiConfig.selectedModelId(),
             provider: this.aiConfig.provider(),
+          },
+          context: {
+            headers: new HttpHeaders(this.getApiHeaders()),
           },
         })
         .toPromise();
@@ -284,7 +316,7 @@ export class MessageService {
         ...msgs,
         {
           role: 'ai',
-          text: 'Error: Could not connect to AI. Please check your connection and try again.',
+          text: 'Could not connect to AI. Please check your connection and try again.',
         },
       ]);
 
@@ -295,7 +327,7 @@ export class MessageService {
   async sendAudioMessage(
     audioData: string,
     mimeType: string,
-    sessionId: string,
+    sessionId: string | null,
     targetLanguage: string
   ): Promise<{ text: string; sessionId: string } | null> {
     this.loading.set(true);
@@ -309,6 +341,11 @@ export class MessageService {
             audioData,
             mimeType,
             targetLanguage,
+            model: this.aiConfig.selectedModelId(),
+            provider: this.aiConfig.provider(),
+          },
+          context: {
+            headers: new HttpHeaders(this.getApiHeaders()),
           },
         })
         .toPromise();
@@ -330,7 +367,10 @@ export class MessageService {
       console.error('Error sending audio message:', error);
       this.messages.update((msgs) => [
         ...msgs,
-        { role: 'ai', text: 'Error: Could not process audio. Please try again or send a text message.' },
+        {
+          role: 'ai',
+          text: 'Could not process audio. Please try again or send a text message.',
+        },
       ]);
       return null;
     }
@@ -367,5 +407,43 @@ export class MessageService {
 
   addMessage(message: Message): void {
     this.messages.update((msgs) => [...msgs, message]);
+  }
+
+  private formatApiError(raw: string): string {
+    if (!raw) return 'AI service unavailable. Please try again.';
+
+    if (raw === 'QUOTA_EXCEEDED') {
+      return '🔑 Server quota exhausted. Add your own API key in Settings > AI Model to keep chatting.';
+    }
+
+    const lower = raw.toLowerCase();
+
+    if (
+      lower.includes('404') ||
+      lower.includes('not found') ||
+      (lower.includes('model') && lower.includes('not available'))
+    ) {
+      return 'Model not available. Open Settings > AI Model to select a working model, or add your own Groq API key.';
+    }
+    if (
+      lower.includes('401') ||
+      lower.includes('403') ||
+      lower.includes('invalid api key') ||
+      lower.includes('unauthorized')
+    ) {
+      return 'Invalid API key. Open Settings > AI Model to add your Groq API key.';
+    }
+    if (lower.includes('no api key') || lower.includes('not set')) {
+      return 'No API key configured. Open Settings > AI Model to add your Groq API key.';
+    }
+    if (
+      lower.includes('could not') ||
+      lower.includes('network') ||
+      lower.includes('fetch')
+    ) {
+      return 'Could not reach AI service. Check your internet connection and try again.';
+    }
+
+    return raw;
   }
 }

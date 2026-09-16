@@ -9,14 +9,54 @@ export interface VoiceInfo {
 }
 
 export const ELEVENLABS_VOICES: VoiceInfo[] = [
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (Warm & Engaging)', lang: 'en-US', description: 'Deep, warm male voice' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah (Soft & Natural)', lang: 'en-US', description: 'Calm, friendly female voice' },
-  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni (Dynamic & Clear)', lang: 'en-US', description: 'Energetic male voice' },
-  { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold (Crisp & Crisp)', lang: 'en-US', description: 'Authoritative male voice' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam (Smooth & Conversational)', lang: 'en-US', description: 'Natural conversational male voice' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Deep & Professional)', lang: 'en-GB', description: 'British accent male voice' },
-  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica (Bright & Clear)', lang: 'en-US', description: 'Young playful female voice' },
-  { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris (Casual & Friendly)', lang: 'en-US', description: 'Casual conversational voice' },
+  {
+    id: 'JBFqnCBsd6RMkjVDRZzb',
+    name: 'George (Warm & Engaging)',
+    lang: 'en-US',
+    description: 'Deep, warm male voice',
+  },
+  {
+    id: 'EXAVITQu4vr4xnSDxMaL',
+    name: 'Sarah (Soft & Natural)',
+    lang: 'en-US',
+    description: 'Calm, friendly female voice',
+  },
+  {
+    id: 'ErXwobaYiN019PkySvjV',
+    name: 'Antoni (Dynamic & Clear)',
+    lang: 'en-US',
+    description: 'Energetic male voice',
+  },
+  {
+    id: 'VR6AewLTigWG4xSOukaG',
+    name: 'Arnold (Crisp & Crisp)',
+    lang: 'en-US',
+    description: 'Authoritative male voice',
+  },
+  {
+    id: 'pNInz6obpgDQGcFmaJgB',
+    name: 'Adam (Smooth & Conversational)',
+    lang: 'en-US',
+    description: 'Natural conversational male voice',
+  },
+  {
+    id: 'onwK4e9ZLuTAKqWW03F9',
+    name: 'Daniel (Deep & Professional)',
+    lang: 'en-GB',
+    description: 'British accent male voice',
+  },
+  {
+    id: 'cgSgspJ2msm6clMCkdW9',
+    name: 'Jessica (Bright & Clear)',
+    lang: 'en-US',
+    description: 'Young playful female voice',
+  },
+  {
+    id: 'iP95p4xoKVk53GoZ742B',
+    name: 'Chris (Casual & Friendly)',
+    lang: 'en-US',
+    description: 'Casual conversational voice',
+  },
 ];
 
 @Injectable()

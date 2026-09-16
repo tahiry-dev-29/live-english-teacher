@@ -51,7 +51,9 @@ export class AiProviderService {
       content,
       options.audioData,
       options.mimeType,
-      options.targetLanguage
+      options.targetLanguage,
+      options.model,
+      options.geminiApiKey
     );
   }
 
@@ -63,7 +65,12 @@ export class AiProviderService {
     history: AiHistoryMessage[],
     content: string,
     targetLanguage = 'English',
-    options: { model?: string; provider?: 'gemini' | 'groq'; groqApiKey?: string; geminiApiKey?: string } = {}
+    options: {
+      model?: string;
+      provider?: 'gemini' | 'groq';
+      groqApiKey?: string;
+      geminiApiKey?: string;
+    } = {}
   ): AsyncGenerator<string, void, unknown> {
     const activeProvider = options.provider || this.provider;
     if (activeProvider === 'groq') {
@@ -81,7 +88,9 @@ export class AiProviderService {
       content,
       undefined,
       undefined,
-      targetLanguage
+      targetLanguage,
+      options.model,
+      options.geminiApiKey
     );
     yield text;
   }

@@ -163,44 +163,47 @@ export class VoiceCallService {
   private setupMediaRecorder(): void {
     try {
       // Create MediaRecorder from VAD stream or userMedia
-      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/mp4';
-        this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : 'audio/mp4';
+          this.mediaRecorder = new MediaRecorder(stream, { mimeType });
 
-        this.mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            this.audioChunks.push(event.data);
-          }
-        };
-
-        this.mediaRecorder.onstop = async () => {
-          if (this.audioChunks.length === 0) return;
-          const audioBlob = new Blob(this.audioChunks, { type: mimeType });
-          this.audioChunks = [];
-
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const base64 = (reader.result as string).split(',')[1];
-            if (base64) {
-              const transcript = await this.messageService.transcribeAudio(
-                base64,
-                mimeType,
-                this.targetLanguageCode
-              );
-
-              if (transcript && transcript.trim()) {
-                this.currentTranscript.set(transcript);
-                this.processTranscript(transcript);
-              }
+          this.mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              this.audioChunks.push(event.data);
             }
           };
-          reader.readAsDataURL(audioBlob);
-        };
-      }).catch((e) => {
-        console.warn('Could not setup MediaRecorder for Whisper:', e);
-      });
+
+          this.mediaRecorder.onstop = async () => {
+            if (this.audioChunks.length === 0) return;
+            const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+            this.audioChunks = [];
+
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const base64 = (reader.result as string).split(',')[1];
+              if (base64) {
+                const transcript = await this.messageService.transcribeAudio(
+                  base64,
+                  mimeType,
+                  this.targetLanguageCode
+                );
+
+                if (transcript && transcript.trim()) {
+                  this.currentTranscript.set(transcript);
+                  this.processTranscript(transcript);
+                }
+              }
+            };
+            reader.readAsDataURL(audioBlob);
+          };
+        })
+        .catch((e) => {
+          console.warn('Could not setup MediaRecorder for Whisper:', e);
+        });
     } catch (e) {
       console.warn('MediaRecorder error:', e);
     }

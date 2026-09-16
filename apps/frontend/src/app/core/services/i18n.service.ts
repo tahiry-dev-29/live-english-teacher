@@ -54,7 +54,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'general.font.small': 'Petit',
     'general.font.medium': 'Moyen',
     'general.font.large': 'Grand',
-    'general.app_language': 'Langue de l\'application',
+    'general.app_language': "Langue de l'application",
     'ai.provider': 'Fournisseur & Modèle IA',
     'ai.provider.beta': 'Bêta',
     'ai.custom_keys': 'Clés API personnalisées',
@@ -68,7 +68,7 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'voices.title': 'Voix du tuteur IA',
     'voices.hd': 'Audio HD',
     'voices.selected': 'Sélectionnée',
-    'language.learning': 'Langue d\'apprentissage',
+    'language.learning': "Langue d'apprentissage",
     'language.learning_hint': 'Aussi sélectionnable depuis la barre de chat',
     'chat.placeholder': 'Tapez un message...',
     'chat.language': 'Langue',
@@ -144,7 +144,9 @@ export class I18nService {
 
   private load(): AppLanguage {
     try {
-      return (localStorage.getItem(I18nService.STORAGE_KEY) as AppLanguage) || 'en';
+      return (
+        (localStorage.getItem(I18nService.STORAGE_KEY) as AppLanguage) || 'en'
+      );
     } catch {
       return 'en';
     }

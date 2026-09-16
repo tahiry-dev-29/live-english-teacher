@@ -1,4 +1,9 @@
-import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  input,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideMessageSquare } from '@lucide/angular';
 import { WELCOME_MESSAGES } from './chat-welcome.util';

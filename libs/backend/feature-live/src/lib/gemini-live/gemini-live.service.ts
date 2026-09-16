@@ -11,6 +11,7 @@ import {
   extractResponseAudio,
   ChatMessage,
 } from './gemini-live.util';
+import { QuotaExceededError } from '../groq-live/groq-live.service';
 
 /** Low-level Gemini REST helpers shared by all Gemini Live service methods. */
 const postJson = async (url: string, payload: unknown): Promise<Response> =>
@@ -30,13 +31,18 @@ export class GeminiLiveService {
     newMessage: string,
     audioData?: string,
     mimeType?: string,
-    targetLanguage = 'English'
+    targetLanguage = 'English',
+    modelOverride?: string,
+    apiKeyOverride?: string
   ): Promise<string> {
-    const apiUrl = resolveGeminiUrl(
-      this.apiUrlBase,
-      GEMINI_CHAT_MODEL,
-      GEMINI_API_KEY
-    );
+    const key = apiKeyOverride || GEMINI_API_KEY || '';
+    if (!key) {
+      this.logger.warn('GEMINI_API_KEY is not set.');
+      return 'No API key configured. Please add your Gemini API key in Settings > AI Model to continue chatting.';
+    }
+
+    const model = modelOverride || GEMINI_CHAT_MODEL;
+    const apiUrl = resolveGeminiUrl(this.apiUrlBase, model, key);
     const payload = buildChatPayload(
       history,
       newMessage,
@@ -45,31 +51,29 @@ export class GeminiLiveService {
       targetLanguage
     );
 
-    this.logger.log(
-      `Requesting Chat from: ${apiUrl.replace(GEMINI_API_KEY, '***')}`
-    );
+    this.logger.log(`Requesting Chat from: ${apiUrl.replace(key, '***')}`);
 
     try {
-      return await this.postWithRetry(apiUrl, payload);
+      return await this.postWithRetry(apiUrl, payload, !!apiKeyOverride);
     } catch (error) {
+      if (error instanceof QuotaExceededError) throw error;
       if (error instanceof Error) {
         this.logger.error(`Error in getGeminiChatResponse: ${error.message}`);
       } else {
         this.logger.error(`Error in getGeminiChatResponse: ${String(error)}`);
       }
-      return "I'm experiencing connectivity issues. Please try again later.";
+      return "I'm experiencing connectivity issues. Please try again later or verify your Gemini API key in Settings.";
     }
   }
 
   async getGeminiTtsAudio(
     text: string,
-    targetLanguage?: string
+    targetLanguage?: string,
+    apiKeyOverride?: string
   ): Promise<{ audioData: string; mimeType: string } | null> {
-    const apiUrl = resolveGeminiUrl(
-      this.apiUrlBase,
-      GEMINI_TTS_MODEL,
-      GEMINI_API_KEY
-    );
+    const key = apiKeyOverride || GEMINI_API_KEY || '';
+    if (!key) return null;
+    const apiUrl = resolveGeminiUrl(this.apiUrlBase, GEMINI_TTS_MODEL, key);
     const voice = getVoiceForLanguage(targetLanguage || 'en');
     const payload = buildTtsPayload(text, voice);
 
@@ -101,7 +105,11 @@ export class GeminiLiveService {
     }
   }
 
-  private async postWithRetry(url: string, payload: unknown): Promise<string> {
+  private async postWithRetry(
+    url: string,
+    payload: unknown,
+    isUserKey = false
+  ): Promise<string> {
     const maxRetries = 3;
     let attempt = 0;
 
@@ -116,6 +124,14 @@ export class GeminiLiveService {
         }
         this.logger.warn('Gemini response was okay but content was empty.');
         return "I'm sorry, I couldn't generate a response right now. Could you try asking something else?";
+      }
+
+      // Quota exhausted on server key → signal frontend to ask user for their own key
+      if (
+        (response.status === 429 || response.status === 402) &&
+        !isUserKey
+      ) {
+        throw new QuotaExceededError('gemini');
       }
 
       this.logger.error(

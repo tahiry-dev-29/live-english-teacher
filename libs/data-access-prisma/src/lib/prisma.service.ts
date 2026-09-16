@@ -1,4 +1,9 @@
-import { INestApplication, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  INestApplication,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -12,7 +17,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       this.logger.error('╔══════════════════════════════════════════════╗');
       this.logger.error('║  DATABASE CONNECTION FAILED                  ║');
       this.logger.error('╠══════════════════════════════════════════════╣');
-      this.logger.error(`║  ${error instanceof Error ? error.message.split('\n')[0] : 'Unknown error'}`);
+      this.logger.error(
+        `║  ${
+          error instanceof Error
+            ? error.message.split('\n')[0]
+            : 'Unknown error'
+        }`
+      );
       this.logger.error('║                                              ║');
       this.logger.error('║  Fix: Start PostgreSQL and check DATABASE_URL║');
       this.logger.error('╚══════════════════════════════════════════════╝');

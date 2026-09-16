@@ -55,7 +55,8 @@ export class TtsService {
 
     this.stop();
 
-    const selectedVoiceId = options?.voiceId || this.elevenLabs.selectedVoiceId();
+    const selectedVoiceId =
+      options?.voiceId || this.elevenLabs.selectedVoiceId();
 
     // 1. Try ElevenLabs TTS
     try {
@@ -66,7 +67,12 @@ export class TtsService {
       );
 
       if (elevenAudio) {
-        this.playElevenLabsAudio(elevenAudio.audioData, elevenAudio.mimeType, cleanText, options);
+        this.playElevenLabsAudio(
+          elevenAudio.audioData,
+          elevenAudio.mimeType,
+          cleanText,
+          options
+        );
         return;
       }
     } catch (err) {
@@ -125,12 +131,15 @@ export class TtsService {
       this.isPlaying.set(true);
       this.currentAudioTime.set(0);
 
-      this.currentAudio.play().then(() => {
-        this.startProgressTracking();
-      }).catch((playErr) => {
-        console.warn('Audio play error, fallback to Web Speech:', playErr);
-        this.speakWebSpeech(fallbackText, options);
-      });
+      this.currentAudio
+        .play()
+        .then(() => {
+          this.startProgressTracking();
+        })
+        .catch((playErr) => {
+          console.warn('Audio play error, fallback to Web Speech:', playErr);
+          this.speakWebSpeech(fallbackText, options);
+        });
     } catch {
       this.speakWebSpeech(fallbackText, options);
     }
@@ -200,7 +209,10 @@ export class TtsService {
     }
   }
 
-  private startProgressTracking(startTime?: number, estimatedDuration?: number): void {
+  private startProgressTracking(
+    startTime?: number,
+    estimatedDuration?: number
+  ): void {
     this.stopProgressTracking();
     const start = startTime || Date.now();
 

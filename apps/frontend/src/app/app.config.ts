@@ -1,4 +1,10 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
 import { provideHttpClient } from '@angular/common/http';
@@ -7,11 +13,17 @@ import { HttpLink } from 'apollo-angular/http';
 import { InMemoryCache } from '@apollo/client/core';
 import { environment } from '../environments/environment';
 import { provideMarkdown } from 'ngx-markdown';
+import { ThemeService } from './core/services/theme.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
+    // Instancie ThemeService au boot : `data-theme` (cookie → legacy → défaut)
+    // est posé avant le premier rendu — anti-flash, 100% Angular, sans script inline.
+    provideAppInitializer(() => {
+      inject(ThemeService);
+    }),
     provideRouter(appRoutes),
     provideHttpClient(),
     provideMarkdown(),

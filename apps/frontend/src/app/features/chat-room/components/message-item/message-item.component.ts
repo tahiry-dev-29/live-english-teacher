@@ -1,9 +1,19 @@
-import { Component, input, output, signal, computed, ChangeDetectionStrategy, inject } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarkdownModule } from 'ngx-markdown';
 import {
-  LucideSquare, LucideMic, LucideMoreHorizontal,
-  LucideCopy, LucideRefreshCw, LucideGitFork,
+  LucideSquare,
+  LucideMic,
+  LucideMoreHorizontal,
+  LucideCopy,
+  LucideRefreshCw,
+  LucideGitFork,
 } from '@lucide/angular';
 
 @Component({
@@ -13,8 +23,12 @@ import {
   imports: [
     CommonModule,
     MarkdownModule,
-    LucideSquare, LucideMic, LucideMoreHorizontal,
-    LucideCopy, LucideRefreshCw, LucideGitFork,
+    LucideSquare,
+    LucideMic,
+    LucideMoreHorizontal,
+    LucideCopy,
+    LucideRefreshCw,
+    LucideGitFork,
   ],
   template: `
     <div
@@ -68,12 +82,17 @@ import {
 
         <!-- Context menu (⋯) on AI messages -->
         @if (message().role === 'ai') {
-        <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
           <div class="dropdown dropdown-end">
             <button tabindex="0" class="btn btn-ghost btn-xs btn-circle">
               <svg lucideMoreHorizontal class="w-4 h-4"></svg>
             </button>
-            <ul tabindex="0" class="dropdown-content menu bg-base-200 border border-base-300 rounded-box z-50 w-40 p-2 shadow-lg">
+            <ul
+              tabindex="0"
+              class="dropdown-content menu bg-base-200 border border-base-300 rounded-box z-50 w-40 p-2 shadow-lg"
+            >
               <li>
                 <button (click)="onCopy()">
                   <svg lucideCopy class="w-4 h-4"></svg>

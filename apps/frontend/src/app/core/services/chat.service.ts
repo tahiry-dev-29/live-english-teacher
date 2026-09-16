@@ -79,10 +79,13 @@ export class ChatService {
     await this.messageService.loadSessionMessages(sessionId);
   }
 
-  createNewSession(): string {
-    const newSessionId = crypto.randomUUID();
-    this.activeSessionId.set(newSessionId);
+  /**
+   * État "new chat" : aucun id n'est généré côté frontend.
+   * L'id de session est créé par le backend (Prisma uuid) au premier message,
+   * puis retourné via `result.sessionId`.
+   */
+  createNewSession(): void {
+    this.activeSessionId.set(null);
     this.messageService.clearMessages();
-    return newSessionId;
   }
 }

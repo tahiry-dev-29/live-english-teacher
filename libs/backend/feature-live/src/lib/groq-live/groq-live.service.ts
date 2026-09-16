@@ -5,6 +5,16 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MAX_HISTORY_LENGTH = 10;
 const MAX_CONTENT_LENGTH = 1500;
 
+/** Thrown when the server API key quota is exhausted (HTTP 429 / 402). */
+export class QuotaExceededError extends Error {
+  readonly provider: 'groq' | 'gemini';
+  constructor(provider: 'groq' | 'gemini') {
+    super(`${provider} quota exceeded`);
+    this.provider = provider;
+    this.name = 'QuotaExceededError';
+  }
+}
+
 export interface GroqHistoryMessage {
   role: 'user' | 'model';
   text: string;
@@ -19,7 +29,7 @@ export interface GroqHistoryMessage {
 export class GroqLiveService {
   private readonly logger = new Logger(GroqLiveService.name);
   private readonly apiKey = process.env['GROQ_API_KEY'] || '';
-  private readonly model = process.env['AI_MODEL'] || 'llama-3.3-70b-versatile';
+  private readonly model = process.env['AI_MODEL'] || 'llama-3.1-8b-instant';
   private readonly fallbackModel =
     process.env['AI_FALLBACK_MODEL'] || 'llama-3.1-8b-instant';
 
@@ -47,9 +57,16 @@ export class GroqLiveService {
 
   private async createCompletion(
     messages: { role: string; content: string }[],
-    options: { stream?: boolean; useFallback?: boolean; modelOverride?: string; apiKey?: string } = {}
+    options: {
+      stream?: boolean;
+      useFallback?: boolean;
+      modelOverride?: string;
+      apiKey?: string;
+    } = {}
   ): Promise<Response> {
-    const model = options.modelOverride || (options.useFallback ? this.fallbackModel : this.model);
+    const model =
+      options.modelOverride ||
+      (options.useFallback ? this.fallbackModel : this.model);
     const apiKey = options.apiKey || this.apiKey;
     return fetch(GROQ_API_URL, {
       method: 'POST',
@@ -76,26 +93,49 @@ export class GroqLiveService {
     const apiKey = customApiKey || this.apiKey;
     if (!apiKey) {
       this.logger.warn('GROQ_API_KEY is not set.');
-      return 'Error: No API key configured. Add your Groq API key in Settings > AI Model, or contact the admin.';
+      return 'No API key configured. Please add your Groq API key in Settings > AI Model to continue chatting.';
     }
 
     const messages = this.buildMessages(history, newMessage, targetLanguage);
 
     try {
-      const response = await this.createCompletion(messages, { modelOverride, apiKey });
+      const response = await this.createCompletion(messages, {
+        modelOverride,
+        apiKey,
+      });
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
         this.logger.error(
-          `Groq API error with ${modelOverride || this.model}: ${response.status} - ${response.statusText}`
+          `Groq API error with ${modelOverride || this.model}: ${
+            response.status
+          } - ${response.statusText} - ${errorText}`
         );
+
+        // Quota exhausted on server key → signal frontend to ask user for their own key
+        if (
+          (response.status === 429 || response.status === 402) &&
+          !customApiKey
+        ) {
+          throw new QuotaExceededError('groq');
+        }
+
+        if (response.status === 404) {
+          return `Model "${
+            modelOverride || this.model
+          }" is not available. Please try a different model in Settings > AI Model, or add your own API key.`;
+        }
+
+        if (response.status === 401 || response.status === 403) {
+          return 'Invalid API key. Please check your Groq API key in Settings > AI Model, or add your own API key.';
+        }
+
         const fallback = await this.createCompletion(messages, {
           useFallback: true,
           apiKey,
         });
         if (!fallback.ok) {
-          throw new Error(
-            `Groq API error with fallback ${this.fallbackModel}: ${fallback.status}`
-          );
+          return `AI service error (${response.status}). Please try again later or add your own API key in Settings.`;
         }
         return this.extractText(await fallback.json());
       }
@@ -104,7 +144,7 @@ export class GroqLiveService {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error in getGroqChatResponse: ${message}`);
-      return 'Error: Could not reach Groq API. Check your internet connection or try a different model in Settings.';
+      return 'Could not reach AI service. Please check your internet connection or try a different model in Settings.';
     }
   }
 
@@ -131,17 +171,44 @@ export class GroqLiveService {
     const apiKey = customApiKey || this.apiKey;
     if (!apiKey) {
       this.logger.warn('GROQ_API_KEY is not set.');
-      yield 'Error: No API key configured. Add your Groq API key in Settings > AI Model, or contact the admin.';
+      yield 'No API key configured. Please add your Groq API key in Settings > AI Model to continue chatting.';
       return;
     }
 
     const messages = this.buildMessages(history, newMessage, targetLanguage);
 
-    let response = await this.createCompletion(messages, { stream: true, modelOverride, apiKey });
+    let response = await this.createCompletion(messages, {
+      stream: true,
+      modelOverride,
+      apiKey,
+    });
     if (!response.ok || !response.body) {
       this.logger.error(
-        `Groq API error with ${modelOverride || this.model}: ${response.status} - ${response.statusText}`
+        `Groq API error with ${modelOverride || this.model}: ${
+          response.status
+        } - ${response.statusText}`
       );
+
+      // Quota exhausted on server key → throw so SSE controller signals the frontend
+      if (
+        (response.status === 429 || response.status === 402) &&
+        !customApiKey
+      ) {
+        throw new QuotaExceededError('groq');
+      }
+
+      if (response.status === 404) {
+        yield `Model "${
+          modelOverride || this.model
+        }" is not available. Please try a different model in Settings > AI Model, or add your own API key.`;
+        return;
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        yield 'Invalid API key. Please check your Groq API key in Settings > AI Model, or add your own API key.';
+        return;
+      }
+
       response = await this.createCompletion(messages, {
         stream: true,
         useFallback: true,
@@ -150,9 +217,8 @@ export class GroqLiveService {
     }
 
     if (!response.ok || !response.body) {
-      throw new Error(
-        `Groq API error: ${response.status} - ${response.statusText}`
-      );
+      yield 'AI service error. Please try again later or add your own API key in Settings.';
+      return;
     }
 
     const reader = response.body.getReader();
