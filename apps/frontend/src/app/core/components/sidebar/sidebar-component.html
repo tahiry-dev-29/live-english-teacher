@@ -26,7 +26,7 @@
     <div
       class="font-bold text-lg whitespace-nowrap flex items-center gap-2 flex-1"
     >
-      <img src="apple-touch-icon.png" alt="Live Teacher" class="w-6 h-6 shrink-0" />
+      <img [src]="logoSrc()" alt="Live Teacher" class="w-6 h-6 shrink-0" />
       <span
         class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
       >
@@ -135,8 +135,7 @@
       <span>Install App</span>
       }
     </button>
-    }
-    @if (!isCollapsed()) {
+    } @if (!isCollapsed()) {
     <app-user-menu (openSettings)="openSettings.emit()" />
     } @else {
     <button
@@ -187,9 +186,7 @@
     </div>
     <div class="max-h-80 overflow-y-auto p-2">
       @if (filteredSessions().length === 0) {
-      <div class="text-center py-8 text-base-content/50">
-        No sessions found
-      </div>
+      <div class="text-center py-8 text-base-content/50">No sessions found</div>
       } @else {
       <app-sidebar-session-list
         [sessions]="filteredSessions()"

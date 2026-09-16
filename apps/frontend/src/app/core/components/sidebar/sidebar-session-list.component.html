@@ -18,45 +18,50 @@
           placeholder="Session title"
         />
         <button type="button" (click)="saveRename(item.id)" class="text-success hover:text-success/80 p-1 cursor-pointer">
-          <svg lucideCheck class="w-4 h-4"></svg>
+          <svg lucideCheck class="w-4 h-4" />
         </button>
         <button type="button" (click)="cancelRename()" class="text-base-content/40 hover:text-base-content/60 p-1 cursor-pointer">
-          <svg lucideX class="w-4 h-4"></svg>
+          <svg lucideX class="w-4 h-4" />
         </button>
       </div>
     } @else {
-      <button 
-        type="button"
+      <!-- span role=button : pas de <div> imbriqué dans <button> (HTML invalide) -->
+      <div
+        role="button"
+        tabindex="0"
         (click)="sessionClick.emit(item.id)"
-        class="w-full text-left px-2.5 py-2 rounded-lg text-sm truncate transition-all flex items-center gap-2.5"
+        (keyup.enter)="sessionClick.emit(item.id)"
+        class="w-full text-left px-2.5 py-2 rounded-lg text-sm truncate transition-all flex items-center gap-2.5 cursor-pointer"
         [class.bg-primary/20]="activeSessionId() === item.id"
         [class.text-primary]="activeSessionId() === item.id"
         [class.text-base-content/70]="activeSessionId() !== item.id"
         [class.hover:bg-base-300/50]="activeSessionId() !== item.id"
-        [class.group-hover:text-base-content]="activeSessionId() !== item.id">
-        <svg 
+        [class.group-hover:text-base-content]="activeSessionId() !== item.id"
+      >
+        <svg
           lucideMessageCircle
           class="w-4 h-4 transition-colors shrink-0"
           [class.text-primary]="activeSessionId() === item.id"
           [class.text-base-content/40]="activeSessionId() !== item.id"
-          [class.group-hover:text-primary]="activeSessionId() !== item.id"></svg>
-        <div class="flex-1 min-w-0">
-          <div class="truncate text-[13px]">{{ item.title }}</div>
-          <div class="text-[10px] text-base-content/40 truncate">{{ item.learningLanguage | uppercase }} • {{ item.createdAt | date:'shortDate' }}</div>
-        </div>
-      </button>
+          [class.group-hover:text-primary]="activeSessionId() !== item.id"
+        />
+        <span class="flex-1 min-w-0">
+          <span class="truncate text-[13px] block">{{ item.title }}</span>
+          <span class="text-[10px] text-base-content/40 truncate block">{{ item.learningLanguage | uppercase }} &bull; {{ item.createdAt | date: 'shortDate' }}</span>
+        </span>
+      </div>
       <div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all flex gap-1 bg-base-300/90 rounded-lg p-0.5 shadow-lg backdrop-blur-sm">
         <button type="button" (click)="startRename(item.id, item.title); $event.stopPropagation()" class="btn btn-ghost btn-xs" title="Rename">
-          <svg lucidePencil class="w-3.5 h-3.5"></svg>
+          <svg lucidePencil class="w-3.5 h-3.5" />
         </button>
         
         @if (confirmDeleteId() === item.id) {
           <button type="button" (click)="confirmDelete(item.id); $event.stopPropagation()" class="btn btn-ghost btn-xs text-error animate-pulse" title="Confirm Delete">
-            <svg lucideCheck class="w-3.5 h-3.5"></svg>
+            <svg lucideCheck class="w-3.5 h-3.5" />
           </button>
         } @else {
           <button type="button" (click)="initDelete(item.id); $event.stopPropagation()" class="btn btn-ghost btn-xs text-error/60 hover:text-error" title="Delete">
-            <svg lucideTrash2 class="w-3.5 h-3.5"></svg>
+            <svg lucideTrash2 class="w-3.5 h-3.5" />
           </button>
         }
       </div>
@@ -64,7 +69,7 @@
   </div>
 } @empty {
   <div class="px-3 py-8 text-sm text-base-content/40 italic text-center flex flex-col items-center gap-2">
-    <svg lucideMessageCircle class="w-8 h-8 opacity-50"></svg>
+    <svg lucideMessageCircle class="w-8 h-8 opacity-50" />
     No history yet
   </div>
 }

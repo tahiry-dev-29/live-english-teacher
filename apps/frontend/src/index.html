@@ -4,19 +4,86 @@
     <meta charset="utf-8" />
     <title>Live English Teacher</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#ff52d9" />
-    <meta name="description" content="AI-powered English conversation practice with real-time voice feedback" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="AI-powered English conversation practice with real-time voice feedback"
+    />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="LiveTeacher" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
-    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="android-chrome-512x512.png" />
-    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" id="meta-theme-color" content="#1d232a" />
+
+    <!--
+      Favicon & logo – theme-aware.
+      Initial href / theme-color match the default dark theme (halloween).
+      ThemeService.applyFavicon() swaps href via data-light / data-dark
+      attributes whenever the resolved theme changes at runtime.
+    -->
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="dark/favicon.ico"
+      id="favicon-ico"
+      data-light="favicon.ico"
+      data-dark="dark/favicon.ico"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="dark/favicon-16x16.png"
+      id="favicon-16"
+      data-light="favicon-16x16.png"
+      data-dark="dark/favicon-16x16.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="dark/favicon-32x32.png"
+      id="favicon-32"
+      data-light="favicon-32x32.png"
+      data-dark="dark/favicon-32x32.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="dark/apple-touch-icon.png"
+      id="apple-touch-icon"
+      data-light="apple-touch-icon.png"
+      data-dark="dark/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="dark/android-chrome-192x192.png"
+      id="favicon-192"
+      data-light="android-chrome-192x192.png"
+      data-dark="dark/android-chrome-192x192.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="dark/android-chrome-512x512.png"
+      id="favicon-512"
+      data-light="android-chrome-512x512.png"
+      data-dark="dark/android-chrome-512x512.png"
+    />
+    <link
+      rel="manifest"
+      href="dark/manifest.webmanifest"
+      id="site-manifest"
+      data-light="manifest.webmanifest"
+      data-dark="dark/manifest.webmanifest"
+    />
   </head>
   <body>
     <app-root></app-root>
