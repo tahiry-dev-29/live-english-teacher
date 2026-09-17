@@ -1,19 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
+import {
+  AI_PROVIDERS_REGISTRY,
+  FALLBACK_MODELS_BY_PROVIDER,
+  AiProviderConfig,
+} from './ai-providers.registry';
 
 export interface DiscoveredAiModel {
   id: string;
   name: string;
-  provider: 'groq' | 'gemini';
+  provider: string;
   description: string;
   size?: string;
   contextWindow?: number;
   isDefault?: boolean;
 }
 
-interface GroqRawModel {
+interface OpenAiRawModel {
   id: string;
-  active?: boolean;
-  context_window?: number;
   owned_by?: string;
 }
 
@@ -22,147 +25,118 @@ interface GeminiRawModel {
   displayName?: string;
   description?: string;
   supportedGenerationMethods?: string[];
-  inputTokenLimit?: number;
 }
 
 @Injectable()
 export class AiModelsService {
   private readonly logger = new Logger(AiModelsService.name);
 
-  private readonly defaultGroqKey = process.env['GROQ_API_KEY'] || '';
-  private readonly defaultGeminiKey = process.env['GEMINI_API_KEY'] || '';
+  async getModels(options: {
+    provider?: string;
+    keys?: Record<string, string>;
+    groqApiKey?: string;
+    geminiApiKey?: string;
+  } = {}): Promise<DiscoveredAiModel[]> {
+    const keys: Record<string, string> = {
+      ...(options.keys || {}),
+    };
+    if (options.groqApiKey) keys['groq'] = options.groqApiKey;
+    if (options.geminiApiKey) keys['gemini'] = options.geminiApiKey;
 
-  private readonly fallbackGroqModels: DiscoveredAiModel[] = [
-    {
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B Versatile',
-      provider: 'groq',
-      description: 'High intelligence & complex reasoning',
-      size: '70B',
-      contextWindow: 131072,
-      isDefault: true,
-    },
-    {
-      id: 'llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B Instant',
-      provider: 'groq',
-      description: 'Ultra-fast low-latency responses',
-      size: '8B',
-      contextWindow: 131072,
-    },
-  ];
+    const targetProviders = options.provider
+      ? [options.provider]
+      : Object.keys(AI_PROVIDERS_REGISTRY);
 
-  private readonly fallbackGeminiModels: DiscoveredAiModel[] = [
-    {
-      id: 'gemini-2.5-flash',
-      name: 'Gemini 2.5 Flash',
-      provider: 'gemini',
-      description: "Google's high speed & multimodal model",
-      size: 'Flash',
-      isDefault: true,
-    },
-    {
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
-      provider: 'gemini',
-      description: 'Next-gen multimodal reasoning',
-      size: 'Flash',
-    },
-  ];
+    const modelPromises = targetProviders.map(async (providerId) => {
+      const config = AI_PROVIDERS_REGISTRY[providerId];
+      if (!config) return [];
+      const effectiveKey = keys[providerId] || process.env[config.keyEnv] || '';
+      return this.fetchModelsForProvider(config, effectiveKey);
+    });
 
-  async getModels(
-    options: {
-      groqApiKey?: string;
-      geminiApiKey?: string;
-      provider?: 'groq' | 'gemini';
-    } = {}
-  ): Promise<DiscoveredAiModel[]> {
-    const groqKey = options.groqApiKey || this.defaultGroqKey;
-    const geminiKey = options.geminiApiKey || this.defaultGeminiKey;
-
-    const [groqModels, geminiModels] = await Promise.all([
-      options.provider === 'gemini' ? [] : this.fetchGroqModels(groqKey),
-      options.provider === 'groq' ? [] : this.fetchGeminiModels(geminiKey),
-    ]);
-
-    return [...groqModels, ...geminiModels];
+    const results = await Promise.all(modelPromises);
+    return results.flat();
   }
 
-  private async fetchGroqModels(apiKey: string): Promise<DiscoveredAiModel[]> {
-    if (!apiKey) return this.fallbackGroqModels;
+  private async fetchModelsForProvider(
+    config: AiProviderConfig,
+    apiKey: string,
+  ): Promise<DiscoveredAiModel[]> {
+    const fallbacks = (FALLBACK_MODELS_BY_PROVIDER[config.id] || []).map(
+      (m) => ({
+        ...m,
+        provider: config.id,
+      }),
+    );
 
+    if (!apiKey) {
+      return fallbacks;
+    }
+
+    if (config.id === 'gemini') {
+      return this.fetchGeminiModels(apiKey, fallbacks);
+    }
+
+    if (config.chatApi === 'openai-compatible' && config.modelsUrl) {
+      return this.fetchOpenAiCompatibleModels(config, apiKey, fallbacks);
+    }
+
+    return fallbacks;
+  }
+
+  private async fetchOpenAiCompatibleModels(
+    config: AiProviderConfig,
+    apiKey: string,
+    fallbacks: DiscoveredAiModel[],
+  ): Promise<DiscoveredAiModel[]> {
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/models', {
+      const res = await fetch(config.modelsUrl as string, {
         headers: { Authorization: `Bearer ${apiKey}` },
       });
-
-      if (!response.ok) {
-        this.logger.warn(`Groq models API returned status ${response.status}`);
-        return this.fallbackGroqModels;
+      if (!res.ok) {
+        return fallbacks;
       }
-
-      const body = (await response.json()) as { data?: GroqRawModel[] };
-      const rawList = body.data || [];
+      const data = (await res.json()) as { data?: OpenAiRawModel[] };
+      const rawList = data.data || [];
 
       const filtered = rawList.filter((m) => {
         const id = m.id.toLowerCase();
-        if (m.active === false) return false;
         if (
           id.includes('whisper') ||
           id.includes('tts') ||
-          id.includes('guard') ||
-          id.includes('safeguard')
+          id.includes('dall-e') ||
+          id.includes('embed') ||
+          id.includes('moderation') ||
+          id.includes('guard')
         ) {
           return false;
         }
-        return (
-          id.includes('llama') ||
-          id.includes('mixtral') ||
-          id.includes('gemma') ||
-          id.includes('deepseek') ||
-          id.includes('qwen')
-        );
+        return true;
       });
 
-      if (filtered.length === 0) return this.fallbackGroqModels;
+      if (filtered.length === 0) return fallbacks;
 
-      return filtered.map((m, idx) => ({
+      return filtered.slice(0, 10).map((m, idx) => ({
         id: m.id,
-        name: this.formatGroqName(m.id),
-        provider: 'groq' as const,
-        description: `Context: ${
-          m.context_window ? Math.round(m.context_window / 1024) + 'k' : '128k'
-        } tokens · ${m.owned_by || 'Meta'}`,
-        size: this.extractGroqSize(m.id),
-        contextWindow: m.context_window,
-        isDefault:
-          idx === 0 || m.id.includes('70b') || m.id.includes('versatile'),
+        name: this.formatModelName(m.id),
+        provider: config.id,
+        description: `Discovered from ${config.label}`,
+        size: this.extractSize(m.id),
+        isDefault: idx === 0 || m.id === config.defaultModel,
       }));
-    } catch (error) {
-      this.logger.warn(
-        `Failed to fetch dynamic Groq models: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-      return this.fallbackGroqModels;
+    } catch {
+      return fallbacks;
     }
   }
 
   private async fetchGeminiModels(
-    apiKey: string
+    apiKey: string,
+    fallbacks: DiscoveredAiModel[],
   ): Promise<DiscoveredAiModel[]> {
-    if (!apiKey) return this.fallbackGeminiModels;
-
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
       const response = await fetch(url);
-
-      if (!response.ok) {
-        this.logger.warn(
-          `Gemini models API returned status ${response.status}`
-        );
-        return this.fallbackGeminiModels;
-      }
+      if (!response.ok) return fallbacks;
 
       const body = (await response.json()) as { models?: GeminiRawModel[] };
       const rawList = body.models || [];
@@ -182,14 +156,14 @@ export class AiModelsService {
         return name.includes('gemini');
       });
 
-      if (filtered.length === 0) return this.fallbackGeminiModels;
+      if (filtered.length === 0) return fallbacks;
 
       return filtered.map((m) => {
         const id = m.name.replace(/^models\//, '');
         return {
           id,
           name: m.displayName || id,
-          provider: 'gemini' as const,
+          provider: 'gemini',
           description: m.description
             ? m.description.slice(0, 100)
             : 'Google Gemini model',
@@ -197,25 +171,21 @@ export class AiModelsService {
           isDefault: id === 'gemini-2.5-flash' || id === 'gemini-2.0-flash',
         };
       });
-    } catch (error) {
-      this.logger.warn(
-        `Failed to fetch dynamic Gemini models: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-      return this.fallbackGeminiModels;
+    } catch {
+      return fallbacks;
     }
   }
 
-  private formatGroqName(id: string): string {
+  private formatModelName(id: string): string {
     return id
-      .split('-')
+      .split(/[-_]/)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
   }
 
-  private extractGroqSize(id: string): string | undefined {
+  private extractSize(id: string): string | undefined {
     const match = id.match(/(\d+b)/i);
     return match ? match[1].toUpperCase() : undefined;
   }
 }
+

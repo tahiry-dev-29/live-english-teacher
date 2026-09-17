@@ -27,17 +27,15 @@ import {
   ],
   template: `
     <div
-      class="fixed inset-0 z-50 flex flex-col items-center justify-between bg-base-100 text-base-content overflow-hidden font-sans"
+      class="fixed inset-0 z-50 flex flex-col items-center justify-between overflow-hidden bg-base-100 font-sans text-base-content"
     >
-      <div
-        class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-base-100 to-base-100 pointer-events-none"
-      ></div>
+      <div class="pointer-events-none absolute inset-0 bg-primary/10"></div>
 
-      <div class="relative z-10 w-full p-6 flex justify-between items-center">
+      <div class="relative z-10 flex w-full items-center justify-between p-6">
         <div class="flex items-center gap-2">
-          <div class="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+          <div class="h-2 w-2 animate-pulse rounded-full bg-success"></div>
           <span
-            class="text-sm font-medium text-base-content/60 tracking-wider uppercase"
+            class="text-sm font-medium tracking-wider text-base-content/60 uppercase"
             >Live Call</span
           >
         </div>
@@ -47,62 +45,68 @@ import {
       </div>
 
       <div
-        class="relative z-10 flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4"
+        class="relative z-10 flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4"
       >
         <div class="mb-8 text-center transition-all duration-500">
           <h2
-            class="text-3xl md:text-4xl font-light tracking-tight text-base-content/90"
+            class="text-3xl font-light tracking-tight text-base-content/90 md:text-4xl"
           >
-            @if (callState() === 'speaking') { Speaking... } @else if
-            (callState() === 'processing') { Thinking... } @else if (callState()
-            === 'listening') { Listening... } @else { Ready }
+            @if (callState() === 'speaking') {
+              Speaking...
+            } @else if (callState() === 'processing') {
+              Thinking...
+            } @else if (callState() === 'listening') {
+              Listening...
+            } @else {
+              Ready
+            }
           </h2>
           @if (transcript() && callState() === 'listening') {
-          <p class="mt-4 text-lg text-primary italic animate-pulse">
-            "{{ transcript() }}"
-          </p>
+            <p class="mt-4 animate-pulse text-lg text-primary italic">
+              "{{ transcript() }}"
+            </p>
           }
         </div>
 
         <div
-          class="relative h-32 w-full flex items-center justify-center gap-1.5"
+          class="relative flex h-32 w-full items-center justify-center gap-1.5"
         >
           <!-- $index volontaire : tableau de barres de visualiseur dynamique généré à la volée -->
           @for (bar of bars; track $index) {
-          <div
-            class="w-1.5 md:w-2 rounded-full transition-all duration-75 ease-in-out"
-            [class.bg-primary]="callState() === 'listening'"
-            [class.bg-secondary]="callState() === 'speaking'"
-            [class.bg-warning]="callState() === 'processing'"
-            [class.bg-base-300]="callState() === 'idle'"
-            [style.height.%]="getBarHeight($index)"
-            [style.opacity]="getBarOpacity($index)"
-          ></div>
+            <div
+              class="w-1.5 rounded-full transition-all duration-75 ease-in-out md:w-2"
+              [class.bg-primary]="callState() === 'listening'"
+              [class.bg-secondary]="callState() === 'speaking'"
+              [class.bg-warning]="callState() === 'processing'"
+              [class.bg-base-300]="callState() === 'idle'"
+              [style.height.%]="getBarHeight($index)"
+              [style.opacity]="getBarOpacity($index)"
+            ></div>
           }
         </div>
       </div>
 
       <div
-        class="relative z-10 w-full p-8 md:p-12 flex items-center justify-center gap-6 md:gap-8"
+        class="relative z-10 flex w-full items-center justify-center gap-6 p-8 md:gap-8 md:p-12"
       >
         <button (click)="toggleMuteState()" class="btn btn-circle btn-ghost">
           @if (isMuted()) {
-          <svg lucideMicOff class="w-6 h-6 text-error"></svg>
+            <svg lucideMicOff class="h-6 w-6 text-error"></svg>
           } @else {
-          <svg lucideMic class="w-6 h-6"></svg>
+            <svg lucideMic class="h-6 w-6"></svg>
           }
         </button>
 
         <button (click)="onEndCall()" class="btn btn-circle btn-error btn-lg">
-          <svg lucidePhoneOff class="w-8 h-8"></svg>
+          <svg lucidePhoneOff class="h-8 w-8"></svg>
         </button>
 
         <button
-          class="btn btn-circle btn-ghost opacity-50 cursor-not-allowed"
+          class="btn btn-circle cursor-not-allowed btn-ghost opacity-50"
           disabled
           title="Coming soon"
         >
-          <svg lucideEllipsis class="w-6 h-6"></svg>
+          <svg lucideEllipsis class="h-6 w-6"></svg>
         </button>
       </div>
     </div>

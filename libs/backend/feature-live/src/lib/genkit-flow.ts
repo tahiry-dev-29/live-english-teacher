@@ -70,7 +70,7 @@ export const chatWithMemory = ai.defineFlow(
     ]);
 
     return responseText;
-  }
+  },
 );
 
 export const streamChat = ai.defineFlow(
@@ -130,5 +130,5 @@ export const streamChat = ai.defineFlow(
     ]);
 
     return finalResponse;
-  }
+  },
 );

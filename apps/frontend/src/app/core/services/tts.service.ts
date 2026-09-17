@@ -63,7 +63,7 @@ export class TtsService {
       const elevenAudio = await this.elevenLabs.generateSpeechAudio(
         cleanText,
         selectedVoiceId,
-        options?.lang
+        options?.lang,
       );
 
       if (elevenAudio) {
@@ -71,7 +71,7 @@ export class TtsService {
           elevenAudio.audioData,
           elevenAudio.mimeType,
           cleanText,
-          options
+          options,
         );
         return;
       }
@@ -92,7 +92,7 @@ export class TtsService {
     base64Data: string,
     mimeType: string,
     fallbackText: string,
-    options?: TtsSpeechOptions
+    options?: TtsSpeechOptions,
   ): void {
     try {
       const byteCharacters = atob(base64Data);
@@ -211,7 +211,7 @@ export class TtsService {
 
   private startProgressTracking(
     startTime?: number,
-    estimatedDuration?: number
+    estimatedDuration?: number,
   ): void {
     this.stopProgressTracking();
     const start = startTime || Date.now();
@@ -239,7 +239,7 @@ export class TtsService {
 
   private resolveVoice(
     preferred: SpeechSynthesisVoice | undefined,
-    lang: string | undefined
+    lang: string | undefined,
   ): SpeechSynthesisVoice | null {
     const voices = window.speechSynthesis.getVoices();
     if (preferred && voices.some((v) => v.name === preferred.name)) {
@@ -248,7 +248,7 @@ export class TtsService {
 
     const langCode = (lang || 'en-US').split('-')[0].toLowerCase();
     const matching = voices.find((v) =>
-      v.lang.toLowerCase().startsWith(langCode)
+      v.lang.toLowerCase().startsWith(langCode),
     );
     if (matching) return matching;
 
@@ -261,7 +261,7 @@ export class TtsService {
       if (this.voicesChangedHandler) {
         synthesis.removeEventListener(
           'voiceschanged',
-          this.voicesChangedHandler
+          this.voicesChangedHandler,
         );
         this.voicesChangedHandler = null;
       }

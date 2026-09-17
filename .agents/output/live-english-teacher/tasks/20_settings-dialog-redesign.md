@@ -1,6 +1,6 @@
 # Task 20 — Redesign Settings Dialog (Tabbed Layout + General Theme/i18n + Auto-save)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🔴 Haute
 
 ## Goal
@@ -65,17 +65,17 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 
 ## Critères d'acceptation
 
-- [ ] Settings dialog opens as a large modal with vertical tabs on the left
-- [ ] General tab: theme switches between dark/light/system instantly
-- [ ] General tab: app language changes UI text (i18n)
-- [ ] AI Model tab: provider/model selection works (existing)
-- [ ] Voices tab: voice list with preview works (existing)
-- [ ] Language tab: learning language selection works (existing)
-- [ ] Chat input bar has a language quick-select button
-- [ ] All settings persist in localStorage
-- [ ] **Aucun bouton Save/Submit dans le dialogue ; chaque changement est appliqué + persisté immédiatement (auto-save)**
-- [ ] `nx build frontend` passes without errors
-- [ ] daisyUI components used throughout (tabs, btn, badge, fieldset, collapse)
+- [x] Settings dialog opens as a large modal with vertical tabs on the left
+- [x] General tab: theme switches between dark/light/system instantly
+- [x] General tab: app language changes UI text (i18n)
+- [x] AI Model tab: provider/model selection works (existing)
+- [x] Voices tab: voice list with preview works (existing)
+- [x] Language tab: learning language selection works (existing)
+- [x] Chat input bar has a language quick-select button
+- [x] All settings persist in localStorage
+- [x] **Aucun bouton Save/Submit dans le dialogue ; chaque changement est appliqué + persisté immédiatement (auto-save)**
+- [x] `nx build frontend` passes without errors
+- [x] daisyUI components used throughout (tabs, btn, badge, fieldset, collapse)
 
 ## Architecture
 

@@ -10,9 +10,9 @@
   background: transparent;
 }
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in oklch, var(--color-base-content) 15%, transparent);
   border-radius: 10px;
 }
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in oklch, var(--color-base-content) 25%, transparent);
 }

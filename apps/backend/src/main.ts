@@ -26,16 +26,16 @@ async function bootstrap() {
         '/',
         (
           req: { originalUrl?: string },
-          res: { redirect: (url: string) => void }
+          res: { redirect: (url: string) => void },
         ) => {
           res.redirect('/graphql');
-        }
+        },
       );
   }
 
   await app.listen(port);
   Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
+    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
   );
 
   const genkitPort = 3400;
@@ -44,7 +44,7 @@ async function bootstrap() {
     port: genkitPort,
   });
   Logger.log(
-    `🤖 GenKit Flow Server is running on: http://localhost:${genkitPort}`
+    `🤖 GenKit Flow Server is running on: http://localhost:${genkitPort}`,
   );
 }
 

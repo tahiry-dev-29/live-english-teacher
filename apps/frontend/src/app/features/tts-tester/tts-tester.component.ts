@@ -8,10 +8,10 @@ import { FormsModule } from '@angular/forms';
   imports: [FormsModule],
   template: `
     <div
-      class="card bg-base-200 border border-base-300 shadow-xl max-w-2xl mx-auto text-base-content"
+      class="card mx-auto max-w-2xl border border-base-300 bg-base-200 text-base-content shadow-xl"
     >
       <h2
-        class="card-title text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+        class="card-title bg-gradient-to-r from-primary to-secondary bg-clip-text text-2xl font-bold text-transparent"
       >
         Browser TTS Tester
       </h2>
@@ -31,9 +31,9 @@ import { FormsModule } from '@angular/forms';
             class="select w-full"
           >
             @for (voice of voices(); track voice.name) {
-            <option [value]="voice.name">
-              {{ voice.name }} ({{ voice.lang }})
-            </option>
+              <option [value]="voice.name">
+                {{ voice.name }} ({{ voice.lang }})
+              </option>
             }
           </select>
           <div>▼</div>
@@ -62,17 +62,19 @@ import { FormsModule } from '@angular/forms';
         <button
           (click)="speak()"
           [disabled]="!text() || isSpeaking()"
-          class="btn btn-primary flex-1 gap-2"
+          class="btn flex-1 gap-2 btn-primary"
         >
           @if (isSpeaking()) {
-          <span class="animate-spin">⟳</span> Speaking... } @else {
-          <span>▶</span> Speak }
+            <span class="animate-spin">⟳</span> Speaking...
+          } @else {
+            <span>▶</span> Speak
+          }
         </button>
 
         <button
           (click)="stop()"
           [disabled]="!isSpeaking()"
-          class="btn btn-error btn-outline"
+          class="btn btn-outline btn-error"
         >
           Stop
         </button>

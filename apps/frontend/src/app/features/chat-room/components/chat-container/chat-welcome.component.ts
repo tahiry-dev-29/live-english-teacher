@@ -15,17 +15,17 @@ import { WELCOME_MESSAGES } from './chat-welcome.util';
   imports: [CommonModule, LucideMessageSquare],
   template: `
     <div
-      class="min-h-[60vh] flex flex-col items-center justify-center text-center p-8 w-auto opacity-70 select-none"
+      class="flex min-h-[60vh] w-auto flex-col items-center justify-center p-8 text-center opacity-70 select-none"
     >
       <div
-        class="w-24 h-24 bg-base-200 rounded-full flex items-center justify-center mb-6 animate-pulse"
+        class="mb-6 flex h-24 w-24 animate-pulse items-center justify-center rounded-full bg-base-200"
       >
-        <svg lucideMessageSquare class="w-12 h-12 text-base-content/40"></svg>
+        <svg lucideMessageSquare class="h-12 w-12 text-base-content/40"></svg>
       </div>
-      <h3 class="text-xl font-semibold text-base-content mb-2">
+      <h3 class="mb-2 text-xl font-semibold text-base-content">
         {{ welcomeMessage().title }}
       </h3>
-      <p class="text-base-content/60 max-w-xs">
+      <p class="max-w-xs text-base-content/60">
         {{ welcomeMessage().subtitle }}
       </p>
     </div>

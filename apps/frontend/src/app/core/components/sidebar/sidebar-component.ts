@@ -55,7 +55,7 @@ export class SidebarComponent {
   readonly logoSrc = computed<string>(() =>
     this.themeService.resolvedTheme() === 'halloween'
       ? 'dark/apple-touch-icon.png'
-      : 'apple-touch-icon.png'
+      : 'apple-touch-icon.png',
   );
 
   readonly isOpen = signal<boolean>(true);
@@ -76,7 +76,7 @@ export class SidebarComponent {
     const term = this.searchTerm().toLowerCase();
     if (!term) return this.sessions();
     return this.sessions().filter((session) =>
-      session.title.toLowerCase().includes(term)
+      session.title.toLowerCase().includes(term),
     );
   });
 
@@ -103,7 +103,7 @@ export class SidebarComponent {
   readonly openSettings = output<void>();
 
   readonly canInstall = computed<boolean>(
-    () => this.pwa.canInstall() && !this.pwa.isInstalled()
+    () => this.pwa.canInstall() && !this.pwa.isInstalled(),
   );
 
   constructor() {

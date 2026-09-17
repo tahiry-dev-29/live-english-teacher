@@ -1,6 +1,6 @@
 # Task 25 — Design system dark/light : overlays (T3)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟡 Moyenne — dépend de Task 22
 
 ## Goal
@@ -24,7 +24,7 @@ Plein-écran call, 404, fond étoilé et CSS locaux sans artefact dark en light.
 
 ## Critères d'acceptation
 
-- [ ] Call plein écran sans halo dark en light
-- [ ] 404 lisible et cohérente en light
-- [ ] Zéro étoile blanche invisible en light
-- [ ] `tsc` front, `eslint`, `prettier --check`, builds frais passent
+- [x] Call plein écran sans halo dark en light
+- [x] 404 lisible et cohérente en light
+- [x] Zéro étoile blanche invisible en light
+- [x] `tsc` front, `eslint`, `prettier --check`, builds frais passent

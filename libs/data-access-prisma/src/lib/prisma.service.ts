@@ -22,7 +22,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
           error instanceof Error
             ? error.message.split('\n')[0]
             : 'Unknown error'
-        }`
+        }`,
       );
       this.logger.error('║                                              ║');
       this.logger.error('║  Fix: Start PostgreSQL and check DATABASE_URL║');

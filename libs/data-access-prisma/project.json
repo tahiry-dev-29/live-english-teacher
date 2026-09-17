@@ -5,5 +5,9 @@
   "projectType": "library",
   "tags": [],
   "// targets": "to see all targets run: nx show project data-access-prisma --web",
-  "targets": {}
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
 }

@@ -4,23 +4,24 @@ import {
   GroqLiveService,
   GroqHistoryMessage,
 } from './groq-live/groq-live.service';
+import { OpenAiCompatService } from './openai-compat.service';
 
 export type AiHistoryMessage = GroqHistoryMessage;
 
 /**
- * Point d'entrée unique des providers IA. Sélectionne gemini|groq selon
- * AI_PROVIDER. L'audio (input audio / TTS) reste toujours géré par Gemini :
- * les modèles texte Groq ne gèrent pas l'audio inline.
+ * Point d'entrée unique des providers IA.
+ * Sélectionne le provider selon le paramètre actif ou AI_PROVIDER.
  */
 @Injectable()
 export class AiProviderService {
   constructor(
     private readonly geminiLiveService: GeminiLiveService,
-    private readonly groqLiveService: GroqLiveService
+    private readonly groqLiveService: GroqLiveService,
+    private readonly openAiCompatService: OpenAiCompatService,
   ) {}
 
-  get provider(): 'gemini' | 'groq' {
-    return (process.env['AI_PROVIDER'] as 'gemini' | 'groq') || 'gemini';
+  get provider(): string {
+    return process.env['AI_PROVIDER'] || 'gemini';
   }
 
   generateText(
@@ -31,67 +32,93 @@ export class AiProviderService {
       mimeType?: string;
       targetLanguage?: string;
       model?: string;
-      provider?: 'gemini' | 'groq';
+      provider?: string;
       groqApiKey?: string;
       geminiApiKey?: string;
-    } = {}
+      customApiKey?: string;
+    } = {},
   ): Promise<string> {
     const activeProvider = options.provider || this.provider;
+
     if (activeProvider === 'groq' && !options.audioData) {
       return this.groqLiveService.getGroqChatResponse(
         history,
         content,
         options.targetLanguage || 'English',
         options.model,
-        options.groqApiKey
+        options.groqApiKey || options.customApiKey,
       );
     }
-    return this.geminiLiveService.getGeminiChatResponse(
+
+    if (activeProvider === 'gemini' || options.audioData) {
+      return this.geminiLiveService.getGeminiChatResponse(
+        history,
+        content,
+        options.audioData,
+        options.mimeType,
+        options.targetLanguage,
+        options.model,
+        options.geminiApiKey || options.customApiKey,
+      );
+    }
+
+    return this.openAiCompatService.getChatResponse(
+      activeProvider,
       history,
       content,
-      options.audioData,
-      options.mimeType,
-      options.targetLanguage,
+      options.targetLanguage || 'English',
       options.model,
-      options.geminiApiKey
+      options.customApiKey,
     );
   }
 
-  /**
-   * Streaming : Groq streame token par token ; Gemini (pas de streaming
-   * implémenté) renvoie sa réponse complète en un seul token.
-   */
   async *generateStreamText(
     history: AiHistoryMessage[],
     content: string,
     targetLanguage = 'English',
     options: {
       model?: string;
-      provider?: 'gemini' | 'groq';
+      provider?: string;
       groqApiKey?: string;
       geminiApiKey?: string;
-    } = {}
+      customApiKey?: string;
+    } = {},
   ): AsyncGenerator<string, void, unknown> {
     const activeProvider = options.provider || this.provider;
+
     if (activeProvider === 'groq') {
       yield* this.groqLiveService.generateStream(
         history,
         content,
         targetLanguage,
         options.model,
-        options.groqApiKey
+        options.groqApiKey || options.customApiKey,
       );
       return;
     }
-    const text = await this.geminiLiveService.getGeminiChatResponse(
+
+    if (activeProvider === 'gemini') {
+      const text = await this.geminiLiveService.getGeminiChatResponse(
+        history,
+        content,
+        undefined,
+        undefined,
+        targetLanguage,
+        options.model,
+        options.geminiApiKey || options.customApiKey,
+      );
+      yield text;
+      return;
+    }
+
+    yield* this.openAiCompatService.generateStream(
+      activeProvider,
       history,
       content,
-      undefined,
-      undefined,
       targetLanguage,
       options.model,
-      options.geminiApiKey
+      options.customApiKey,
     );
-    yield text;
   }
 }
+

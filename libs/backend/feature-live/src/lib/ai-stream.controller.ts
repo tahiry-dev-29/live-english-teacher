@@ -72,15 +72,35 @@ export class AiStreamController {
     private readonly aiProviderService: AiProviderService,
     private readonly chatHistoryService: ChatHistoryService,
     private readonly elevenLabsService: ElevenLabsService,
-    private readonly groqTranscribeService: GroqTranscribeService
+    private readonly groqTranscribeService: GroqTranscribeService,
   ) {}
 
   @Get('models')
   async getModels(
     @Headers('x-groq-api-key') groqApiKey?: string,
-    @Headers('x-gemini-api-key') geminiApiKey?: string
+    @Headers('x-gemini-api-key') geminiApiKey?: string,
+    @Headers('x-openai-api-key') openaiApiKey?: string,
+    @Headers('x-anthropic-api-key') anthropicApiKey?: string,
+    @Headers('x-mistral-api-key') mistralApiKey?: string,
+    @Headers('x-deepseek-api-key') deepseekApiKey?: string,
+    @Headers('x-qwen-api-key') qwenApiKey?: string,
+    @Headers('x-provider') headerProvider?: string,
   ): Promise<DiscoveredAiModel[]> {
-    return this.aiModelsService.getModels({ groqApiKey, geminiApiKey });
+    const keys: Record<string, string> = {};
+    if (groqApiKey) keys['groq'] = groqApiKey;
+    if (geminiApiKey) keys['gemini'] = geminiApiKey;
+    if (openaiApiKey) keys['openai'] = openaiApiKey;
+    if (anthropicApiKey) keys['anthropic'] = anthropicApiKey;
+    if (mistralApiKey) keys['mistral'] = mistralApiKey;
+    if (deepseekApiKey) keys['deepseek'] = deepseekApiKey;
+    if (qwenApiKey) keys['qwen'] = qwenApiKey;
+
+    return this.aiModelsService.getModels({
+      provider: headerProvider,
+      keys,
+      groqApiKey,
+      geminiApiKey,
+    });
   }
 
   @Get('voices')
@@ -93,7 +113,13 @@ export class AiStreamController {
     @Body() dto: StreamChatDto,
     @Res() res: Response,
     @Headers('x-groq-api-key') groqApiKey?: string,
-    @Headers('x-gemini-api-key') geminiApiKey?: string
+    @Headers('x-gemini-api-key') geminiApiKey?: string,
+    @Headers('x-openai-api-key') openaiApiKey?: string,
+    @Headers('x-anthropic-api-key') anthropicApiKey?: string,
+    @Headers('x-mistral-api-key') mistralApiKey?: string,
+    @Headers('x-deepseek-api-key') deepseekApiKey?: string,
+    @Headers('x-qwen-api-key') qwenApiKey?: string,
+    @Headers('x-provider-api-key') providerApiKey?: string,
   ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -108,9 +134,16 @@ export class AiStreamController {
 
       if (!session) {
         const created = await this.chatHistoryService.createSession(
-          dto.targetLanguage
+          dto.targetLanguage || 'en',
         );
         sessionId = created.id;
+      } else if (
+        dto.targetLanguage &&
+        session.learningLanguage !== dto.targetLanguage
+      ) {
+        await this.chatHistoryService.updateSession(sessionId, {
+          learningLanguage: dto.targetLanguage,
+        });
       }
 
       res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
@@ -123,21 +156,37 @@ export class AiStreamController {
         await this.chatHistoryService.addMessage(
           sessionId,
           'user',
-          dto.message
+          dto.message,
         );
       }
+
+      const targetLang =
+        dto.targetLanguage || session?.learningLanguage || 'English';
+
+      const providerKeys: Record<string, string | undefined> = {
+        groq: groqApiKey,
+        gemini: geminiApiKey,
+        openai: openaiApiKey,
+        anthropic: anthropicApiKey,
+        mistral: mistralApiKey,
+        deepseek: deepseekApiKey,
+        qwen: qwenApiKey,
+      };
+      const activeProvider = dto.provider || 'gemini';
+      const customApiKey = providerApiKey || providerKeys[activeProvider];
 
       let fullText = '';
       const stream = this.aiProviderService.generateStreamText(
         history,
         dto.message,
-        dto.targetLanguage || 'English',
+        targetLang,
         {
           model: dto.model,
-          provider: dto.provider as 'groq' | 'gemini' | undefined,
+          provider: dto.provider,
           groqApiKey,
           geminiApiKey,
-        }
+          customApiKey,
+        },
       );
 
       for await (const token of stream) {
@@ -151,21 +200,21 @@ export class AiStreamController {
     } catch (error) {
       if (error instanceof QuotaExceededError) {
         this.logger?.warn?.(
-          `Quota exceeded for ${error.provider}, prompting user for own key.`
+          `Quota exceeded for ${error.provider}, prompting user for own key.`,
         );
         res.write(
           `data: ${JSON.stringify({
             error: true,
             errorCode: 'QUOTA_EXCEEDED',
             provider: error.provider,
-          })}\n\n`
+          })}\n\n`,
         );
       } else {
         const errorMsg =
           error instanceof Error ? error.message : 'Unknown error';
         this.logger?.error?.(`SSE stream error: ${errorMsg}`);
         res.write(
-          `data: ${JSON.stringify({ error: true, message: errorMsg })}\n\n`
+          `data: ${JSON.stringify({ error: true, message: errorMsg })}\n\n`,
         );
       }
     } finally {
@@ -175,18 +224,18 @@ export class AiStreamController {
 
   @Post('transcribe')
   async transcribe(
-    @Body() dto: TranscribeDto
+    @Body() dto: TranscribeDto,
   ): Promise<{ transcript: string }> {
     const transcript = await this.groqTranscribeService.transcribe(
       dto.audioData,
       dto.mimeType,
-      dto.language
+      dto.language,
     );
 
     if (transcript === null) {
       throw new HttpException(
         'Transcription failed or service unavailable',
-        HttpStatus.SERVICE_UNAVAILABLE
+        HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
@@ -195,17 +244,17 @@ export class AiStreamController {
 
   @Post('tts')
   async tts(
-    @Body() dto: GenerateTtsDto
+    @Body() dto: GenerateTtsDto,
   ): Promise<{ audioData: string; mimeType: string }> {
     const audio = await this.elevenLabsService.generateTtsAudio(
       dto.text,
-      dto.voiceId
+      dto.voiceId,
     );
 
     if (!audio) {
       throw new HttpException(
         'ElevenLabs TTS not available',
-        HttpStatus.SERVICE_UNAVAILABLE
+        HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 

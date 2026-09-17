@@ -6,8 +6,15 @@
   "sourceRoot": "apps/frontend/src",
   "tags": [],
   "targets": {
+    "check-theme-tokens": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/check-theme-tokens.mjs"
+      }
+    },
     "build": {
       "executor": "@angular/build:application",
+      "dependsOn": ["check-theme-tokens"],
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/frontend",

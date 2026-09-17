@@ -63,10 +63,37 @@ export class ElevenLabsVoiceService {
     },
   ]);
 
-  readonly selectedVoiceId = signal<string>('JBFqnCBsd6RMkjVDRZzb');
+  private static readonly STORAGE_KEY_VOICE = 'tts_selected_voice_id';
+
+  readonly selectedVoiceId = signal<string>(this.loadSelectedVoiceId());
 
   constructor() {
     this.loadVoicesFromBackend();
+  }
+
+  setVoiceId(id: string): void {
+    this.selectedVoiceId.set(id);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(ElevenLabsVoiceService.STORAGE_KEY_VOICE, id);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private loadSelectedVoiceId(): string {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        return (
+          localStorage.getItem(ElevenLabsVoiceService.STORAGE_KEY_VOICE) ||
+          'JBFqnCBsd6RMkjVDRZzb'
+        );
+      }
+    } catch {
+      // ignore
+    }
+    return 'JBFqnCBsd6RMkjVDRZzb';
   }
 
   async loadVoicesFromBackend(): Promise<void> {
@@ -90,7 +117,7 @@ export class ElevenLabsVoiceService {
   async generateSpeechAudio(
     text: string,
     voiceId?: string,
-    targetLanguage?: string
+    targetLanguage?: string,
   ): Promise<{ audioData: string; mimeType: string } | null> {
     const selectedVoice = voiceId || this.selectedVoiceId();
     try {

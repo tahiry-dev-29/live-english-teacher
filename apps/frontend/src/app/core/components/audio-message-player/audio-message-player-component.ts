@@ -18,23 +18,23 @@ import { base64ToBlob } from '@core/utils/text.util';
   imports: [LucidePlay, LucidePause],
   template: `
     <div
-      class="audio-player bg-base-200/70 backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center gap-3 max-w-xs border border-base-300 hover:bg-base-200 transition-colors"
+      class="audio-player flex max-w-xs items-center gap-3 rounded-2xl border border-base-300 bg-base-200 px-4 py-3 transition-colors"
     >
       <button
         (click)="togglePlay()"
-        class="btn btn-circle btn-sm bg-primary text-primary-content border-none shadow-md transition-transform hover:scale-105"
+        class="btn btn-circle border-none bg-primary text-primary-content shadow-md transition-transform btn-sm hover:scale-105"
         [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
       >
         @if (isPlaying()) {
-        <svg lucidePause class="w-5 h-5"></svg>
+          <svg lucidePause class="h-5 w-5"></svg>
         } @else {
-        <svg lucidePlay class="w-5 h-5 ml-0.5"></svg>
+          <svg lucidePlay class="ml-0.5 h-5 w-5"></svg>
         }
       </button>
 
-      <div class="flex-1 flex flex-col gap-1">
+      <div class="flex flex-1 flex-col gap-1">
         <div
-          class="flex items-center gap-0.5 h-8 cursor-pointer"
+          class="flex h-8 cursor-pointer items-center gap-0.5"
           role="slider"
           tabindex="0"
           [attr.aria-label]="'Seek audio'"
@@ -48,17 +48,17 @@ import { base64ToBlob } from '@core/utils/text.util';
         >
           <!-- $index volontaire : échantillon waveform fixe sans ID unique -->
           @for (bar of waveformBars(); track $index) {
-          <div
-            class="w-1 rounded-full transition-all duration-75"
-            [class.bg-primary]="isBarPlayed($index)"
-            [class.bg-base-300]="!isBarPlayed($index)"
-            [style.height.px]="getBarHeight(bar)"
-          ></div>
+            <div
+              class="w-1 rounded-full transition-all duration-75"
+              [class.bg-primary]="isBarPlayed($index)"
+              [class.bg-base-300]="!isBarPlayed($index)"
+              [style.height.px]="getBarHeight(bar)"
+            ></div>
           }
         </div>
 
         <div
-          class="flex justify-between text-[11px] text-base-content/60 font-mono"
+          class="flex justify-between font-mono text-[11px] text-base-content/60"
         >
           <span>{{ formatTime(currentTime()) }}</span>
           <span>{{ formatTime(duration()) }}</span>
@@ -214,7 +214,7 @@ export class AudioMessagePlayerComponent implements OnDestroy {
     if (!this.audio || !this.duration()) return;
     const newTime = Math.max(
       0,
-      Math.min(this.duration(), this.currentTime() + seconds)
+      Math.min(this.duration(), this.currentTime() + seconds),
     );
     this.audio.currentTime = newTime;
     this.currentTime.set(newTime);

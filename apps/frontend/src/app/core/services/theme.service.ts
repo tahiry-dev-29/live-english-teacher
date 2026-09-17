@@ -1,6 +1,12 @@
 import { Injectable, signal, effect, inject, DOCUMENT } from '@angular/core';
+import {
+  migrateLocalStorageToCookie,
+  readCookie,
+  writeCookie,
+} from '../utils/cookie.util';
 
 export type Theme = 'dark' | 'light' | 'system';
+export type FontSize = 'small' | 'medium' | 'large';
 
 /**
  * Thème applicatif 100% Angular : aucun script inline dans index.html.
@@ -17,6 +23,7 @@ export type Theme = 'dark' | 'light' | 'system';
 export class ThemeService {
   private static readonly COOKIE_NAME = 'app_theme';
   private static readonly LEGACY_STORAGE_KEY = 'app_theme';
+  private static readonly FONT_SIZE_STORAGE_KEY = 'app_font_size';
   /** 1 an — le thème est une préférence durable, pas une donnée de session. */
   private static readonly COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -24,10 +31,12 @@ export class ThemeService {
 
   readonly theme = signal<Theme>(this.load());
   readonly resolvedTheme = signal<string>('halloween');
+  readonly fontSize = signal<FontSize>(this.loadFontSize());
 
   constructor() {
     // Pose synchrone dès l'instanciation au boot → avant le 1er paint, anti-flash.
     this.applyTheme(this.theme());
+    this.applyFontSize(this.fontSize());
 
     effect(() => {
       const t = this.theme();
@@ -48,6 +57,45 @@ export class ThemeService {
 
   setTheme(theme: Theme): void {
     this.theme.set(theme);
+  }
+
+  setFontSize(size: FontSize): void {
+    this.fontSize.set(size);
+    this.applyFontSize(size);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(ThemeService.FONT_SIZE_STORAGE_KEY, size);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private applyFontSize(size: FontSize): void {
+    const doc = this.document;
+    if (!doc) return;
+    const sizeMap: Record<FontSize, string> = {
+      small: '14px',
+      medium: '16px',
+      large: '18px',
+    };
+    doc.documentElement.style.fontSize = sizeMap[size] ?? '16px';
+  }
+
+  private loadFontSize(): FontSize {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem(
+          ThemeService.FONT_SIZE_STORAGE_KEY,
+        ) as FontSize | null;
+        if (saved === 'small' || saved === 'medium' || saved === 'large') {
+          return saved;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 'medium';
   }
 
   private applyTheme(theme: Theme): void {
@@ -83,7 +131,7 @@ export class ThemeService {
     if (!doc) return;
 
     const links = doc.querySelectorAll<HTMLLinkElement>(
-      'link[data-light][data-dark]'
+      'link[data-light][data-dark]',
     );
     links.forEach((el) => {
       const href = isDark ? el.dataset['dark'] : el.dataset['light'];
@@ -94,7 +142,13 @@ export class ThemeService {
 
     const metaTc = doc.getElementById('meta-theme-color');
     if (metaTc) {
-      const color = isDark ? '#1d232a' : '#ff52d9';
+      const computedColor =
+        typeof window !== 'undefined'
+          ? getComputedStyle(doc.documentElement)
+              .getPropertyValue('--color-base-100')
+              .trim()
+          : '';
+      const color = computedColor || (isDark ? '#212121' : '#ffffff');
       if (metaTc.getAttribute('content') !== color) {
         metaTc.setAttribute('content', color);
       }
@@ -146,7 +200,7 @@ export class ThemeService {
     try {
       if (typeof localStorage !== 'undefined') {
         const legacy = localStorage.getItem(
-          ThemeService.LEGACY_STORAGE_KEY
+          ThemeService.LEGACY_STORAGE_KEY,
         ) as Theme | null;
         if (legacy === 'dark' || legacy === 'light' || legacy === 'system') {
           this.saveCookie(legacy);

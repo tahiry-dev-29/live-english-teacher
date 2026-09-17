@@ -15,7 +15,7 @@ export const SAMPLE_TEXTS: Record<string, string> = {
  */
 export function previewVoice(
   voice: SpeechSynthesisVoice,
-  playingVoice: (value: string | null) => void
+  playingVoice: (value: string | null) => void,
 ): void {
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();

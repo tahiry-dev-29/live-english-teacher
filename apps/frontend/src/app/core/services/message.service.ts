@@ -84,12 +84,10 @@ export class MessageService {
           .toPromise();
 
         const sessionMessages = result?.data?.sessionMessages ?? [];
-        const formatted: Message[] = sessionMessages.map(
-          (msg): Message => ({
-            role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
-            text: msg.content,
-          })
-        );
+        const formatted: Message[] = sessionMessages.map((msg): Message => ({
+          role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
+          text: msg.content,
+        }));
         this.messages.set(formatted);
         return formatted;
       } catch (error) {
@@ -113,7 +111,7 @@ export class MessageService {
   async sendTextMessage(
     content: string,
     sessionId: string | null,
-    targetLanguage: string
+    targetLanguage: string,
   ): Promise<{ text: string; sessionId: string | null } | null> {
     this.messages.update((msgs) => [...msgs, { role: 'user', text: content }]);
     this.loading.set(true);
@@ -122,7 +120,7 @@ export class MessageService {
       const result = await this.streamViaSSE(
         content,
         sessionId,
-        targetLanguage
+        targetLanguage,
       );
       this.loading.set(false);
       return result;
@@ -132,7 +130,7 @@ export class MessageService {
       this.loading.set(false);
       // Show error message instead of silent fallback
       const errorMsg = this.formatApiError(
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
       this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
       return { text: errorMsg, sessionId };
@@ -147,20 +145,26 @@ export class MessageService {
     const index = this.streamingIndex;
     this.streamingIndex = null;
     this.messages.update((msgs) =>
-      index < msgs.length ? msgs.filter((_, i) => i !== index) : msgs
+      index < msgs.length ? msgs.filter((_, i) => i !== index) : msgs,
     );
   }
 
   private async streamViaSSE(
     content: string,
     sessionId: string | null,
-    targetLanguage: string
+    targetLanguage: string,
   ): Promise<{ text: string; sessionId: string | null }> {
     const url = `${environment.apiBaseUrl}/ai/chat/stream`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
+    const activeProvider = this.aiConfig.provider();
+    const providerKey = this.apiKeyService.getKeyHeader(activeProvider);
+    if (providerKey) {
+      headers[`x-${activeProvider}-api-key`] = providerKey;
+      headers['x-provider-api-key'] = providerKey;
+    }
     const groqKey = this.apiKeyService.getGroqKeyHeader();
     const geminiKey = this.apiKeyService.getGeminiKeyHeader();
     if (groqKey) headers['x-groq-api-key'] = groqKey;
@@ -196,7 +200,7 @@ export class MessageService {
       this.messages.update((msgs) => {
         if (this.streamingIndex !== null) {
           return msgs.map((msg, i) =>
-            i === this.streamingIndex ? { ...msg, text: fullText } : msg
+            i === this.streamingIndex ? { ...msg, text: fullText } : msg,
           );
         }
 
@@ -272,7 +276,7 @@ export class MessageService {
   private async sendViaGraphQL(
     content: string,
     sessionId: string | null,
-    targetLanguage: string
+    targetLanguage: string,
   ): Promise<{ text: string; sessionId: string } | null> {
     try {
       const result = await this.apollo
@@ -316,7 +320,7 @@ export class MessageService {
         ...msgs,
         {
           role: 'ai',
-          text: 'Could not connect to AI. Please check your connection and try again.',
+          text: '⚠️ Could not connect to AI. Please check your connection and try again.',
         },
       ]);
 
@@ -328,7 +332,7 @@ export class MessageService {
     audioData: string,
     mimeType: string,
     sessionId: string | null,
-    targetLanguage: string
+    targetLanguage: string,
   ): Promise<{ text: string; sessionId: string } | null> {
     this.loading.set(true);
     try {
@@ -369,7 +373,7 @@ export class MessageService {
         ...msgs,
         {
           role: 'ai',
-          text: 'Could not process audio. Please try again or send a text message.',
+          text: '⚠️ Could not process audio. Please try again or send a text message.',
         },
       ]);
       return null;
@@ -382,7 +386,7 @@ export class MessageService {
   async transcribeAudio(
     audioData: string,
     mimeType = 'audio/webm',
-    language?: string
+    language?: string,
   ): Promise<string | null> {
     try {
       const res = await fetch(`${environment.apiBaseUrl}/ai/transcribe`, {
@@ -410,10 +414,10 @@ export class MessageService {
   }
 
   private formatApiError(raw: string): string {
-    if (!raw) return 'AI service unavailable. Please try again.';
+    if (!raw) return '⚠️ AI service unavailable. Please try again.';
 
     if (raw === 'QUOTA_EXCEEDED') {
-      return '🔑 Server quota exhausted. Add your own API key in Settings > AI Model to keep chatting.';
+      return '⚠️ Server quota exhausted. Add your own API key in Settings > AI Model to keep chatting.';
     }
 
     const lower = raw.toLowerCase();
@@ -423,7 +427,7 @@ export class MessageService {
       lower.includes('not found') ||
       (lower.includes('model') && lower.includes('not available'))
     ) {
-      return 'Model not available. Open Settings > AI Model to select a working model, or add your own Groq API key.';
+      return '⚠️ Model not available. Open Settings > AI Model to select a working model, or add your own API key.';
     }
     if (
       lower.includes('401') ||
@@ -431,19 +435,20 @@ export class MessageService {
       lower.includes('invalid api key') ||
       lower.includes('unauthorized')
     ) {
-      return 'Invalid API key. Open Settings > AI Model to add your Groq API key.';
+      return '⚠️ Invalid API key. Open Settings > AI Model to add or check your API key.';
     }
     if (lower.includes('no api key') || lower.includes('not set')) {
-      return 'No API key configured. Open Settings > AI Model to add your Groq API key.';
+      return '⚠️ No API key configured. Open Settings > AI Model to add your API key.';
     }
     if (
       lower.includes('could not') ||
       lower.includes('network') ||
       lower.includes('fetch')
     ) {
-      return 'Could not reach AI service. Check your internet connection and try again.';
+      return '⚠️ Could not reach AI service. Check your internet connection and try again.';
     }
 
-    return raw;
+    const truncated = raw.length > 200 ? raw.slice(0, 197) + '...' : raw;
+    return truncated.startsWith('⚠️') ? truncated : `⚠️ ${truncated}`;
   }
 }

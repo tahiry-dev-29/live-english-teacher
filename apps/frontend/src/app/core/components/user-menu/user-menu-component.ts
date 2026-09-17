@@ -10,14 +10,14 @@ import { LucideEllipsis } from '@lucide/angular';
     <div class="flex items-center gap-3">
       <!-- Avatar with gradient -->
       <div
-        class="w-10 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content shadow-lg ring-2 ring-base-300 transition-all"
+        class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-lg ring-2 ring-base-300 transition-all"
       >
         G
       </div>
 
       <!-- User Info -->
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-medium text-base-content truncate">
+      <div class="min-w-0 flex-1">
+        <div class="truncate text-sm font-medium text-base-content">
           Guest User
         </div>
         <div class="text-xs text-base-content/50">Free Plan</div>
@@ -26,13 +26,13 @@ import { LucideEllipsis } from '@lucide/angular';
       <!-- Menu Button -->
       <button
         (click)="openSettings.emit()"
-        class="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-base-content group/btn"
+        class="group/btn btn btn-circle btn-ghost text-base-content/60 btn-sm hover:text-base-content"
         title="Settings"
         aria-label="Settings"
       >
         <svg
           lucideEllipsis
-          class="w-5 h-5 group-hover/btn:rotate-90 transition-transform duration-300"
+          class="h-5 w-5 transition-transform duration-300 group-hover/btn:rotate-90"
         ></svg>
       </button>
     </div>

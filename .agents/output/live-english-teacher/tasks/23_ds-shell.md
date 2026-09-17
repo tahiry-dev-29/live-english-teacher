@@ -1,6 +1,6 @@
 # Task 23 — Design system dark/light : shell (T1)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🔴 Haute — dépend de Task 22
 
 ## Note de périmètre (clean 2026-09-16)
@@ -29,6 +29,6 @@ Tous les éléments du shell (sidebar, liste sessions, user-menu, page chat, set
 
 ## Critères d'acceptation
 
-- [ ] Aucun résidu sombre en light (overlays, sidebar, modale)
-- [ ] Liste sessions lisible et contrastée en light
-- [ ] `tsc` front, `eslint`, `prettier --check` (hors fichier exclu), builds frais passent
+- [x] Aucun résidu sombre en light (overlays, sidebar, modale)
+- [x] Liste sessions lisible et contrastée en light
+- [x] `tsc` front, `eslint`, `prettier --check` (hors fichier exclu), builds frais passent

@@ -33,7 +33,7 @@ export class GeminiLiveService {
     mimeType?: string,
     targetLanguage = 'English',
     modelOverride?: string,
-    apiKeyOverride?: string
+    apiKeyOverride?: string,
   ): Promise<string> {
     const key = apiKeyOverride || GEMINI_API_KEY || '';
     if (!key) {
@@ -48,7 +48,7 @@ export class GeminiLiveService {
       newMessage,
       audioData,
       mimeType,
-      targetLanguage
+      targetLanguage,
     );
 
     this.logger.log(`Requesting Chat from: ${apiUrl.replace(key, '***')}`);
@@ -69,7 +69,7 @@ export class GeminiLiveService {
   async getGeminiTtsAudio(
     text: string,
     targetLanguage?: string,
-    apiKeyOverride?: string
+    apiKeyOverride?: string,
   ): Promise<{ audioData: string; mimeType: string } | null> {
     const key = apiKeyOverride || GEMINI_API_KEY || '';
     if (!key) return null;
@@ -83,7 +83,7 @@ export class GeminiLiveService {
       const response = await postJson(apiUrl, payload);
       if (!response.ok) {
         this.logger.error(
-          `TTS API Error: ${response.status} - ${response.statusText}`
+          `TTS API Error: ${response.status} - ${response.statusText}`,
         );
         return null;
       }
@@ -108,7 +108,7 @@ export class GeminiLiveService {
   private async postWithRetry(
     url: string,
     payload: unknown,
-    isUserKey = false
+    isUserKey = false,
   ): Promise<string> {
     const maxRetries = 3;
     let attempt = 0;
@@ -134,7 +134,7 @@ export class GeminiLiveService {
       this.logger.error(
         `API Error (Attempt ${attempt + 1}): ${response.status} - ${
           response.statusText
-        }`
+        }`,
       );
       attempt++;
       if (attempt < maxRetries) {
@@ -145,7 +145,7 @@ export class GeminiLiveService {
     }
 
     throw new Error(
-      'Failed to get response from Gemini after multiple retries.'
+      'Failed to get response from Gemini after multiple retries.',
     );
   }
 }

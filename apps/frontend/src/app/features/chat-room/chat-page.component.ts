@@ -112,7 +112,7 @@ export class ChatPageComponent implements OnInit {
             const result = await this.messageService.sendTextMessage(
               text,
               this.sessionId,
-              this.languageService.selectedLanguageCode()
+              this.languageService.selectedLanguageCode(),
             );
             if (result?.sessionId) {
               this.chatService.activeSessionId.set(result.sessionId);
@@ -133,7 +133,7 @@ export class ChatPageComponent implements OnInit {
           console.error('Failed to start voice call:', err);
           this.isLiveMode.set(false);
           alert(
-            'Could not access microphone. Please check your browser permissions.'
+            'Could not access microphone. Please check your browser permissions.',
           );
         });
     }
@@ -185,7 +185,7 @@ export class ChatPageComponent implements OnInit {
     const result = await this.messageService.sendTextMessage(
       text,
       this.sessionId,
-      this.languageService.selectedLanguageCode()
+      this.languageService.selectedLanguageCode(),
     );
 
     if (result?.sessionId) {
@@ -210,7 +210,7 @@ export class ChatPageComponent implements OnInit {
       event.base64,
       'audio/webm',
       this.sessionId,
-      this.languageService.selectedLanguageCode()
+      this.languageService.selectedLanguageCode(),
     );
 
     if (result?.sessionId) {
@@ -241,6 +241,31 @@ export class ChatPageComponent implements OnInit {
 
   handleRecordingStateChange(isRecording: boolean): void {
     this.isAudioRecording.set(isRecording);
+  }
+
+  onRetryMessage(index: number): void {
+    const msgs = this.messageService.messages();
+    for (let i = index; i >= 0; i--) {
+      if (msgs[i].role === 'user') {
+        const textToRetry = msgs[i].text;
+        void this.messageService.sendTextMessage(
+          textToRetry,
+          this.sessionId,
+          this.languageService.selectedLanguageCode(),
+        );
+        return;
+      }
+    }
+  }
+
+  async onForkSession(index: number): Promise<void> {
+    const msgs = this.messageService.messages().slice(0, index + 1);
+    this.chatService.createNewSession();
+    this.messageService.clearMessages();
+    for (const msg of msgs) {
+      this.messageService.addMessage(msg);
+    }
+    this.router.navigate(['/']);
   }
 
   private speakText(text: string): void {

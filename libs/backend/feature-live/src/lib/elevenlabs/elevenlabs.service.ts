@@ -71,7 +71,7 @@ export class ElevenLabsService {
 
   async generateTtsAudio(
     text: string,
-    voiceId?: string
+    voiceId?: string,
   ): Promise<{ audioData: string; mimeType: string } | null> {
     if (!this.apiKey) {
       this.logger.warn('ELEVENLABS_API_KEY is not configured.');
@@ -102,7 +102,7 @@ export class ElevenLabsService {
       if (!response.ok) {
         const errText = await response.text();
         this.logger.error(
-          `ElevenLabs API Error: ${response.status} - ${response.statusText}: ${errText}`
+          `ElevenLabs API Error: ${response.status} - ${response.statusText}: ${errText}`,
         );
         // Fallback to George if chosen voice fails
         if (selectedVoice !== this.defaultVoiceId) {

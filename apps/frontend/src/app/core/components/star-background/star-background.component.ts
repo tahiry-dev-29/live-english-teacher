@@ -1,20 +1,25 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ThemeService } from '@core/services/theme.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-star-background',
   standalone: true,
+  imports: [CommonModule],
   template: `
-    <div class="absolute inset-0 overflow-hidden">
-      @for (i of stars; track i) {
-      <div
-        class="absolute w-1 h-1 bg-white rounded-full animate-twinkle"
-        [style.left.%]="i.x"
-        [style.top.%]="i.y"
-        [style.animation-delay.s]="i.delay"
-      ></div>
-      }
-    </div>
+    @if (themeService.resolvedTheme() === 'halloween') {
+      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        @for (i of stars; track i) {
+          <div
+            class="animate-twinkle absolute h-1 w-1 rounded-full bg-base-content/70"
+            [style.left.%]="i.x"
+            [style.top.%]="i.y"
+            [style.animation-delay.s]="i.delay"
+          ></div>
+        }
+      </div>
+    }
   `,
   styles: [
     `
@@ -34,7 +39,9 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
   ],
 })
 export class StarBackgroundComponent {
-  stars = Array.from({ length: 50 }, () => ({
+  readonly themeService = inject(ThemeService);
+
+  readonly stars = Array.from({ length: 50 }, () => ({
     x: Math.random() * 100,
     y: Math.random() * 100,
     delay: Math.random() * 2,

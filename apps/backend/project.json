@@ -5,6 +5,9 @@
   "projectType": "application",
   "tags": [],
   "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {

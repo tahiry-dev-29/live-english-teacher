@@ -189,7 +189,7 @@ export class VoiceCallService {
                 const transcript = await this.messageService.transcribeAudio(
                   base64,
                   mimeType,
-                  this.targetLanguageCode
+                  this.targetLanguageCode,
                 );
 
                 if (transcript && transcript.trim()) {

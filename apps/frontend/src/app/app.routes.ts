@@ -5,7 +5,7 @@ export const appRoutes: Route[] = [
     path: '',
     loadComponent: () =>
       import('./features/chat-room/chat-page.component').then(
-        (m) => m.ChatPageComponent
+        (m) => m.ChatPageComponent,
       ),
   },
   {
@@ -13,7 +13,7 @@ export const appRoutes: Route[] = [
     title: 'Chat',
     loadComponent: () =>
       import('./features/chat-room/chat-page.component').then(
-        (m) => m.ChatPageComponent
+        (m) => m.ChatPageComponent,
       ),
   },
   {
@@ -21,7 +21,7 @@ export const appRoutes: Route[] = [
     title: 'Not Found',
     loadComponent: () =>
       import('./core/components/not-found-page/not-found-page-component').then(
-        (m) => m.NotFoundPageComponent
+        (m) => m.NotFoundPageComponent,
       ),
   },
 ];

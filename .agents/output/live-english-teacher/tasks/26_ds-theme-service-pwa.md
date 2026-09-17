@@ -1,6 +1,6 @@
 # Task 26 — Design system dark/light : theme.service + PWA (T3bis)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟡 Moyenne — dépend de Task 22
 
 ## Goal
@@ -22,7 +22,7 @@
 
 ## Critères d'acceptation
 
-- [ ] `meta theme-color` suit le thème actif (dark + light + system)
-- [ ] Manifests PWA cohérents avec chaque thème
-- [ ] Zéro `<script>` inline dans `index.html`
-- [ ] `tsc` front, `eslint`, `prettier --check`, builds frais passent
+- [x] `meta theme-color` suit le thème actif (dark + light + system)
+- [x] Manifests PWA cohérents avec chaque thème
+- [x] Zéro `<script>` inline dans `index.html`
+- [x] `tsc` front, `eslint`, `prettier --check`, builds frais passent

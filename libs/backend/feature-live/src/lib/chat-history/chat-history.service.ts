@@ -86,7 +86,10 @@ export class ChatHistoryService {
     });
   }
 
-  async updateSession(sessionId: string, data: { title?: string }) {
+  async updateSession(
+    sessionId: string,
+    data: { title?: string; learningLanguage?: string },
+  ) {
     return this.prisma.session.update({
       where: { id: sessionId },
       data,

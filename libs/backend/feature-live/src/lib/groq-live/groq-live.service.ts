@@ -36,12 +36,11 @@ export class GroqLiveService {
   private buildMessages(
     history: GroqHistoryMessage[],
     newMessage: string,
-    targetLanguage: string
+    targetLanguage: string,
   ): { role: 'system' | 'user' | 'assistant'; content: string }[] {
     const trimmedHistory = history.slice(-MAX_HISTORY_LENGTH).map((msg) => ({
       role: (msg.role === 'model' ? 'assistant' : 'user') as
-        | 'assistant'
-        | 'user',
+        'assistant' | 'user',
       content: (msg.text || '').slice(0, MAX_CONTENT_LENGTH),
     }));
 
@@ -62,7 +61,7 @@ export class GroqLiveService {
       useFallback?: boolean;
       modelOverride?: string;
       apiKey?: string;
-    } = {}
+    } = {},
   ): Promise<Response> {
     const model =
       options.modelOverride ||
@@ -88,7 +87,7 @@ export class GroqLiveService {
     newMessage: string,
     targetLanguage = 'English',
     modelOverride?: string,
-    customApiKey?: string
+    customApiKey?: string,
   ): Promise<string> {
     const apiKey = customApiKey || this.apiKey;
     if (!apiKey) {
@@ -109,7 +108,7 @@ export class GroqLiveService {
         this.logger.error(
           `Groq API error with ${modelOverride || this.model}: ${
             response.status
-          } - ${response.statusText} - ${errorText}`
+          } - ${response.statusText} - ${errorText}`,
         );
 
         // Quota exhausted on server key → signal frontend to ask user for their own key
@@ -166,7 +165,7 @@ export class GroqLiveService {
     newMessage: string,
     targetLanguage = 'English',
     modelOverride?: string,
-    customApiKey?: string
+    customApiKey?: string,
   ): AsyncGenerator<string, void, unknown> {
     const apiKey = customApiKey || this.apiKey;
     if (!apiKey) {
@@ -186,7 +185,7 @@ export class GroqLiveService {
       this.logger.error(
         `Groq API error with ${modelOverride || this.model}: ${
           response.status
-        } - ${response.statusText}`
+        } - ${response.statusText}`,
       );
 
       // Quota exhausted on server key → throw so SSE controller signals the frontend

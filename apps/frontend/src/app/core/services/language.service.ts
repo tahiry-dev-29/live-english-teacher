@@ -10,7 +10,9 @@ export interface Language {
   providedIn: 'root',
 })
 export class LanguageService {
-  readonly selectedLanguageCode = signal<string>('en');
+  private static readonly STORAGE_KEY = 'learning_language';
+
+  readonly selectedLanguageCode = signal<string>(this.loadLanguage());
   readonly availableVoices = signal<SpeechSynthesisVoice[]>([]);
   readonly selectedVoice = signal<SpeechSynthesisVoice | null>(null);
 
@@ -37,6 +39,24 @@ export class LanguageService {
 
   setLanguage(code: string): void {
     this.selectedLanguageCode.set(code);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(LanguageService.STORAGE_KEY, code);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private loadLanguage(): string {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(LanguageService.STORAGE_KEY) || 'en';
+      }
+    } catch {
+      // ignore
+    }
+    return 'en';
   }
 
   setVoice(voiceName: string): void {
@@ -110,7 +130,7 @@ export class LanguageService {
     if (currentExists && currentMatches) return;
 
     const matching = voices.find((v) =>
-      v.lang.toLowerCase().startsWith(langPrefix)
+      v.lang.toLowerCase().startsWith(langPrefix),
     );
     this.selectedVoice.set(matching ?? voices[0]);
   }

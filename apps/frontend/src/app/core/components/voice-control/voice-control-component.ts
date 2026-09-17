@@ -15,23 +15,23 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
   imports: [LucidePlay, LucidePause, LucideSquare],
   template: `
     <div
-      class="voice-control-whatsapp bg-base-200 backdrop-blur-md rounded-2xl px-4 py-3 flex items-center gap-3 shadow-lg border border-base-300 max-w-md"
+      class="voice-control-whatsapp flex max-w-md items-center gap-3 rounded-2xl border border-base-300 bg-base-200 px-4 py-3 shadow-lg"
     >
       <!-- Play/Pause Button -->
       <button
         (click)="togglePlayPause()"
-        class="btn btn-circle btn-success shadow-md"
+        class="btn btn-circle shadow-md btn-success"
         [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
       >
         @if (isPlaying()) {
-        <svg lucidePause class="w-5 h-5"></svg>
+          <svg lucidePause class="h-5 w-5"></svg>
         } @else {
-        <svg lucidePlay class="w-5 h-5 ml-0.5"></svg>
+          <svg lucidePlay class="ml-0.5 h-5 w-5"></svg>
         }
       </button>
 
       <!-- Waveform & Time -->
-      <div class="flex-1 flex flex-col gap-1.5">
+      <div class="flex flex-1 flex-col gap-1.5">
         <!-- Time -->
         <div class="text-sm font-medium text-success">
           {{ formatTime(currentTime()) }}
@@ -41,7 +41,7 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
         <div class="relative">
           <!-- Waveform -->
           <div
-            class="h-6 flex items-center gap-0.5 cursor-pointer relative"
+            class="relative flex h-6 cursor-pointer items-center gap-0.5"
             (click)="seekToPosition($event)"
             (keydown)="handleKeydown($event)"
             tabindex="0"
@@ -53,18 +53,18 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
           >
             <!-- $index volontaire : échantillonnage d'ondes audio sans identifiant unique -->
             @for (bar of waveformBars(); track $index) {
-            <div
-              class="w-1 rounded-full transition-all duration-75"
-              [class.bg-success]="isBarPlayed($index)"
-              [class.bg-base-300]="!isBarPlayed($index)"
-              [style.height.px]="getBarHeight(bar)"
-            ></div>
+              <div
+                class="w-1 rounded-full transition-all duration-75"
+                [class.bg-success]="isBarPlayed($index)"
+                [class.bg-base-300]="!isBarPlayed($index)"
+                [style.height.px]="getBarHeight(bar)"
+              ></div>
             }
           </div>
 
           <!-- Progress Bar Overlay (for precision) -->
           <div
-            class="absolute bottom-0 left-0 h-0.5 bg-success rounded-full pointer-events-none transition-all duration-75"
+            class="pointer-events-none absolute bottom-0 left-0 h-0.5 rounded-full bg-success transition-all duration-75"
             [style.width.%]="progress()"
           ></div>
         </div>
@@ -73,10 +73,10 @@ import { LucidePlay, LucidePause, LucideSquare } from '@lucide/angular';
       <!-- Stop Button -->
       <button
         (click)="stopPlayback()"
-        class="btn btn-circle btn-sm btn-error"
+        class="btn btn-circle btn-error btn-sm"
         [attr.aria-label]="'Stop'"
       >
-        <svg lucideSquare class="w-4 h-4"></svg>
+        <svg lucideSquare class="h-4 w-4"></svg>
       </button>
     </div>
   `,

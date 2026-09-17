@@ -10,6 +10,8 @@ import { AiStreamController } from './ai-stream.controller';
 import { LiveResolver } from './live.resolver';
 import { ChatHistoryService } from './chat-history/chat-history.service';
 
+import { OpenAiCompatService } from './openai-compat.service';
+
 @Module({
   imports: [DataAccessPrismaModule],
   controllers: [AiStreamController],
@@ -20,6 +22,7 @@ import { ChatHistoryService } from './chat-history/chat-history.service';
     GroqTranscribeService,
     AiModelsService,
     AiProviderService,
+    OpenAiCompatService,
     LiveResolver,
     ChatHistoryService,
   ],
@@ -30,6 +33,7 @@ import { ChatHistoryService } from './chat-history/chat-history.service';
     GroqTranscribeService,
     AiModelsService,
     AiProviderService,
+    OpenAiCompatService,
     ChatHistoryService,
   ],
 })

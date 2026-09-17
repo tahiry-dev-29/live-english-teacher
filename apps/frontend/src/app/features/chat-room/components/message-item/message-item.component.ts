@@ -37,89 +37,89 @@ import {
       [class.chat-start]="message().role === 'ai'"
     >
       <div
-        class="chat-bubble max-w-[80%] relative group"
+        class="group chat-bubble relative max-w-[80%]"
         [class.chat-bubble-primary]="message().role === 'user' && !isError()"
         [class.chat-bubble-neutral]="message().role === 'ai' && !isError()"
         [class.chat-bubble-error]="isError()"
       >
         <!-- Markdown content -->
-        <div class="prose prose-sm max-w-none">
+        <div class="prose-sm prose max-w-none">
           <markdown [data]="message().text"></markdown>
         </div>
 
         <!-- Error retry button -->
         @if (isError() && message().role === 'ai') {
-        <div class="mt-2">
-          <button
-            (click)="retry.emit()"
-            class="btn btn-ghost btn-xs gap-1 text-error-content"
-          >
-            <svg lucideRefreshCw class="w-3 h-3"></svg>
-            Retry
-          </button>
-        </div>
+          <div class="mt-2">
+            <button
+              (click)="retry.emit()"
+              class="btn gap-1 btn-ghost text-error-content btn-xs"
+            >
+              <svg lucideRefreshCw class="h-3 w-3"></svg>
+              Retry
+            </button>
+          </div>
         }
 
         <!-- AI message actions -->
         @if (message().role === 'ai' && !isError()) {
-        <div class="mt-2 flex items-center gap-1">
-          <button
-            (click)="handlePlayStop()"
-            class="btn btn-ghost btn-xs gap-1"
-            [class.text-primary]="!isPlaying()"
-            [class.text-error]="isPlaying()"
-          >
-            @if (isPlaying()) {
-            <svg lucideSquare class="w-3 h-3"></svg>
-            <span>Stop</span>
-            } @else {
-            <svg lucideMic class="w-3 h-3"></svg>
-            <span>Listen</span>
-            }
-          </button>
-        </div>
+          <div class="mt-2 flex items-center gap-1">
+            <button
+              (click)="handlePlayStop()"
+              class="btn gap-1 btn-ghost btn-xs"
+              [class.text-primary]="!isPlaying()"
+              [class.text-error]="isPlaying()"
+            >
+              @if (isPlaying()) {
+                <svg lucideSquare class="h-3 w-3"></svg>
+                <span>Stop</span>
+              } @else {
+                <svg lucideMic class="h-3 w-3"></svg>
+                <span>Listen</span>
+              }
+            </button>
+          </div>
         }
 
         <!-- Context menu (⋯) on AI messages -->
         @if (message().role === 'ai') {
-        <div
-          class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <div class="dropdown dropdown-end">
-            <button tabindex="0" class="btn btn-ghost btn-xs btn-circle">
-              <svg lucideMoreHorizontal class="w-4 h-4"></svg>
-            </button>
-            <ul
-              tabindex="0"
-              class="dropdown-content menu bg-base-200 border border-base-300 rounded-box z-50 w-40 p-2 shadow-lg"
-            >
-              <li>
-                <button (click)="onCopy()">
-                  <svg lucideCopy class="w-4 h-4"></svg>
-                  Copy
-                </button>
-              </li>
-              <li>
-                <button (click)="retry.emit()">
-                  <svg lucideRefreshCw class="w-4 h-4"></svg>
-                  Retry
-                </button>
-              </li>
-              <li>
-                <button (click)="handlePlayStop()">
-                  <svg lucideMic class="w-4 h-4"></svg>
-                  Listen
-                </button>
-              </li>
-              <li>
-                <button (click)="fork.emit()">
-                  <svg lucideGitFork class="w-4 h-4"></svg>
-                  Fork
-                </button>
-              </li>
-            </ul>
+          <div
+            class="absolute top-1 right-1 opacity-0 transition-opacity group-hover:opacity-100"
+          >
+            <div class="dropdown dropdown-end">
+              <button tabindex="0" class="btn btn-circle btn-ghost btn-xs">
+                <svg lucideMoreHorizontal class="h-4 w-4"></svg>
+              </button>
+              <ul
+                tabindex="0"
+                class="menu dropdown-content z-50 w-40 rounded-box border border-base-300 bg-base-200 p-2 shadow-lg"
+              >
+                <li>
+                  <button (click)="onCopy()">
+                    <svg lucideCopy class="h-4 w-4"></svg>
+                    Copy
+                  </button>
+                </li>
+                <li>
+                  <button (click)="retry.emit()">
+                    <svg lucideRefreshCw class="h-4 w-4"></svg>
+                    Retry
+                  </button>
+                </li>
+                <li>
+                  <button (click)="handlePlayStop()">
+                    <svg lucideMic class="h-4 w-4"></svg>
+                    Listen
+                  </button>
+                </li>
+                <li>
+                  <button (click)="fork.emit()">
+                    <svg lucideGitFork class="h-4 w-4"></svg>
+                    Fork
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
-        </div>
         }
       </div>
     </div>
@@ -170,7 +170,8 @@ export class MessageItemComponent {
   readonly copied = output<void>();
 
   readonly isError = computed<boolean>(() => {
-    return this.message().text.startsWith('Error:');
+    const text = this.message().text;
+    return text.startsWith('⚠️') || text.startsWith('Error:');
   });
 
   handlePlayStop(): void {

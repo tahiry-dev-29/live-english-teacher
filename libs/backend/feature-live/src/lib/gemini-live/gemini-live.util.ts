@@ -39,7 +39,7 @@ export interface GeminiApiResponse {
 export function resolveGeminiUrl(
   baseUrl: string | undefined,
   model: string,
-  apiKey: string
+  apiKey: string,
 ): string {
   return `${
     baseUrl || GEMINI_API_BASE_URL
@@ -51,7 +51,7 @@ export function buildChatPayload(
   newMessage: string,
   audioData?: string,
   mimeType?: string,
-  targetLanguage = 'English'
+  targetLanguage = 'English',
 ): GeminiGenerateContentRequest {
   const contents: GeminiContent[] = history.map((msg) => ({
     role: msg.role,
@@ -79,7 +79,7 @@ export function buildChatPayload(
 
 export function buildTtsPayload(
   text: string,
-  voice: string
+  voice: string,
 ): GeminiGenerateContentRequest {
   return {
     contents: [{ role: 'user', parts: [{ text }] }],
@@ -102,7 +102,7 @@ export function getVoiceForLanguage(language: string): string {
 }
 
 export function extractResponseText(
-  result: GeminiApiResponse
+  result: GeminiApiResponse,
 ): string | undefined {
   const cand = result.candidates?.[0];
   const content = cand?.content;
@@ -112,7 +112,7 @@ export function extractResponseText(
 }
 
 export function extractResponseAudio(
-  result: GeminiApiResponse
+  result: GeminiApiResponse,
 ): { audioData: string; mimeType: string } | null {
   const cand = result.candidates?.[0];
   const content = cand?.content;

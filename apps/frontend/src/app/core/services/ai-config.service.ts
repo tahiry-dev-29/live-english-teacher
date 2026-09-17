@@ -2,17 +2,72 @@ import { Injectable, signal, effect, inject } from '@angular/core';
 import { environment } from '@environment';
 import { ApiKeyService } from './api-key.service';
 
-export type AiProvider = 'groq' | 'gemini';
-
 export interface AiModel {
   id: string;
   name: string;
-  provider: AiProvider;
+  provider: string;
   description: string;
   size?: string;
   contextWindow?: number;
   isDefault?: boolean;
 }
+
+export interface ProviderInfo {
+  id: string;
+  label: string;
+  description: string;
+  quotaBadge?: string;
+  consoleUrl: string;
+}
+
+export const KNOWN_PROVIDERS: ProviderInfo[] = [
+  {
+    id: 'groq',
+    label: 'Groq',
+    description: 'Ultra-fast inference engine',
+    quotaBadge: 'Free Tier',
+    consoleUrl: 'https://console.groq.com/keys',
+  },
+  {
+    id: 'gemini',
+    label: 'Google Gemini',
+    description: 'Google AI multimodal reasoning',
+    quotaBadge: 'Free Tier',
+    consoleUrl: 'https://aistudio.google.com/app/apikey',
+  },
+  {
+    id: 'openai',
+    label: 'OpenAI',
+    description: 'GPT-4o & GPT-4o-mini models',
+    consoleUrl: 'https://platform.openai.com/api-keys',
+  },
+  {
+    id: 'anthropic',
+    label: 'Anthropic',
+    description: 'Claude 3.5 Sonnet & Haiku models',
+    consoleUrl: 'https://console.anthropic.com/settings/keys',
+  },
+  {
+    id: 'mistral',
+    label: 'Mistral AI',
+    description: 'Mistral Small & Large reasoning models',
+    quotaBadge: 'Free Tier',
+    consoleUrl: 'https://console.mistral.ai/api-keys',
+  },
+  {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    description: 'DeepSeek-V3 & DeepSeek-R1 reasoning',
+    consoleUrl: 'https://platform.deepseek.com/api_keys',
+  },
+  {
+    id: 'qwen',
+    label: 'Qwen',
+    description: 'Alibaba Cloud Qwen multilingual models',
+    quotaBadge: 'Free Tier',
+    consoleUrl: 'https://dashscope.console.aliyun.com/apiKey',
+  },
+];
 
 @Injectable({
   providedIn: 'root',
@@ -54,27 +109,67 @@ export class AiConfigService {
       description: 'Next-gen multimodal reasoning',
       size: 'Flash',
     },
+    {
+      id: 'gpt-4o-mini',
+      name: 'GPT-4o Mini',
+      provider: 'openai',
+      description: 'Fast, affordable small model for focused tasks',
+      size: 'Small',
+      isDefault: true,
+    },
+    {
+      id: 'claude-3-5-sonnet-20241022',
+      name: 'Claude 3.5 Sonnet',
+      provider: 'anthropic',
+      description: 'High intelligence and deep reasoning capabilities',
+      size: 'Sonnet',
+      isDefault: true,
+    },
+    {
+      id: 'mistral-small-latest',
+      name: 'Mistral Small',
+      provider: 'mistral',
+      description: 'Cost-efficient and high-performance multilingual model',
+      size: 'Small',
+      isDefault: true,
+    },
+    {
+      id: 'deepseek-chat',
+      name: 'DeepSeek Chat (V3)',
+      provider: 'deepseek',
+      description: 'Powerful multilingual conversational model',
+      size: 'V3',
+      isDefault: true,
+    },
+    {
+      id: 'qwen-plus',
+      name: 'Qwen Plus',
+      provider: 'qwen',
+      description: 'Balanced performance, speed and multilingual accuracy',
+      size: 'Plus',
+      isDefault: true,
+    },
   ];
 
   readonly models = signal<AiModel[]>(this.defaultModels);
   readonly loading = signal<boolean>(false);
 
-  readonly provider = signal<AiProvider>(
-    this.loadFromStorage<AiProvider>(
+  readonly provider = signal<string>(
+    this.loadFromStorage<string>(
       AiConfigService.STORAGE_KEY_PROVIDER,
-      'groq'
-    )
+      'groq',
+    ),
   );
 
   readonly selectedModelId = signal<string>(
     this.loadFromStorage<string>(
       AiConfigService.STORAGE_KEY_MODEL,
-      'llama-3.3-70b-versatile'
-    )
+      'llama-3.3-70b-versatile',
+    ),
   );
 
   readonly selectedModel = signal<AiModel>(
-    this.resolveModel(this.provider(), this.selectedModelId())
+    this.resolveModel(this.provider(), this.selectedModelId()),
   );
 
   constructor() {
@@ -89,14 +184,19 @@ export class AiConfigService {
     });
   }
 
-  async fetchModels(): Promise<void> {
+  async fetchModels(providerId?: string): Promise<void> {
     this.loading.set(true);
     try {
       const headers: Record<string, string> = {};
-      const groqKey = this.apiKeyService.getGroqKeyHeader();
-      const geminiKey = this.apiKeyService.getGeminiKeyHeader();
-      if (groqKey) headers['x-groq-api-key'] = groqKey;
-      if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
+      const activeProvider = providerId || this.provider();
+      headers['x-provider'] = activeProvider;
+
+      const keys = this.apiKeyService.customKeys();
+      for (const [p, k] of Object.entries(keys)) {
+        if (k) {
+          headers[`x-${p}-api-key`] = k;
+        }
+      }
 
       const response = await fetch(`${environment.apiBaseUrl}/ai/models`, {
         headers,
@@ -115,7 +215,7 @@ export class AiConfigService {
     }
   }
 
-  getModelsForProvider(provider: AiProvider): AiModel[] {
+  getModelsForProvider(provider: string): AiModel[] {
     return this.models().filter((m) => m.provider === provider);
   }
 
@@ -134,7 +234,7 @@ export class AiConfigService {
     }
   }
 
-  private resolveModel(provider: AiProvider, modelId: string): AiModel {
+  private resolveModel(provider: string, modelId: string): AiModel {
     const list = this.models();
     const match = list.find((m) => m.id === modelId && m.provider === provider);
     if (match) return match;

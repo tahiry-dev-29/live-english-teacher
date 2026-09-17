@@ -18,7 +18,7 @@
 
 ## Outils
 
-- Nx 22 (build: webpack backend / @angular/build frontend), ESLint 9, Prettier 2
+- Nx 22 (build: webpack backend / @angular/build frontend), ESLint 9, Prettier 3 (+ `prettier-plugin-tailwindcss` : tri des classes, `tailwindStylesheet` → `apps/frontend/src/styles.css`)
 - pnpm 11 (`--frozen-lockfile`, `allowBuilds` dans pnpm-workspace.yaml), bun pour les scripts
 
 ## Contraintes
@@ -27,3 +27,4 @@
 - Prisma client généré dans le chemin par défaut (`node_modules/@prisma/client`), schema sans `output` custom
 - L'ancien `@prisma/cli@2.20.1` reste dans les devDeps (ne pas supprimer) mais ses scripts de build sont bloqués (`allowBuilds: '@prisma/cli': false`)
 - Fichiers de génération Prisma : ne pas committer `generated/` (supprimé, output par défaut)
+- Thèmes & couleurs : tokens sémantiques daisyUI uniquement (`bg-base-100/200/300`, `text-base-content`, `primary`, etc.). Couleurs codées en dur (`bg-white`, `bg-black`, `bg-[...]`, `text-gray-*`, `bg-gray-*`, `from-blue`, `text-blue`) et `dark:` sont strictement interdits (incompatibles avec `data-theme`). Garde-fou automatique : `scripts/check-theme-tokens.mjs` en prebuild.

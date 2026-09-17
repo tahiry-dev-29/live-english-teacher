@@ -1,11 +1,18 @@
 @import 'tailwindcss';
-@plugin "daisyui" {
-  themes: halloween --default;
+@plugin 'daisyui' {
+  themes:
+    halloween --default,
+    emerald;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #4b5563 transparent;
+  scrollbar-color: color-mix(
+      in oklch,
+      var(--color-base-content) 30%,
+      transparent
+    )
+    transparent;
 }
 
 *::-webkit-scrollbar {
@@ -18,13 +25,13 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: var(--color-base-300);
   border-radius: 4px;
   transition: background 0.2s;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: color-mix(in oklch, var(--color-base-content) 40%, transparent);
 }
 
 *::-webkit-scrollbar-corner {

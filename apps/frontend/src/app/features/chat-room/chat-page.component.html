@@ -1,11 +1,11 @@
-<div class="flex h-screen bg-base-100 text-base-content overflow-hidden">
+<div class="flex h-screen overflow-hidden bg-base-100 text-base-content">
   @if (isLiveMode()) {
-  <app-call-interface
-    [callState]="voiceCallService.callState()"
-    [transcript]="voiceCallService.currentTranscript()"
-    (endCall)="toggleLiveMode()"
-    (toggleMute)="toggleVocal()"
-  />
+    <app-call-interface
+      [callState]="voiceCallService.callState()"
+      [transcript]="voiceCallService.currentTranscript()"
+      (endCall)="toggleLiveMode()"
+      (toggleMute)="toggleVocal()"
+    />
   }
 
   <app-sidebar
@@ -28,76 +28,76 @@
   />
 
   <main
-    class="flex-1 flex flex-col relative w-full h-full transition-all duration-300"
+    class="relative flex h-full w-full flex-1 flex-col transition-all duration-300"
   >
     <!-- Quota exhausted banner -->
     @if (messageService.quotaExceeded()) {
-    <div
-      role="alert"
-      class="alert alert-warning shadow-lg rounded-none border-x-0 border-t-0 flex items-center gap-3 px-4 py-3"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 shrink-0"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+      <div
+        role="alert"
+        class="alert flex items-center gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 alert-warning shadow-lg"
       >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-        />
-      </svg>
-      <span class="flex-1 text-sm">
-        <strong
-          >Server quota exhausted ({{
-            messageService.quotaExceeded() | uppercase
-          }}).</strong
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
         >
-        Add your own free API key to keep chatting.
-      </span>
-      <button
-        type="button"
-        class="btn btn-sm btn-warning btn-outline font-semibold"
-        (click)="openSettingsOnApiTab()"
-      >
-        🔑 Add my key
-      </button>
-      <button
-        type="button"
-        class="btn btn-ghost btn-circle btn-xs"
-        aria-label="Dismiss"
-        (click)="messageService.quotaExceeded.set(null)"
-      >
-        ✕
-      </button>
-    </div>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+          />
+        </svg>
+        <span class="flex-1 text-sm">
+          <strong
+            >Server quota exhausted ({{
+              messageService.quotaExceeded() | uppercase
+            }}).</strong
+          >
+          Add your own free API key to keep chatting.
+        </span>
+        <button
+          type="button"
+          class="btn btn-outline font-semibold btn-sm btn-warning"
+          (click)="openSettingsOnApiTab()"
+        >
+          🔑 Add my key
+        </button>
+        <button
+          type="button"
+          class="btn btn-circle btn-ghost btn-xs"
+          aria-label="Dismiss"
+          (click)="messageService.quotaExceeded.set(null)"
+        >
+          ✕
+        </button>
+      </div>
     }
 
     <div
-      class="md:hidden p-4 bg-base-200 border-b border-base-300 flex items-center justify-between"
+      class="flex items-center justify-between border-b border-base-300 bg-base-200 p-4 md:hidden"
     >
       <div class="flex items-center gap-2">
         <button
           (click)="sidebar.toggle()"
-          class="btn btn-ghost btn-circle btn-sm"
+          class="btn btn-circle btn-ghost btn-sm"
           title="Toggle sidebar"
         >
-          <svg lucidePanelRightOpen class="w-5 h-5"></svg>
+          <svg lucidePanelRightOpen class="h-5 w-5"></svg>
         </button>
         <span
-          class="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-primary to-secondary bg-clip-text font-bold text-transparent"
           >Live Teacher</span
         >
       </div>
       <button
         (click)="onNewChat()"
-        class="btn btn-primary btn-circle btn-sm"
+        class="btn btn-circle btn-primary btn-sm"
         title="New Chat"
       >
-        <svg lucideMessageCircle class="w-5 h-5"></svg>
+        <svg lucideMessageCircle class="h-5 w-5"></svg>
       </button>
     </div>
 
@@ -115,6 +115,8 @@
       "
       (playAudio)="handlePlayAudio($event)"
       (stop)="handleStopAudio()"
+      (retryMessage)="onRetryMessage($event)"
+      (forkSession)="onForkSession($event)"
     />
 
     <div class="p-4">
@@ -133,7 +135,7 @@
         (liveToggled)="toggleLiveMode()"
       />
 
-      <div class="text-center mt-2">
+      <div class="mt-2 text-center">
         <p class="text-[10px] text-base-content/50">
           <a href="https://tahiry29.is-a.dev" target="_blank" rel="noopener"
             >Powered by tahiry29</a

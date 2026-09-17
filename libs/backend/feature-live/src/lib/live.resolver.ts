@@ -16,7 +16,7 @@ export class LiveResolver {
   constructor(
     private readonly geminiLiveService: GeminiLiveService,
     private readonly aiProviderService: AiProviderService,
-    private readonly chatHistoryService: ChatHistoryService
+    private readonly chatHistoryService: ChatHistoryService,
   ) {}
 
   @Query(() => String)
@@ -39,7 +39,7 @@ export class LiveResolver {
 
   @Query(() => SessionDetailResponse, { nullable: true })
   async getSession(
-    @Args('sessionId') sessionId: string
+    @Args('sessionId') sessionId: string,
   ): Promise<SessionDetailResponse | null> {
     const session = await this.chatHistoryService.getSession(sessionId);
     if (!session) return null;
@@ -60,7 +60,7 @@ export class LiveResolver {
 
   @Query(() => [MessageResponse])
   async sessionMessages(
-    @Args('sessionId') sessionId: string
+    @Args('sessionId') sessionId: string,
   ): Promise<MessageResponse[]> {
     const session = await this.chatHistoryService.getSession(sessionId);
     if (!session) return [];
@@ -82,7 +82,7 @@ export class LiveResolver {
     targetLanguage?: string,
     @Args('model', { nullable: true }) model?: string,
     @Args('provider', { nullable: true }) provider?: string,
-    @Context() context?: { req?: { headers?: Record<string, string> } }
+    @Context() context?: { req?: { headers?: Record<string, string> } },
   ): Promise<ChatResponse> {
     const groqApiKey = context?.req?.headers?.['x-groq-api-key'];
     const geminiApiKey = context?.req?.headers?.['x-gemini-api-key'];
@@ -94,11 +94,15 @@ export class LiveResolver {
       : null;
     if (!session) {
       const newSession = await this.chatHistoryService.createSession(
-        targetLanguage
+        targetLanguage || 'en',
       );
       session = { ...newSession, messages: [] };
 
       sessionId = session.id;
+    } else if (targetLanguage && session.learningLanguage !== targetLanguage) {
+      await this.chatHistoryService.updateSession(session.id, {
+        learningLanguage: targetLanguage,
+      });
     }
 
     const history = await this.chatHistoryService.getSessionHistory(sessionId);
@@ -107,6 +111,11 @@ export class LiveResolver {
       await this.chatHistoryService.addMessage(sessionId, 'user', content);
     }
 
+    const providerHeader = context?.req?.headers?.['x-provider-api-key'];
+    const customApiKey =
+      providerHeader ||
+      (provider ? context?.req?.headers?.[`x-${provider}-api-key`] : undefined);
+
     let text: string;
     try {
       text = await this.aiProviderService.generateText(history, content, {
@@ -114,9 +123,10 @@ export class LiveResolver {
         mimeType,
         targetLanguage,
         model,
-        provider: provider as 'groq' | 'gemini' | undefined,
+        provider,
         groqApiKey,
         geminiApiKey,
+        customApiKey,
       });
     } catch (err) {
       if (err instanceof QuotaExceededError) throw err;
@@ -132,7 +142,7 @@ export class LiveResolver {
       const audioResult = await this.geminiLiveService.getGeminiTtsAudio(
         text,
         targetLanguage,
-        geminiApiKey
+        geminiApiKey,
       );
       if (audioResult) {
         responseAudioData = audioResult.audioData;
@@ -159,7 +169,7 @@ export class LiveResolver {
 
   @Mutation(() => AudioResponse, { nullable: true })
   async generateAudio(
-    @Args('text') text: string
+    @Args('text') text: string,
   ): Promise<AudioResponse | null> {
     const result = await this.geminiLiveService.getGeminiTtsAudio(text);
     if (!result) {
@@ -173,11 +183,11 @@ export class LiveResolver {
 
   @Mutation(() => SessionResponse, { nullable: true })
   async updateSession(
-    @Args('data') data: UpdateSessionInput
+    @Args('data') data: UpdateSessionInput,
   ): Promise<SessionResponse | null> {
     const session = await this.chatHistoryService.updateSession(
       data.sessionId,
-      { title: data.title }
+      { title: data.title },
     );
     if (!session) return null;
 

@@ -46,6 +46,8 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
 
   readonly playAudio = output<{ text: string; index: number }>();
   readonly stop = output<void>();
+  readonly retryMessage = output<number>();
+  readonly forkSession = output<number>();
 
   readonly scrollContainer = viewChild<ElementRef>('scrollContainer');
 
@@ -67,7 +69,7 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
       ([entry]) => {
         this.hasNewMessages.set(!entry.isIntersecting);
       },
-      { root: el, threshold: 0.1 }
+      { root: el, threshold: 0.1 },
     );
     this.scrollObserver.observe(sentinel);
   }

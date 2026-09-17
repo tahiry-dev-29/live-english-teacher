@@ -16,29 +16,29 @@ import { StarBackgroundComponent } from '../star-background/star-background.comp
   ],
   template: `
     <div
-      class="min-h-screen bg-base-100 text-base-content flex flex-col items-center justify-center p-6 overflow-hidden relative"
+      class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-base-100 p-6 text-base-content"
     >
       <app-star-background />
 
       <app-space-illustration />
 
       <!-- Content -->
-      <div class="relative z-10 text-center mt-8">
+      <div class="relative z-10 mt-8 text-center">
         <h1
-          class="text-8xl font-bold bg-gradient-to-r from-primary via-secondary to-warning bg-clip-text text-transparent mb-4"
+          class="mb-4 bg-gradient-to-r from-primary via-secondary to-warning bg-clip-text text-8xl font-bold text-transparent"
         >
           404
         </h1>
-        <p class="text-xl text-base-content/70 mb-2">Lost in Space</p>
-        <p class="text-base-content/50 mb-8 max-w-md">
+        <p class="mb-2 text-xl text-base-content/70">Lost in Space</p>
+        <p class="mb-8 max-w-md text-base-content/50">
           The page you're looking for has drifted into another galaxy.
         </p>
 
         <a
           routerLink="/"
-          class="btn btn-primary inline-flex items-center gap-2 px-6 shadow-lg shadow-primary/20 transition-transform hover:scale-105"
+          class="btn inline-flex items-center gap-2 px-6 shadow-lg shadow-primary/20 transition-transform btn-primary hover:scale-105"
         >
-          <svg lucideHome class="w-5 h-5"></svg>
+          <svg lucideHome class="h-5 w-5"></svg>
           Return Home
         </a>
       </div>

@@ -4,11 +4,7 @@
 /.nx/cache
 /.nx/workspace-data
 .angular
-# Prettier 2.8 ne parse pas la syntaxe @if/@for/@empty + composants lucide :
-# le fichier compile sous Angular (tsc + ng build OK), on l'exclut du format
-# jusqu'à la montée de version Prettier >= 3.
-apps/frontend/src/app/core/components/sidebar/sidebar-session-list.component.html
-# Generated pnpm lockfile: prettier 2.8 is very slow on it and any reflow is pure noise.
+# Generated pnpm lockfile: any reflow is pure noise, pnpm owns this file.
 /pnpm-lock.yaml
 # Agent-managed tooling + generated task outputs (skill files are hash-synced with skills-lock.json).
 /.agents

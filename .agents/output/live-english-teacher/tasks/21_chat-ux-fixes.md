@@ -1,6 +1,6 @@
 # Task 21 — Chat fonctionnel (SSE, langue, markdown, erreurs, menu contexte)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🔴 Haute
 
 ## Goal
@@ -83,13 +83,13 @@ Fiabiliser le chat côté fonctionnel : streaming SSE, langue d'apprentissage, r
 
 ## Critères d'acceptation
 
-- [ ] Streaming SSE sans fallback intempestif (ou fallback gracieux)
-- [ ] Choix langue dans le chat input → l'IA répond dans cette langue
-- [ ] Langue d'apprentissage persistée entre sessions
-- [ ] Erreurs en bulles `chat-bubble-error` avec retry
-- [ ] Réponses IA en Markdown (code, gras, listes…)
-- [ ] Menu ⋯ sur messages IA : Copy/Retry/Listen/Fork
-- [ ] `nx build frontend` + `nx build backend` sans erreur
+- [x] Streaming SSE sans fallback intempestif (ou fallback gracieux)
+- [x] Choix langue dans le chat input → l'IA répond dans cette langue
+- [x] Langue d'apprentissage persistée entre sessions
+- [x] Erreurs en bulles `chat-bubble-error` avec retry
+- [x] Réponses IA en Markdown (code, gras, listes…)
+- [x] Menu ⋯ sur messages IA : Copy/Retry/Listen/Fork
+- [x] `nx build frontend` + `nx build backend` sans erreur
 
 ## Note de périmètre (clean 2026-09-16)
 

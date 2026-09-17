@@ -1,6 +1,6 @@
 @if (isOpen() && isMobile) {
 <div
-  class="fixed inset-0 bg-black/50 z-20 backdrop-blur-sm transition-opacity"
+  class="fixed inset-0 z-20 bg-base-content/40 backdrop-blur-sm transition-opacity"
   (click)="toggle()"
   (keyup.enter)="toggle()"
   tabindex="0"
@@ -10,7 +10,7 @@
 }
 
 <aside
-  class="fixed md:relative z-30 h-full bg-base-200 border-r border-base-300 transition-all duration-300 ease-in-out flex flex-col shadow-2xl"
+  class="fixed z-30 flex h-full flex-col border-r border-base-300 bg-base-200 shadow-2xl transition-all duration-300 ease-in-out md:relative"
   [class.w-72]="isOpen() && !isCollapsed()"
   [class.w-16]="isOpen() && isCollapsed()"
   [class.w-0]="!isOpen()"
@@ -19,14 +19,14 @@
   [class.overflow-hidden]="!isOpen()"
 >
   <div
-    class="p-5 border-b border-base-300 flex items-center gap-3 bg-base-300/50"
+    class="flex items-center gap-3 border-b border-base-300 bg-base-300/50 p-5"
     [class.justify-center]="isCollapsed() && !isMobile"
   >
     @if (!isCollapsed()) {
     <div
-      class="font-bold text-lg whitespace-nowrap flex items-center gap-2 flex-1"
+      class="flex flex-1 items-center gap-2 text-lg font-bold whitespace-nowrap"
     >
-      <img [src]="logoSrc()" alt="Live Teacher" class="w-6 h-6 shrink-0" />
+      <img [src]="logoSrc()" alt="Live Teacher" class="h-6 w-6 shrink-0" />
       <span
         class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
       >
@@ -36,47 +36,47 @@
     } @if (isMobile) {
     <button
       (click)="toggle()"
-      class="btn btn-ghost btn-circle"
+      class="btn btn-circle btn-ghost"
       title="Close sidebar"
       aria-label="Close sidebar"
     >
-      <svg lucidePanelRightClose class="w-5 h-5"></svg>
+      <svg lucidePanelRightClose class="h-5 w-5"></svg>
     </button>
     } @else {
     <button
       (click)="toggleCollapse()"
-      class="btn btn-ghost btn-circle"
+      class="btn btn-circle btn-ghost"
       title="Toggle sidebar"
     >
       @if (isCollapsed()) {
-      <svg lucidePanelRightOpen class="w-5 h-5"></svg>
+      <svg lucidePanelRightOpen class="h-5 w-5"></svg>
       } @else {
-      <svg lucidePanelRightClose class="w-5 h-5"></svg>
+      <svg lucidePanelRightClose class="h-5 w-5"></svg>
       }
     </button>
     }
   </div>
 
   @if (!isCollapsed()) {
-  <div class="p-4 flex gap-2">
+  <div class="flex gap-2 p-4">
     <button
       (click)="onNewChat()"
-      class="btn btn-primary btn-circle flex-1"
+      class="btn btn-circle flex-1 btn-primary"
       title="New Chat"
     >
-      <svg lucideMessageCirclePlus class="w-5 h-5"></svg>
+      <svg lucideMessageCirclePlus class="h-5 w-5"></svg>
     </button>
     <button
       (click)="openSearch()"
-      class="btn btn-ghost btn-circle flex-1"
+      class="btn btn-circle flex-1 btn-ghost"
       title="Search"
     >
-      <svg lucideSearch class="w-5 h-5"></svg>
+      <svg lucideSearch class="h-5 w-5"></svg>
     </button>
   </div>
 
   <div
-    class="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-base-300 hover:scrollbar-thumb-base-content/30"
+    class="scrollbar-thin scrollbar-thumb-base-300 hover:scrollbar-thumb-base-content/30 flex-1 overflow-y-auto px-2"
   >
     <app-sidebar-session-list
       [sessions]="displayedSessions()"
@@ -91,46 +91,46 @@
     <button
       type="button"
       (click)="showMore()"
-      class="btn btn-ghost btn-sm w-full mt-1"
+      class="btn mt-1 w-full btn-ghost btn-sm"
     >
-      <svg lucideChevronDown class="w-3 h-3"></svg>
+      <svg lucideChevronDown class="h-3 w-3"></svg>
       {{ remainingCount() }} more
     </button>
     } @if (showingAll() && filteredSessions().length > initialLimit) {
     <div
-      class="sticky bottom-0 pt-2 pb-1 bg-gradient-to-t from-base-200 via-base-200 to-transparent"
+      class="sticky bottom-0 bg-gradient-to-t from-base-200 via-base-200 to-transparent pt-2 pb-1"
     >
       <button
         type="button"
         (click)="showLess()"
-        class="btn btn-ghost btn-sm w-full"
+        class="btn w-full btn-ghost btn-sm"
       >
-        <svg lucideChevronUp class="w-3 h-3"></svg>
+        <svg lucideChevronUp class="h-3 w-3"></svg>
         Show less
       </button>
     </div>
     }
   </div>
   } @else {
-  <div class="flex-1 flex flex-col items-center py-4 space-y-2">
+  <div class="flex flex-1 flex-col items-center space-y-2 py-4">
     <button
       (click)="openSearch()"
-      class="btn btn-ghost btn-circle"
+      class="btn btn-circle btn-ghost"
       title="Search"
     >
-      <svg lucideSearch class="w-5 h-5"></svg>
+      <svg lucideSearch class="h-5 w-5"></svg>
     </button>
   </div>
   }
 
-  <div class="p-4 border-t border-base-300 bg-base-300/50">
+  <div class="border-t border-base-300 bg-base-300/50 p-4">
     @if (canInstall()) {
     <button
       (click)="onInstall()"
-      class="btn btn-sm btn-outline btn-secondary w-full mb-2 gap-2"
+      class="btn mb-2 w-full gap-2 btn-outline btn-secondary btn-sm"
       title="Install app"
     >
-      <svg lucideDownload class="w-4 h-4"></svg>
+      <svg lucideDownload class="h-4 w-4"></svg>
       @if (!isCollapsed()) {
       <span>Install App</span>
       }
@@ -140,10 +140,10 @@
     } @else {
     <button
       (click)="openSettings.emit()"
-      class="btn btn-ghost btn-circle w-full"
+      class="btn btn-circle w-full btn-ghost"
       title="Settings"
     >
-      <svg lucideSettings class="w-5 h-5"></svg>
+      <svg lucideSettings class="h-5 w-5"></svg>
     </button>
     }
   </div>
@@ -152,7 +152,7 @@
 <!-- Search Modal -->
 @if (showSearchModal()) {
 <div
-  class="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20"
+  class="fixed inset-0 z-50 flex items-start justify-center bg-base-content/40 pt-20"
   (click)="closeSearch()"
   (keyup.escape)="closeSearch()"
   tabindex="0"
@@ -161,32 +161,32 @@
   aria-label="Search conversations"
 >
   <div
-    class="bg-base-200 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+    class="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-base-200 shadow-2xl"
     (click)="$event.stopPropagation()"
     (keyup)="$event.stopPropagation()"
     tabindex="0"
     role="document"
   >
-    <div class="p-4 border-b border-base-300 flex items-center gap-3">
-      <svg lucideSearch class="w-5 h-5 text-base-content/50"></svg>
+    <div class="flex items-center gap-3 border-b border-base-300 p-4">
+      <svg lucideSearch class="h-5 w-5 text-base-content/50"></svg>
       <input
         type="text"
         placeholder="Search history..."
         [ngModel]="searchTerm()"
         (ngModelChange)="onSearchInput($event)"
-        class="flex-1 bg-transparent border-none outline-none text-base-content placeholder:text-base-content/40"
+        class="flex-1 border-none bg-transparent text-base-content outline-none placeholder:text-base-content/40"
       />
       <button
         (click)="closeSearch()"
-        class="btn btn-ghost btn-circle btn-sm"
+        class="btn btn-circle btn-ghost btn-sm"
         aria-label="Close search dialog"
       >
-        <svg lucideX class="w-4 h-4"></svg>
+        <svg lucideX class="h-4 w-4"></svg>
       </button>
     </div>
     <div class="max-h-80 overflow-y-auto p-2">
       @if (filteredSessions().length === 0) {
-      <div class="text-center py-8 text-base-content/50">No sessions found</div>
+      <div class="py-8 text-center text-base-content/50">No sessions found</div>
       } @else {
       <app-sidebar-session-list
         [sessions]="filteredSessions()"

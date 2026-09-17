@@ -1,6 +1,6 @@
 # Task 24 — Design system dark/light : chat (T2)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟡 Moyenne — dépend de Task 22
 
 ## Note de périmètre (clean 2026-09-16)
@@ -30,7 +30,7 @@ Bulles, markdown, input, recorder et players audio lisibles et contrastés dans 
 
 ## Critères d'acceptation
 
-- [ ] Bulles user/IA/erreur contrastées en light
-- [ ] Markdown (code, bold, listes, liens) lisible en light
-- [ ] Input, recorder, players sans halo dark en light
-- [ ] `tsc` front, `eslint`, `prettier --check`, builds frais passent
+- [x] Bulles user/IA/erreur contrastées en light
+- [x] Markdown (code, bold, listes, liens) lisible en light
+- [x] Input, recorder, players sans halo dark en light
+- [x] `tsc` front, `eslint`, `prettier --check`, builds frais passent

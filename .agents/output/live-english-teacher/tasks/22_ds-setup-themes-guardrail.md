@@ -1,6 +1,6 @@
 # Task 22 — Design system dark/light : setup thèmes + garde-fou (T0, bloquant)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🔴 Haute (prérequis de tout le chantier)
 
 ## Goal
@@ -28,7 +28,7 @@ Déclarer le thème light dans le CSS daisyUI et mettre en place le garde-fou an
 
 ## Critères d'acceptation
 
-- [ ] `npx tsc --noEmit -p apps/frontend/tsconfig.app.json` → 0 erreur (exécuté, pas approximé)
-- [ ] `nx build backend` + `nx build frontend` frais (`--skip-nx-cache`) passent
-- [ ] `prettier --check` ts/html/css + `eslint` → 0 erreur / 0 warning
-- [ ] Le script garde-fou échoue (exit 1) si on réintroduit un `bg-white` test, passe sinon
+- [x] `npx tsc --noEmit -p apps/frontend/tsconfig.app.json` → 0 erreur (exécuté, pas approximé)
+- [x] `nx build backend` + `nx build frontend` frais (`--skip-nx-cache`) passent
+- [x] `prettier --check` ts/html/css + `eslint` → 0 erreur / 0 warning
+- [x] Le script garde-fou échoue (exit 1) si on réintroduit un `bg-white` test, passe sinon

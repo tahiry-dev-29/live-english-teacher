@@ -9,7 +9,7 @@ export class GroqTranscribeService {
   async transcribe(
     audioData: string,
     mimeType = 'audio/webm',
-    language?: string
+    language?: string,
   ): Promise<string | null> {
     if (!this.apiKey) {
       this.logger.warn('GROQ_API_KEY is not configured for transcription.');
@@ -21,10 +21,10 @@ export class GroqTranscribeService {
       const ext = mimeType.includes('wav')
         ? 'wav'
         : mimeType.includes('mp4') || mimeType.includes('m4a')
-        ? 'm4a'
-        : mimeType.includes('mp3') || mimeType.includes('mpeg')
-        ? 'mp3'
-        : 'webm';
+          ? 'm4a'
+          : mimeType.includes('mp3') || mimeType.includes('mpeg')
+            ? 'mp3'
+            : 'webm';
 
       const formData = new FormData();
       const blob = new Blob([audioBuffer], { type: mimeType });
@@ -43,13 +43,13 @@ export class GroqTranscribeService {
             Authorization: `Bearer ${this.apiKey}`,
           },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
         const errText = await response.text();
         this.logger.error(
-          `Groq Whisper Error: ${response.status} - ${response.statusText}: ${errText}`
+          `Groq Whisper Error: ${response.status} - ${response.statusText}: ${errText}`,
         );
         return null;
       }

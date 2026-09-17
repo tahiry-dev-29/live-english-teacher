@@ -1,6 +1,6 @@
 # Task 27 — Design system dark/light : validation croisée + mémoire (T4)
 
-**Status: TODO**
+**Status: DONE**
 **Priorité:** 🟢 Basse — dépend de Tasks 22–26
 
 ## Goal
@@ -21,8 +21,8 @@ Clore le chantier avec une validation complète réellement exécutée et la mé
 
 ## Critères d'acceptation
 
-- [ ] Tous les checks ci-dessus verts, exécutés (logs à l'appui, pas approximés)
-- [ ] Revue visuelle 3 modes OK sur les 15 composants
-- [ ] decisions.md contient : couple de thèmes, règle tokens, exclusion Prettier 2.8, garde-fou prebuild
-- [ ] Tasks 22–27 toutes `Status: DONE`
-- [ ] Tasks 29–30 (providers) validées avant cette clôture, ou explicitement reportées avec raison tracée
+- [x] Tous les checks ci-dessus verts, exécutés (logs à l'appui, pas approximés)
+- [x] Revue visuelle 3 modes OK sur les 15 composants
+- [x] decisions.md contient : couple de thèmes, règle tokens, exclusion Prettier 2.8, garde-fou prebuild
+- [x] Tasks 22–27 toutes `Status: DONE`
+- [x] Tasks 29–30 (providers) validées avant cette clôture, ou explicitement reportées avec raison tracée

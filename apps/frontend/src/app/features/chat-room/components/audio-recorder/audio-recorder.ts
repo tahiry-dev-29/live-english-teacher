@@ -16,21 +16,22 @@ import { AudioRecorderService } from '@core/services/audio-recorder-service';
   template: `
     <div class="flex items-center">
       @if (!isRecording()) {
-      <button
-        (click)="startRecording()"
-        class="btn btn-circle btn-error"
-        title="Start Recording"
-      >
-        <svg lucideMic class="w-6 h-6"></svg>
-      </button>
-      } @if (isRecording()) {
-      <button
-        (click)="stopRecording()"
-        class="btn btn-circle bg-base-300 text-error border-2 border-error animate-pulse"
-        title="Stop Recording"
-      >
-        <svg lucideSquare class="w-6 h-6"></svg>
-      </button>
+        <button
+          (click)="startRecording()"
+          class="btn btn-circle btn-error"
+          title="Start Recording"
+        >
+          <svg lucideMic class="h-6 w-6"></svg>
+        </button>
+      }
+      @if (isRecording()) {
+        <button
+          (click)="stopRecording()"
+          class="btn btn-circle animate-pulse border-2 border-error bg-base-300 text-error"
+          title="Stop Recording"
+        >
+          <svg lucideSquare class="h-6 w-6"></svg>
+        </button>
       }
     </div>
   `,

@@ -47,7 +47,7 @@ export class ChatService {
         this.apollo.query<{ getSessions: Session[] }>({
           query: GET_SESSIONS_QUERY,
           fetchPolicy: 'network-only',
-        })
+        }),
       ).then((result) => result.data?.getSessions ?? []);
     },
   });
@@ -59,7 +59,7 @@ export class ChatService {
       this.apollo.mutate({
         mutation: RENAME_SESSION_MUTATION,
         variables: { id, title },
-      })
+      }),
     );
     this.sessionsResource.reload();
   }
@@ -69,7 +69,7 @@ export class ChatService {
       this.apollo.mutate({
         mutation: DELETE_SESSION_MUTATION,
         variables: { id },
-      })
+      }),
     );
     this.sessionsResource.reload();
   }
