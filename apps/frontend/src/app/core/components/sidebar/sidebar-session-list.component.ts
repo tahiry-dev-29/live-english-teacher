@@ -36,6 +36,8 @@ export class SidebarSessionListComponent {
   readonly totalSessions = input<number>(0);
   readonly activeSessionId = input<string | null>(null);
   readonly isReloading = input<boolean>(false);
+  /** Terme à surligner dans les titres (vide = pas de surlignage). */
+  readonly highlightTerm = input<string>('');
 
   readonly sessionClick = output<string>();
   readonly renameSession = output<{ id: string; title: string }>();
@@ -80,4 +82,32 @@ export class SidebarSessionListComponent {
     this.confirmDeleteId.set(null);
     if (this.deleteTimeout) clearTimeout(this.deleteTimeout);
   }
+
+  /**
+   * Titre avec occurrences du terme surlignées (`<mark>`).
+   * Titres = saisie utilisateur → tout est échappé avant injection.
+   */
+  highlightedTitle(title: string): string {
+    const term = this.highlightTerm().trim().toLowerCase();
+    if (!term) return escapeHtml(title);
+    const lower = title.toLowerCase();
+    let out = '';
+    let i = 0;
+    for (;;) {
+      const idx = lower.indexOf(term, i);
+      if (idx < 0) return out + escapeHtml(title.slice(i));
+      out += escapeHtml(title.slice(i, idx));
+      out += `<mark class="rounded-sm bg-primary/30 text-inherit">${escapeHtml(title.slice(idx, idx + term.length))}</mark>`;
+      i = idx + term.length;
+    }
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

@@ -8,9 +8,9 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
+import { SidebarSearchModalComponent } from './sidebar-search-modal.component';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import { PwaService } from '@core/services/pwa.service';
 import { ThemeService } from '@core/services/theme.service';
@@ -22,7 +22,6 @@ import {
   LucideSettings,
   LucidePanelRightClose,
   LucidePanelRightOpen,
-  LucideX,
   LucideDownload,
 } from '@lucide/angular';
 
@@ -32,8 +31,8 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     UserMenuComponent,
+    SidebarSearchModalComponent,
     SidebarSessionListComponent,
     LucideMessageCirclePlus,
     LucideSearch,
@@ -42,7 +41,6 @@ import {
     LucideSettings,
     LucidePanelRightClose,
     LucidePanelRightOpen,
-    LucideX,
     LucideDownload,
   ],
   templateUrl: './sidebar-component.html',
@@ -53,7 +51,7 @@ export class SidebarComponent {
 
   /** Theme-aware app logo – switches between light and dark variants. */
   readonly logoSrc = computed<string>(() =>
-    this.themeService.resolvedTheme() === 'halloween'
+    this.themeService.resolvedTheme() === 'app-dark'
       ? 'dark/apple-touch-icon.png'
       : 'apple-touch-icon.png',
   );
@@ -67,34 +65,22 @@ export class SidebarComponent {
   readonly activeSessionId = input<string | null>(null);
   readonly isReloading = input<boolean>(false);
 
-  readonly searchTerm = signal<string>('');
-
   readonly initialLimit = 5;
   readonly visibleLimit = signal<number>(5);
   readonly showingAll = signal<boolean>(false);
 
-  readonly filteredSessions = computed<Session[]>(() => {
-    const term = this.searchTerm().toLowerCase();
-    if (!term) return this.sessions();
-    return this.sessions().filter((session) =>
-      session.title.toLowerCase().includes(term),
-    );
-  });
-
   readonly displayedSessions = computed<Session[]>(() => {
-    const sessions = this.filteredSessions();
+    const sessions = this.sessions();
     if (this.showingAll()) return sessions;
     return sessions.slice(0, this.visibleLimit());
   });
 
   readonly hasMoreSessions = computed<boolean>(() => {
-    return (
-      !this.showingAll() && this.filteredSessions().length > this.visibleLimit()
-    );
+    return !this.showingAll() && this.sessions().length > this.visibleLimit();
   });
 
   readonly remainingCount = computed<number>(() => {
-    return this.filteredSessions().length - this.visibleLimit();
+    return this.sessions().length - this.visibleLimit();
   });
 
   readonly newChat = output<void>();
@@ -111,6 +97,21 @@ export class SidebarComponent {
   constructor() {
     this.checkScreenSize();
     window.addEventListener('resize', () => this.checkScreenSize());
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        const t = e.target as HTMLElement | null;
+        if (
+          t &&
+          (t.tagName === 'INPUT' ||
+            t.tagName === 'TEXTAREA' ||
+            t.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        this.openSearch();
+      }
+    });
   }
 
   toggle(): void {
@@ -135,11 +136,6 @@ export class SidebarComponent {
 
   closeSearch(): void {
     this.showSearchModal.set(false);
-    this.searchTerm.set('');
-  }
-
-  onSearchInput(term: string): void {
-    this.searchTerm.set(term);
   }
 
   showMore(): void {

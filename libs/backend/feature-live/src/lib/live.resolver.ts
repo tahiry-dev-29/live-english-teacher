@@ -47,7 +47,7 @@ export class LiveResolver {
     return {
       id: session.id,
       title: session.title || 'New Conversation',
-      learningLanguage: session.learningLanguage,
+      learningLanguage: session.learningLanguage ?? 'en',
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       messages: session.messages.map((msg) => ({
@@ -97,14 +97,13 @@ export class LiveResolver {
         targetLanguage || 'en',
       );
       session = { ...newSession, messages: [] };
-
-      sessionId = session.id;
     } else if (targetLanguage && session.learningLanguage !== targetLanguage) {
       await this.chatHistoryService.updateSession(session.id, {
         learningLanguage: targetLanguage,
       });
     }
 
+    sessionId = session.id;
     const history = await this.chatHistoryService.getSessionHistory(sessionId);
 
     if (content) {
@@ -193,6 +192,8 @@ export class LiveResolver {
 
     return {
       ...session,
+      title: session.title || 'New Conversation',
+      learningLanguage: session.learningLanguage ?? undefined,
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
     };

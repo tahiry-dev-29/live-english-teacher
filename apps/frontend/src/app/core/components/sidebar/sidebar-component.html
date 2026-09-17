@@ -10,13 +10,12 @@
 }
 
 <aside
-  class="fixed z-30 flex h-full flex-col border-r border-base-300 bg-base-200 shadow-2xl transition-all duration-300 ease-in-out md:relative"
+  class="fixed z-30 flex h-full flex-col overflow-hidden border-r border-base-300 bg-base-200 shadow-2xl transition-all duration-300 ease-in-out md:relative"
   [class.w-72]="isOpen() && !isCollapsed()"
   [class.w-16]="isOpen() && isCollapsed()"
   [class.w-0]="!isOpen()"
   [class.opacity-0]="!isOpen()"
   [class.md:opacity-100]="true"
-  [class.overflow-hidden]="!isOpen()"
 >
   <div
     class="flex items-center gap-3 border-b border-base-300 bg-base-300/50 p-5"
@@ -26,12 +25,7 @@
     <div
       class="flex flex-1 items-center gap-2 text-lg font-bold whitespace-nowrap"
     >
-      <img [src]="logoSrc()" alt="Live Teacher" class="h-6 w-6 shrink-0" />
-      <span
-        class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent"
-      >
-        Live Teacher
-      </span>
+      <img [src]="logoSrc()" alt="Live Teacher" class="h-8 w-8 shrink-0" />
     </div>
     } @if (isMobile) {
     <button
@@ -70,7 +64,7 @@
     <button
       (click)="openSearch()"
       class="btn btn-square btn-ghost"
-      title="Search history"
+      title="Search history (Ctrl+K)"
       aria-label="Search history"
     >
       <svg lucideSearch class="h-5 w-5"></svg>
@@ -82,7 +76,7 @@
   >
     <app-sidebar-session-list
       [sessions]="displayedSessions()"
-      [totalSessions]="filteredSessions().length"
+      [totalSessions]="sessions().length"
       [activeSessionId]="activeSessionId()"
       [isReloading]="isReloading()"
       (sessionClick)="onSessionClick($event)"
@@ -100,7 +94,7 @@
       <svg lucideChevronDown class="h-3 w-3"></svg>
       {{ remainingCount() }} more
     </button>
-    } @if (showingAll() && filteredSessions().length > initialLimit) {
+    } @if (showingAll() && sessions().length > initialLimit) {
     <div
       class="sticky bottom-0 bg-gradient-to-t from-base-200 via-base-200 to-transparent pt-2 pb-1"
     >
@@ -153,73 +147,16 @@
   </div>
 </aside>
 
-<!-- Search Modal -->
+<!-- Search Modal — état et filtre encapsulés dans le composant dédié -->
 @if (showSearchModal()) {
-<div
-  class="fixed inset-0 z-50 flex items-start justify-center bg-base-content/40 pt-20"
-  (click)="closeSearch()"
-  (keyup.escape)="closeSearch()"
-  tabindex="0"
-  role="dialog"
-  aria-modal="true"
-  aria-label="Search conversations"
->
-  <div
-    class="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-base-200 shadow-2xl"
-    (click)="$event.stopPropagation()"
-    (keyup)="$event.stopPropagation()"
-    tabindex="0"
-    role="document"
-  >
-    <div class="flex items-center gap-3 border-b border-base-300 p-4">
-      <svg lucideSearch class="h-5 w-5 shrink-0 text-base-content/50"></svg>
-      <input
-        type="text"
-        placeholder="Search history..."
-        autofocus
-        [ngModel]="searchTerm()"
-        (ngModelChange)="onSearchInput($event)"
-        (keyup.escape)="closeSearch()"
-        class="min-w-0 flex-1 border-none bg-transparent text-base-content outline-none placeholder:text-base-content/40"
-      />
-      @if (searchTerm()) {
-        <button
-          (click)="onSearchInput('')"
-          class="btn btn-circle btn-ghost btn-xs"
-          aria-label="Clear search"
-        >
-          <svg lucideX class="h-4 w-4"></svg>
-        </button>
-      }
-      <button
-        (click)="closeSearch()"
-        class="btn btn-circle btn-ghost btn-sm"
-        aria-label="Close search dialog"
-      >
-        <svg lucideX class="h-4 w-4"></svg>
-      </button>
-    </div>
-    <div class="border-b border-base-300 px-4 py-1.5 text-xs text-base-content/50">
-      {{ filteredSessions().length }} result{{
-        filteredSessions().length > 1 ? 's' : ''
-      }}
-    </div>
-    <div class="max-h-80 overflow-y-auto p-2">
-      @if (filteredSessions().length === 0) {
-      <div class="py-8 text-center text-base-content/50">No sessions found</div>
-      } @else {
-      <app-sidebar-session-list
-        [sessions]="filteredSessions()"
-        [totalSessions]="filteredSessions().length"
-        [activeSessionId]="activeSessionId()"
-        [isReloading]="isReloading()"
-        (sessionClick)="onSessionClick($event); closeSearch()"
-        (renameSession)="renameSession.emit($event)"
-        (deleteSession)="deleteSession.emit($event)"
-        (reloadHistory)="reloadHistory.emit()"
-      />
-      }
-    </div>
-  </div>
-</div>
+<app-sidebar-search-modal
+  [sessions]="sessions()"
+  [activeSessionId]="activeSessionId()"
+  [isReloading]="isReloading()"
+  (sessionSelected)="onSessionClick($event)"
+  (renameSession)="renameSession.emit($event)"
+  (deleteSession)="deleteSession.emit($event)"
+  (reloadHistory)="reloadHistory.emit()"
+  (closed)="closeSearch()"
+/>
 }

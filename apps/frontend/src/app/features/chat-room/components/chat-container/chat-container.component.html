@@ -37,25 +37,17 @@
       />
     }
     @if (loading()) {
-      <div class="mt-auto flex animate-pulse justify-start">
-        <div
-          class="flex items-center gap-2 rounded-2xl rounded-tl-none border border-base-300 bg-base-200 px-4 py-3"
-        >
-          <div class="flex gap-1.5">
-            <div
-              class="h-2 w-2 animate-bounce rounded-full bg-primary"
-              style="animation-delay: 0ms"
-            ></div>
-            <div
-              class="h-2 w-2 animate-bounce rounded-full bg-secondary"
-              style="animation-delay: 150ms"
-            ></div>
-            <div
-              class="h-2 w-2 animate-bounce rounded-full bg-warning"
-              style="animation-delay: 300ms"
-            ></div>
+      <div class="chat-start chat">
+        <div class="avatar chat-image avatar-placeholder">
+          <div class="w-10 rounded-full bg-secondary text-secondary-content">
+            <span class="text-xs font-bold">AI</span>
           </div>
         </div>
+        <div class="chat-header mb-1 text-xs opacity-60">AI Tutor</div>
+        <div class="chat-bubble">
+          <span class="loading loading-md loading-dots"></span>
+        </div>
+        <div class="chat-footer mt-1 text-xs opacity-50">Thinking…</div>
       </div>
     }
 
@@ -63,16 +55,21 @@
   </div>
 
   @if (showScrollButton()) {
-    <button
-      (click)="scrollToBottom()"
-      class="btn absolute right-6 bottom-6 z-10 btn-circle btn-primary"
-    >
-      <svg lucideArrowDown class="h-5 w-5 group-hover:animate-bounce"></svg>
-      @if (hasNewMessages()) {
-        <span
-          class="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-base-100 bg-error"
-        ></span>
-      }
-    </button>
+    <div class="absolute right-4 bottom-4 z-10">
+      <div class="tooltip tooltip-left" data-tip="Scroll to bottom">
+        <div class="indicator">
+          @if (hasNewMessages()) {
+            <span class="indicator-item badge badge-xs badge-error"></span>
+          }
+          <button
+            (click)="scrollToBottom()"
+            class="btn btn-circle btn-primary btn-sm shadow-md"
+            aria-label="Scroll to bottom"
+          >
+            <svg lucideArrowDown class="h-4 w-4"></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   }
 </div>

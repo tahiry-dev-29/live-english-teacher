@@ -8,10 +8,7 @@ export function formatMessage(text: string): string {
 
 export function base64ToBlob(base64: string, mimeType: string): Blob {
   const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
+  // Note: String.charCodeAt() n'est PAS déprécié (seuls event.keyCode/charCode le sont).
+  const byteArray = Uint8Array.from(byteCharacters, (c) => c.charCodeAt(0));
   return new Blob([byteArray], { type: mimeType });
 }

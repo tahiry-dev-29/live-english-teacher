@@ -36,7 +36,7 @@
     @if (messageService.quotaExceeded()) {
       <div
         role="alert"
-        class="alert flex items-center gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 alert-warning shadow-lg"
+        class="alert alert-horizontal rounded-none border-x-0 border-t-0 alert-warning shadow-lg sm:alert-horizontal"
       >
         <svg lucideTriangleAlert class="h-5 w-5 shrink-0"></svg>
         <span class="flex-1 text-sm">
@@ -45,7 +45,7 @@
         </span>
         <button
           type="button"
-          class="btn gap-1 btn-outline font-semibold btn-sm btn-warning"
+          class="btn btn-outline btn-sm btn-warning"
           (click)="openSettingsOnApiTab()"
         >
           <svg lucideKeyRound class="h-4 w-4"></svg>
@@ -55,21 +55,24 @@
           type="button"
           class="btn btn-circle btn-ghost btn-xs"
           aria-label="Dismiss"
-          (click)="messageService.quotaExceeded.set(null)"
+          (click)="dismissQuotaAlert()"
         >
           <svg lucideX class="h-4 w-4"></svg>
         </button>
       </div>
     }
 
-    <div
-      class="flex items-center justify-between border-b border-base-300 bg-base-200 p-4 md:hidden"
-    >
-      <div class="flex items-center gap-2">
+    <!-- Toast notifications -->
+    <app-toast
+      [notifications]="notificationService.notifications()"
+    ></app-toast>
+
+    <div class="navbar border-b border-base-300 bg-base-200 md:hidden">
+      <div class="navbar-start">
         <button
           (click)="sidebar.toggle()"
           class="btn btn-circle btn-ghost btn-sm"
-          title="Toggle sidebar"
+          aria-label="Toggle sidebar"
         >
           <svg lucidePanelRightOpen class="h-5 w-5"></svg>
         </button>
@@ -78,13 +81,17 @@
           >Live Teacher</span
         >
       </div>
-      <button
-        (click)="onNewChat()"
-        class="btn btn-circle btn-primary btn-sm"
-        title="New Chat"
-      >
-        <svg lucideMessageCircle class="h-5 w-5"></svg>
-      </button>
+      <div class="navbar-end">
+        <div class="tooltip tooltip-bottom" data-tip="New Chat">
+          <button
+            (click)="onNewChat()"
+            class="btn btn-circle btn-primary btn-sm"
+            aria-label="New Chat"
+          >
+            <svg lucideMessageCircle class="h-5 w-5"></svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <app-chat-container

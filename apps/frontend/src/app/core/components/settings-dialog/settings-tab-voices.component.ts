@@ -12,13 +12,12 @@ import { FormsModule } from '@angular/forms';
 import {
   LucideSquare,
   LucidePlay,
-  LucideKey,
   LucideEye,
   LucideEyeOff,
   LucideExternalLink,
-  LucideMic,
 } from '@lucide/angular';
 import { MESSAGES } from '@core/constants/messages';
+import { base64ToBlob } from '@core/utils/text.util';
 import {
   ElevenLabsVoiceService,
   TtsVoice,
@@ -27,6 +26,10 @@ import {
 import { ApiKeyService } from '@core/services/api-key.service';
 import { I18nService } from '@core/services/i18n.service';
 import { LanguageService } from '@core/services/language.service';
+import {
+  AppSelectComponent,
+  SelectOption,
+} from '@core/components/ui/select/select.component';
 
 @Component({
   selector: 'app-settings-tab-voices',
@@ -37,93 +40,58 @@ import { LanguageService } from '@core/services/language.service';
     FormsModule,
     LucideSquare,
     LucidePlay,
-    LucideKey,
     LucideEye,
     LucideEyeOff,
     LucideExternalLink,
-    LucideMic,
+    AppSelectComponent,
   ],
   template: `
-    <div class="space-y-6">
-      <!-- 1. Provider Selection -->
-      <div class="space-y-2">
-        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-          {{ t('voices.provider') }}
-        </p>
-        <div class="space-y-1">
-          @for (p of ttsService.providers(); track p.id) {
-            <button
-              type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors"
-              [class.border-primary]="ttsService.selectedProviderId() === p.id"
-              [class.bg-primary/5]="ttsService.selectedProviderId() === p.id"
-              [class.text-primary]="ttsService.selectedProviderId() === p.id"
-              [class.border-base-300]="ttsService.selectedProviderId() !== p.id"
-              [class.text-base-content]="ttsService.selectedProviderId() !== p.id"
-              (click)="onSelectProvider(p.id)"
-            >
-              <div class="flex min-w-0 flex-col gap-0.5">
-                <span class="text-sm font-medium">{{ p.label }}</span>
-                @if (p.quotaNote) {
-                  <span class="text-xs text-base-content/50">{{ p.quotaNote }}</span>
-                }
-              </div>
-              <div class="flex shrink-0 items-center gap-2">
-                @if (p.quality) {
-                  <span class="badge badge-ghost badge-xs">{{ p.quality }}</span>
-                }
-                @if (ttsService.selectedProviderId() === p.id) {
-                  <span class="badge badge-xs badge-primary">Active</span>
-                }
-              </div>
-            </button>
-          }
-        </div>
+    <div class="space-y-5">
+      <!-- 1. TTS Provider -->
+      <div class="space-y-1.5">
+        <app-select
+          selectId="settings-tts-provider"
+          [label]="t('voices.provider')"
+          [options]="ttsProviderOptions()"
+          [value]="ttsService.selectedProviderId()"
+          (valueChange)="onSelectProvider($event)"
+          size="sm"
+          color="primary"
+        />
       </div>
 
-      <!-- 2. API Key for Selected TTS Provider -->
-      @if (selectedProviderMeta()?.hasCustomKeys) {
+      <!-- 2. API Key (only when provider requires custom key) -->
+      @if (
+        ttsService.selectedProviderId() !== 'default' &&
+        selectedProviderMeta()?.hasCustomKeys
+      ) {
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-              API Key ({{ selectedProviderMeta()?.label }})
-            </p>
-            <span class="text-xs text-base-content/40">{{ t('ai.custom_keys.optional') }}</span>
-          </div>
-
-          <!-- Key mode status -->
-          <div class="flex items-center justify-between rounded-lg border border-base-300 bg-base-100/40 px-3 py-2">
-            <div class="flex items-center gap-2">
-              <svg lucideKey class="h-3.5 w-3.5 text-base-content/40"></svg>
-              @if (currentKeyValue()) {
-                <span class="text-xs text-base-content/70">Custom key active</span>
-                <span class="badge badge-xs badge-success">Custom</span>
-              } @else {
-                <span class="text-xs text-base-content/70">Using server key</span>
-                <span class="badge badge-xs badge-neutral">Server default</span>
-              }
-            </div>
-            @if (selectedProviderMeta()?.consoleUrl) {
-              <a
-                [href]="selectedProviderMeta()?.consoleUrl"
-                target="_blank"
-                rel="noopener"
-                class="flex link items-center gap-1 text-xs link-primary"
+            <label
+              for="settings-tts-api-key"
+              class="text-xs font-medium tracking-wider text-base-content/50 uppercase"
+            >
+              API Key
+              <span class="ml-1 text-base-content/40 normal-case"
+                >({{ selectedProviderMeta()?.label }})</span
               >
-                <span>Get key</span>
-                <svg lucideExternalLink class="h-3 w-3"></svg>
-              </a>
+            </label>
+            @if (currentKeyValue()) {
+              <span class="badge badge-xs badge-success">Active</span>
+            } @else {
+              <span class="badge badge-xs badge-warning">Required</span>
             }
           </div>
 
           <div class="join w-full">
             <input
+              id="settings-tts-api-key"
               [type]="showKey() ? 'text' : 'password'"
               class="input-bordered input join-item flex-1 font-mono text-xs input-sm"
               [placeholder]="
                 'Enter ' +
                 (selectedProviderMeta()?.label || 'TTS') +
-                ' API key (leave empty for server key)'
+                ' API key…'
               "
               [ngModel]="currentKeyValue()"
               (ngModelChange)="onKeyChange($event)"
@@ -145,133 +113,133 @@ import { LanguageService } from '@core/services/language.service';
                 type="button"
                 class="btn join-item btn-ghost text-error btn-sm"
                 (click)="onClearKey()"
-                title="Remove custom key and fall back to server key"
+                title="Reset to server key"
               >
-                Reset to server key
+                Reset
               </button>
             }
           </div>
+
+          @if (selectedProviderMeta()?.consoleUrl) {
+            <a
+              [href]="selectedProviderMeta()?.consoleUrl"
+              target="_blank"
+              rel="noopener"
+              class="flex link items-center gap-1 text-xs link-primary"
+            >
+              Get API key
+              <svg lucideExternalLink class="h-3 w-3"></svg>
+            </a>
+          }
         </div>
       }
 
-      <!-- 3. TTS Model (if provider has multiple models) -->
-      @if (providerModels().length > 0) {
-        <div class="space-y-2">
-          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-            {{ t('voices.model') }}
+      <!-- 3. TTS Model (when provider has multiple models) -->
+      @if (isKeyReady() && providerModels().length > 0) {
+        <div class="space-y-1.5">
+          <app-select
+            selectId="settings-tts-model"
+            [label]="t('voices.model')"
+            [options]="ttsModelOptions()"
+            [value]="ttsService.selectedModelId()"
+            (valueChange)="ttsService.setModelId($event)"
+            size="sm"
+            color="primary"
+          />
+        </div>
+      }
+
+      <!-- 4. Tutor Voice -->
+      <div class="space-y-1.5">
+        <label
+          for="settings-tutor-voice"
+          class="text-xs font-medium tracking-wider text-base-content/50 uppercase"
+        >
+          {{ t('voices.title') }}
+        </label>
+
+        @if (!isKeyReady()) {
+          <p
+            class="rounded-lg border border-dashed border-base-300 bg-base-100/30 px-4 py-3 text-xs text-base-content/60"
+          >
+            Enter your {{ selectedProviderMeta()?.label || 'TTS provider' }} API
+            key above to load voices, or select "Server Default".
           </p>
-          <div class="space-y-1">
-            @for (m of providerModels(); track m.id) {
+        } @else if (ttsService.loading()) {
+          <div
+            class="flex items-center gap-2 rounded-lg border border-base-300 bg-base-100/40 px-3 py-2.5"
+          >
+            <span
+              class="loading loading-xs loading-spinner text-primary"
+            ></span>
+            <span class="text-xs text-base-content/60">Loading voices…</span>
+          </div>
+        } @else {
+          <!-- Dropdown selector -->
+          <div class="flex items-center gap-2">
+            <app-select
+              class="flex-1"
+              selectId="settings-tutor-voice"
+              [placeholder]="
+                !ttsService.selectedVoiceId() ? '— Choose a voice —' : ''
+              "
+              [options]="voiceOptions()"
+              [value]="ttsService.selectedVoiceId()"
+              (valueChange)="onSelectVoice($event)"
+              size="sm"
+              color="primary"
+            />
+
+            <!-- Play/Stop button — only for the active voice -->
+            @if (ttsService.selectedVoiceId()) {
               <button
                 type="button"
-                class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors"
-                [class.border-primary]="ttsService.selectedModelId() === m.id"
-                [class.bg-primary/5]="ttsService.selectedModelId() === m.id"
-                [class.text-primary]="ttsService.selectedModelId() === m.id"
-                [class.border-base-300]="ttsService.selectedModelId() !== m.id"
-                [class.text-base-content]="ttsService.selectedModelId() !== m.id"
-                (click)="ttsService.setModelId(m.id)"
+                class="btn btn-circle shrink-0 btn-sm"
+                [class.btn-primary]="
+                  playingVoiceId() === ttsService.selectedVoiceId()
+                "
+                [class.btn-ghost]="
+                  playingVoiceId() !== ttsService.selectedVoiceId()
+                "
+                (click)="previewActiveVoice()"
+                [attr.aria-label]="
+                  playingVoiceId() ? 'Stop preview' : 'Preview voice'
+                "
               >
-                <span class="text-sm">{{ m.name }}</span>
-                @if (ttsService.selectedModelId() === m.id) {
-                  <span class="badge badge-xs badge-primary">Selected</span>
+                @if (playingVoiceId()) {
+                  <svg lucideSquare class="h-3.5 w-3.5"></svg>
+                } @else {
+                  <svg lucidePlay class="h-3.5 w-3.5"></svg>
                 }
               </button>
             }
           </div>
-        </div>
-      }
 
-      <!-- 4. Voices Discovery and Preview -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-            {{ t('voices.title') }}
-          </p>
-        </div>
-        <div
-          class="max-h-[38vh] space-y-1 overflow-y-auto rounded-lg border border-base-300 bg-base-100/30 p-2"
-        >
-          @if (ttsService.loading()) {
-            <div class="py-6 text-center text-xs text-base-content/60">
-              <span
-                class="loading mb-2 loading-sm loading-spinner text-primary"
-              ></span>
-              <p>Loading voices...</p>
-            </div>
-          } @else {
-            @for (voice of availableVoicesList(); track voice.id) {
-              <div
-                class="flex cursor-pointer items-center justify-between rounded-lg border border-transparent px-3 py-2 transition-colors"
-                [class.bg-primary/10]="ttsService.selectedVoiceId() === voice.id"
-                [class.border-primary/30]="ttsService.selectedVoiceId() === voice.id"
-                (click)="onSelectVoice(voice.id)"
-                (keyup.enter)="onSelectVoice(voice.id)"
-                tabindex="0"
-                role="button"
-              >
-                <div class="min-w-0 flex-1 pr-2">
-                  <div class="flex items-center gap-2">
-                    <p class="truncate text-sm font-medium">{{ voice.name }}</p>
-                    @if (ttsService.selectedVoiceId() === voice.id) {
-                      <span class="badge badge-xs badge-primary">{{
-                        t('voices.selected')
-                      }}</span>
-                    }
-                  </div>
-                  @if (voice.description) {
-                    <p class="truncate text-xs text-base-content/50">
-                      {{ voice.description }}
-                    </p>
-                  }
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-circle shrink-0 btn-sm"
-                  [class.btn-primary]="playingVoiceId() === voice.id"
-                  [class.btn-ghost]="playingVoiceId() !== voice.id"
-                  (click)="previewVoice(voice); $event.stopPropagation()"
-                  [attr.aria-label]="playingVoiceId() === voice.id ? 'Stop preview' : 'Preview voice'"
+          <!-- Active voice badge row -->
+          @if (ttsService.selectedVoiceId()) {
+            <div class="flex items-center gap-1.5 px-0.5">
+              <span class="badge badge-xs badge-primary">Selected Tutor</span>
+              @if (availableVoicesList().length > 0) {
+                <span class="text-[10px] text-base-content/40"
+                  >{{ availableVoicesList().length }} available</span
                 >
-                  @if (playingVoiceId() === voice.id) {
-                    <svg lucideSquare class="h-4 w-4"></svg>
-                  } @else {
-                    <svg lucidePlay class="h-4 w-4"></svg>
-                  }
-                </button>
-              </div>
-            }
+              }
+            </div>
           }
-        </div>
+        }
       </div>
 
-      <!-- 5. STT (Speech-to-Text) Model -->
-      <div class="space-y-2 border-t border-base-300 pt-4">
-        <div class="flex items-center gap-2">
-          <svg lucideMic class="h-4 w-4 text-base-content/50"></svg>
-          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-            {{ t('voices.stt_model') }}
-          </p>
-        </div>
-        <div class="space-y-1">
-          @for (stt of sttModels; track stt.id) {
-            <button
-              type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors"
-              [class.border-primary]="ttsService.selectedSttModel() === stt.id"
-              [class.bg-primary/5]="ttsService.selectedSttModel() === stt.id"
-              [class.text-primary]="ttsService.selectedSttModel() === stt.id"
-              [class.border-base-300]="ttsService.selectedSttModel() !== stt.id"
-              [class.text-base-content]="ttsService.selectedSttModel() !== stt.id"
-              (click)="ttsService.setSttModel(stt.id)"
-            >
-              <span class="text-sm">{{ stt.name }}</span>
-              @if (ttsService.selectedSttModel() === stt.id) {
-                <span class="badge badge-xs badge-primary">Active</span>
-              }
-            </button>
-          }
-        </div>
+      <!-- 5. STT Model -->
+      <div class="space-y-1.5 border-t border-base-300 pt-4">
+        <app-select
+          selectId="settings-stt-model"
+          [label]="t('voices.stt_model')"
+          [options]="sttModelOptions"
+          [value]="ttsService.selectedSttModel()"
+          (valueChange)="ttsService.setSttModel($event)"
+          size="sm"
+          color="primary"
+        />
       </div>
     </div>
   `,
@@ -305,11 +273,46 @@ export class SettingsTabVoicesComponent {
     this.ttsService.voices(),
   );
 
+  readonly isKeyReady = computed<boolean>(() => {
+    const provider = this.ttsService.selectedProviderId();
+    if (provider === 'default' || provider === 'browser') return true;
+    const meta = this.selectedProviderMeta();
+    if (!meta?.hasCustomKeys) return true;
+    return !!this.currentKeyValue()?.trim();
+  });
+
   readonly sttModels = [
     { id: 'whisper-large-v3-turbo', name: 'Whisper Large V3 Turbo (Fast)' },
     { id: 'whisper-large-v3', name: 'Whisper Large V3 (Accurate)' },
     { id: 'distil-whisper-large-v3-en', name: 'Distil Whisper Large (EN)' },
   ];
+
+  /** TTS provider options for app-select (including server default). */
+  readonly ttsProviderOptions = computed<SelectOption[]>(() => [
+    { value: 'default', label: 'Server Default' },
+    ...this.ttsService
+      .providers()
+      .map((p) => ({ value: p.id, label: p.label })),
+  ]);
+
+  /** TTS model options for app-select (depends on selected provider). */
+  readonly ttsModelOptions = computed<SelectOption[]>(() =>
+    this.providerModels().map((m) => ({ value: m.id, label: m.name })),
+  );
+
+  /** Voice options for app-select, includes gender in label when available. */
+  readonly voiceOptions = computed<SelectOption[]>(() =>
+    this.availableVoicesList().map((v) => ({
+      value: v.id,
+      label: v.name + (v.gender ? ` · ${v.gender}` : ''),
+    })),
+  );
+
+  /** STT model options for app-select. */
+  readonly sttModelOptions: SelectOption[] = this.sttModels.map((s) => ({
+    value: s.id,
+    label: s.name,
+  }));
 
   private readonly sampleTexts: Record<string, string> = {
     en: 'Hello! I am your AI English tutor. How can I help you improve today?',
@@ -357,6 +360,18 @@ export class SettingsTabVoicesComponent {
     this.voiceChange.emit(voiceId);
   }
 
+  /** Preview the currently selected voice (used by the single play button). */
+  previewActiveVoice(): void {
+    const activeId = this.ttsService.selectedVoiceId();
+    if (!activeId) return;
+    if (this.playingVoiceId() === activeId) {
+      this.stopAudioPreview();
+      return;
+    }
+    const voice = this.availableVoicesList().find((v) => v.id === activeId);
+    if (voice) void this.previewVoice(voice);
+  }
+
   async previewVoice(voice: TtsVoice): Promise<void> {
     if (this.playingVoiceId() === voice.id) {
       this.stopAudioPreview();
@@ -376,14 +391,7 @@ export class SettingsTabVoicesComponent {
         langCode,
       );
       if (audioResult) {
-        const byteCharacters = atob(audioResult.audioData);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const blob = new Blob([new Uint8Array(byteNumbers)], {
-          type: audioResult.mimeType,
-        });
+        const blob = base64ToBlob(audioResult.audioData, audioResult.mimeType);
         const url = URL.createObjectURL(blob);
         this.audioPreview = new Audio(url);
         this.audioPreview.onended = () => {

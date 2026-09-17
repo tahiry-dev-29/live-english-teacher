@@ -38,7 +38,10 @@ export class AiProviderService {
       customApiKey?: string;
     } = {},
   ): Promise<string> {
-    const activeProvider = options.provider || this.provider;
+    const activeProvider =
+      options.provider && options.provider !== 'default'
+        ? options.provider
+        : this.provider;
 
     if (activeProvider === 'groq' && !options.audioData) {
       return this.groqLiveService.getGroqChatResponse(
@@ -84,7 +87,10 @@ export class AiProviderService {
       customApiKey?: string;
     } = {},
   ): AsyncGenerator<string, void, unknown> {
-    const activeProvider = options.provider || this.provider;
+    const activeProvider =
+      options.provider && options.provider !== 'default'
+        ? options.provider
+        : this.provider;
 
     if (activeProvider === 'groq') {
       yield* this.groqLiveService.generateStream(

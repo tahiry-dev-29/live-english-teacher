@@ -5,11 +5,14 @@ import {
   viewChild,
   ElementRef,
   signal,
+  computed,
   AfterViewInit,
   OnDestroy,
   ChangeDetectionStrategy,
+  inject,
+  Renderer2,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { LucideArrowDown } from '@lucide/angular';
 import { MessageItemComponent } from '../message-item/message-item.component';
 import { VoiceControlComponent } from '@core/components/voice-control/voice-control-component';
@@ -50,16 +53,30 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly showScrollButton = signal<boolean>(false);
   readonly hasNewMessages = signal<boolean>(false);
 
+  readonly lastAiMessageIndex = computed<number | null>(() => {
+    const msgs = this.messages();
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'ai') return i;
+    }
+    return null;
+  });
+
+  readonly hasAiMessage = computed<boolean>(
+    () => this.lastAiMessageIndex() !== null,
+  );
+
   private scrollObserver?: IntersectionObserver;
+  private readonly documentRef = inject(DOCUMENT);
+  private readonly renderer = inject(Renderer2);
 
   ngAfterViewInit(): void {
     const el = this.scrollContainer()?.nativeElement;
     if (!el) return;
 
-    const sentinel = document.createElement('div');
-    sentinel.className = 'scroll-sentinel';
-    sentinel.style.height = '1px';
-    el.appendChild(sentinel);
+    const sentinel = this.documentRef.createElement('div');
+    this.renderer.addClass(sentinel, 'scroll-sentinel');
+    this.renderer.setStyle(sentinel, 'height', '1px');
+    this.renderer.appendChild(el, sentinel);
 
     this.scrollObserver = new IntersectionObserver(
       ([entry]) => {
@@ -98,5 +115,62 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
 
   onPlayMessage(index: number, text: string): void {
     this.playAudio.emit({ text, index });
+  }
+
+  async copyLastMessage(): Promise<void> {
+    const idx = this.lastAiMessageIndex();
+    if (idx === null || idx === undefined) return;
+    const message = this.messages()[idx];
+    if (!message?.text) return;
+
+    // Best practice: Async Clipboard API (secure context). Aucun execCommand (deprecated TS6387).
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(message.text);
+        return;
+      }
+      throw new Error('Clipboard API unavailable');
+    } catch {
+      // Fallback sans API dépréciée : sélectionne le texte pour copie manuelle (Ctrl/Cmd+C),
+      // puis nettoie. Aucun document.execCommand ici.
+      const textarea = this.documentRef.createElement(
+        'textarea',
+      ) as HTMLTextAreaElement;
+      textarea.value = message.text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      this.renderer.appendChild(this.documentRef.body, textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      this.renderer.removeChild(this.documentRef.body, textarea);
+    }
+  }
+
+  retryLastMessage(): void {
+    const idx = this.lastAiMessageIndex();
+    if (idx === null) return;
+    // Find the user message before this AI message
+    for (let i = idx - 1; i >= 0; i--) {
+      if (this.messages()[i].role === 'user') {
+        this.retryMessage.emit(i);
+        return;
+      }
+    }
+  }
+
+  listenLastMessage(): void {
+    const idx = this.lastAiMessageIndex();
+    if (idx === null) return;
+    this.playAudio.emit({
+      text: this.messages()[idx]?.text ?? '',
+      index: idx,
+    });
+  }
+
+  forkLastSession(): void {
+    const idx = this.lastAiMessageIndex();
+    if (idx === null) return;
+    this.forkSession.emit(idx);
   }
 }

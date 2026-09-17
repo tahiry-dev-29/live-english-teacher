@@ -1,4 +1,5 @@
 import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { CookieService } from 'ngx-cookie-service';
 import {
   migrateLocalStorageToCookie,
@@ -132,6 +133,7 @@ export class I18nService {
   private static readonly COOKIE_NAME = 'app_language';
 
   private readonly cookies = inject(CookieService);
+  private readonly documentRef = inject(DOCUMENT, { optional: true });
 
   readonly lang = signal<AppLanguage>(this.load());
 
@@ -155,8 +157,8 @@ export class I18nService {
   }
 
   private applyLang(lang: AppLanguage): void {
-    if (typeof document === 'undefined') return;
-    document.documentElement.setAttribute('lang', lang);
+    // Best practice Angular SSR-safe : DOCUMENT injecté plutôt que global document.
+    this.documentRef?.documentElement?.setAttribute('lang', lang);
   }
 
   private load(): AppLanguage {

@@ -16,29 +16,58 @@ import { I18nService } from '@core/services/i18n.service';
   imports: [CommonModule],
   template: `
     <div class="space-y-4">
-      <fieldset class="fieldset">
-        <legend class="fieldset-legend text-sm font-semibold">
+      <div class="space-y-1">
+        <p
+          class="text-xs font-medium tracking-wider text-base-content/50 uppercase"
+        >
           {{ t('language.learning') }}
-        </legend>
-        <p class="mb-3 text-xs text-base-content/50">
+        </p>
+        <p class="text-xs text-base-content/60">
           {{ t('language.learning_hint') }}
         </p>
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          @for (lang of languagesList; track lang.code) {
-            <button
-              type="button"
-              class="btn h-auto justify-start gap-2 btn-outline px-3 py-2.5"
-              [class.btn-primary]="
-                languageService.selectedLanguageCode() === lang.code
-              "
-              (click)="onSelectLanguage(lang.code)"
-            >
-              <span class="text-xl leading-none">{{ lang.flag }}</span>
-              <span class="text-xs font-medium">{{ lang.name }}</span>
-            </button>
-          }
-        </div>
-      </fieldset>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        @for (lang of languagesList; track lang.code) {
+          <button
+            type="button"
+            class="flex flex-col items-start justify-between rounded-xl border p-3 text-left transition-all"
+            [class.border-primary]="
+              languageService.selectedLanguageCode() === lang.code
+            "
+            [class.bg-primary/5]="
+              languageService.selectedLanguageCode() === lang.code
+            "
+            [class.border-base-300]="
+              languageService.selectedLanguageCode() !== lang.code
+            "
+            [class.hover:border-base-content/20]="
+              languageService.selectedLanguageCode() !== lang.code
+            "
+            [class.hover:bg-base-200/40]="
+              languageService.selectedLanguageCode() !== lang.code
+            "
+            (click)="onSelectLanguage(lang.code)"
+          >
+            <div class="flex w-full items-center justify-between">
+              <span
+                class="font-mono text-xs font-bold tracking-wider text-primary uppercase"
+              >
+                {{ lang.code }}
+              </span>
+              @if (languageService.selectedLanguageCode() === lang.code) {
+                <span class="badge badge-xs badge-primary">Active</span>
+              }
+            </div>
+            <div class="mt-2.5">
+              <p class="text-sm font-semibold text-base-content">
+                {{ lang.name }}
+              </p>
+              <p class="text-[11px] text-base-content/50">Audio & Lessons</p>
+            </div>
+          </button>
+        }
+      </div>
     </div>
   `,
 })

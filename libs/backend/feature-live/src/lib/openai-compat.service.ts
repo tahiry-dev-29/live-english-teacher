@@ -44,7 +44,11 @@ export class OpenAiCompatService {
     modelOverride?: string,
     customApiKey?: string,
   ): Promise<string> {
-    const config = AI_PROVIDERS_REGISTRY[providerId];
+    const resolvedId =
+      providerId === 'default'
+        ? process.env['AI_PROVIDER'] || 'gemini'
+        : providerId;
+    const config = AI_PROVIDERS_REGISTRY[resolvedId];
     if (!config) {
       return `Provider "${providerId}" is not configured.`;
     }
@@ -112,7 +116,11 @@ export class OpenAiCompatService {
     modelOverride?: string,
     customApiKey?: string,
   ): AsyncGenerator<string, void, unknown> {
-    const config = AI_PROVIDERS_REGISTRY[providerId];
+    const resolvedId =
+      providerId === 'default'
+        ? process.env['AI_PROVIDER'] || 'gemini'
+        : providerId;
+    const config = AI_PROVIDERS_REGISTRY[resolvedId];
     if (!config) {
       yield `Provider "${providerId}" is not configured.`;
       return;

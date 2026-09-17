@@ -24,6 +24,8 @@ import { CallInterfaceComponent } from '@core/components/call-interface/call-int
 import { ChatInputComponent } from '@core/components/chat-input/chat-input.component';
 import { SidebarComponent } from '@core/components/sidebar/sidebar-component';
 import { SettingsDialogComponent } from '@core/components/settings-dialog/settings-dialog-component';
+import { ToastComponent } from '@core/components/toast/toast.component';
+import { NotificationService } from '@core/services/notification.service';
 import { ChatService } from '@core/services/chat.service';
 import { MessageService } from '@core/services/message.service';
 import { TtsService } from '@core/services/tts.service';
@@ -49,6 +51,7 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
     ChatInputComponent,
     ChatContainerComponent,
     SettingsDialogComponent,
+    ToastComponent,
   ],
   templateUrl: './chat-page.component.html',
   styleUrl: './chat-page.component.css',
@@ -61,6 +64,7 @@ export class ChatPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly messageService = inject(MessageService);
+  protected readonly notificationService = inject(NotificationService);
   protected readonly ttsService = inject(TtsService);
   protected readonly voiceCallService = inject(VoiceCallService);
   protected readonly languageService = inject(LanguageService);
@@ -318,5 +322,10 @@ export class ChatPageComponent implements OnInit {
     const fallbackMessage = MESSAGES.warning.inactivityPrompt;
     this.messageService.addMessage({ role: 'ai', text: fallbackMessage });
     this.speakText(fallbackMessage);
+  }
+
+  protected dismissQuotaAlert(): void {
+    this.messageService.quotaExceeded.set(null);
+    this.notificationService.warning(MESSAGES.warning.quotaBannerBody);
   }
 }

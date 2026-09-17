@@ -8,7 +8,7 @@ import { ThemeService } from '@core/services/theme.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (themeService.resolvedTheme() === 'halloween') {
+    @if (themeService.resolvedTheme() === 'app-dark') {
       <div class="pointer-events-none absolute inset-0 overflow-hidden">
         @for (i of stars; track i) {
           <div

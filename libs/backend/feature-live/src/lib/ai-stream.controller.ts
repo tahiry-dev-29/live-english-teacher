@@ -202,7 +202,10 @@ export class AiStreamController {
         deepseek: deepseekApiKey,
         qwen: qwenApiKey,
       };
-      const activeProvider = dto.provider || 'gemini';
+      const activeProvider =
+        dto.provider && dto.provider !== 'default'
+          ? dto.provider
+          : process.env['AI_PROVIDER'] || 'gemini';
       const customApiKey = providerApiKey || providerKeys[activeProvider];
 
       let fullText = '';

@@ -54,18 +54,26 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
           class="flex w-48 shrink-0 flex-col border-r border-base-300 bg-base-300/30"
         >
           <!-- Sidebar header -->
-          <div class="flex items-center gap-2 border-b border-base-300 px-4 py-3">
+          <div
+            class="flex items-center gap-2 border-b border-base-300 px-4 py-3"
+          >
             <svg lucideSettings class="h-4 w-4 text-base-content/50"></svg>
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">
+            <h3
+              class="text-xs font-semibold tracking-wider text-base-content/60 uppercase"
+            >
               {{ t('settings.title') }}
             </h3>
           </div>
 
           <!-- Nav items: left-border active state -->
-          <nav class="flex flex-1 flex-col gap-0.5 p-2" role="navigation" aria-label="Settings sections">
+          <nav
+            class="flex flex-1 flex-col gap-0.5 p-2"
+            role="navigation"
+            aria-label="Settings sections"
+          >
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
               [class.border-l-2]="activeTab() === 'general'"
               [class.border-primary]="activeTab() === 'general'"
               [class.text-primary]="activeTab() === 'general'"
@@ -79,7 +87,7 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             </button>
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
               [class.border-l-2]="activeTab() === 'ai_model'"
               [class.border-primary]="activeTab() === 'ai_model'"
               [class.text-primary]="activeTab() === 'ai_model'"
@@ -93,7 +101,7 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             </button>
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
               [class.border-l-2]="activeTab() === 'voices'"
               [class.border-primary]="activeTab() === 'voices'"
               [class.text-primary]="activeTab() === 'voices'"
@@ -107,7 +115,7 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             </button>
             <button
               type="button"
-              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
               [class.border-l-2]="activeTab() === 'language'"
               [class.border-primary]="activeTab() === 'language'"
               [class.text-primary]="activeTab() === 'language'"
@@ -125,12 +133,19 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
         <!-- Right: Tab Content -->
         <div class="flex min-w-0 flex-1 flex-col">
           <!-- Unified header: active tab title + close in one row -->
-          <div class="flex shrink-0 items-center justify-between border-b border-base-300 px-6 py-3">
+          <div
+            class="flex shrink-0 items-center justify-between border-b border-base-300 px-6 py-3"
+          >
             <h2 class="text-sm font-semibold text-base-content">
-              @if (activeTab() === 'general') { {{ t('settings.general') }} }
-              @else if (activeTab() === 'ai_model') { {{ t('settings.ai_model') }} }
-              @else if (activeTab() === 'voices') { {{ t('settings.voices') }} }
-              @else if (activeTab() === 'language') { {{ t('settings.language') }} }
+              @if (activeTab() === 'general') {
+                {{ t('settings.general') }}
+              } @else if (activeTab() === 'ai_model') {
+                {{ t('settings.ai_model') }}
+              } @else if (activeTab() === 'voices') {
+                {{ t('settings.voices') }}
+              } @else if (activeTab() === 'language') {
+                {{ t('settings.language') }}
+              }
             </h2>
             <button
               type="button"

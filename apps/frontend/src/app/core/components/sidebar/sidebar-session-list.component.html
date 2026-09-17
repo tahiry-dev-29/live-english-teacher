@@ -1,127 +1,115 @@
-<div
-  class="flex items-center justify-between px-2 py-1.5 text-xs font-semibold tracking-wider text-base-content/50 uppercase"
->
-  <span>History</span>
-  <div class="flex items-center gap-1">
-    <span class="text-[10px] text-base-content/40 normal-case"
-      >{{ totalSessions() }} chats</span
-    >
-    <button
-      type="button"
-      (click)="reloadHistory.emit(); $event.stopPropagation()"
-      class="btn btn-ghost btn-xs"
-      title="Reload history"
-      aria-label="Reload history"
-      [disabled]="isReloading()"
-    >
-      <svg
-        lucideRefreshCw
-        class="h-3.5 w-3.5"
-        [class.animate-spin]="isReloading()"
-      />
-    </button>
-  </div>
-</div>
-
-@for (item of sessions(); track item.id) {
-  <div class="group relative">
-    @if (editingSessionId() === item.id) {
-      <div
-        class="flex items-center gap-2 rounded-lg border border-primary/50 bg-base-300 px-3 py-2"
-      >
-        <input
-          #editInput
-          type="text"
-          [value]="editTitle()"
-          (input)="editTitle.set(editInput.value)"
-          (keyup.enter)="saveRename(item.id)"
-          (keyup.escape)="cancelRename()"
-          class="flex-1 bg-transparent text-sm text-base-content outline-none placeholder:text-base-content/40"
-          placeholder="Session title"
-        />
-        <button
-          type="button"
-          (click)="saveRename(item.id)"
-          class="cursor-pointer p-1 text-success hover:text-success/80"
-        >
-          <svg lucideCheck class="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          (click)="cancelRename()"
-          class="cursor-pointer p-1 text-base-content/40 hover:text-base-content/60"
-        >
-          <svg lucideX class="h-4 w-4" />
-        </button>
-      </div>
-    } @else {
-      <!-- span role=button : pas de <div> imbriqué dans <button> (HTML invalide) -->
-      <div
-        role="button"
-        tabindex="0"
-        (click)="sessionClick.emit(item.id)"
-        (keyup.enter)="sessionClick.emit(item.id)"
-        class="flex w-full cursor-pointer items-center gap-2.5 truncate rounded-lg px-2.5 py-2 text-left text-sm transition-all"
-        [class.bg-primary/20]="activeSessionId() === item.id"
-        [class.text-primary]="activeSessionId() === item.id"
-        [class.text-base-content/70]="activeSessionId() !== item.id"
-        [class.hover:bg-base-300/50]="activeSessionId() !== item.id"
-        [class.group-hover:text-base-content]="activeSessionId() !== item.id"
+<ul class="menu w-full gap-0.5 menu-sm p-0">
+  <li class="flex flex-row items-center justify-between menu-title px-2">
+    <span>History</span>
+    <span class="flex items-center gap-1">
+      <span class="badge badge-ghost badge-sm">{{ totalSessions() }}</span>
+      <button
+        type="button"
+        (click)="reloadHistory.emit(); $event.stopPropagation()"
+        class="btn btn-ghost btn-xs"
+        aria-label="Reload history"
+        [disabled]="isReloading()"
       >
         <svg
-          lucideMessageCircle
-          class="h-4 w-4 shrink-0 transition-colors"
-          [class.text-primary]="activeSessionId() === item.id"
-          [class.text-base-content/40]="activeSessionId() !== item.id"
-          [class.group-hover:text-primary]="activeSessionId() !== item.id"
+          lucideRefreshCw
+          class="h-3.5 w-3.5"
+          [class.animate-spin]="isReloading()"
         />
-        <span class="min-w-0 flex-1">
-          <span class="block truncate text-[13px]">{{ item.title }}</span>
-          <span class="block truncate text-[10px] text-base-content/40"
-            >{{ item.learningLanguage | uppercase }} &bull;
-            {{ item.createdAt | date: 'shortDate' }}</span
+      </button>
+    </span>
+  </li>
+  @for (item of sessions(); track item.id) {
+    <li class="group relative w-full overflow-hidden">
+      @if (editingSessionId() === item.id) {
+        <div class="flex w-full min-w-0 items-center gap-1 px-1 py-1">
+          <input
+            #editInput
+            type="text"
+            [value]="editTitle()"
+            (input)="editTitle.set(editInput.value)"
+            (keyup.enter)="saveRename(item.id)"
+            (keyup.escape)="cancelRename()"
+            class="input min-w-0 flex-1 input-sm"
+            placeholder="Session title"
+          />
+          <button
+            type="button"
+            (click)="saveRename(item.id)"
+            class="btn shrink-0 btn-ghost text-success btn-xs"
+            aria-label="Save"
           >
-        </span>
-      </div>
-      <div
-        class="absolute top-1/2 right-2 flex -translate-y-1/2 gap-1 rounded-lg bg-base-300/90 p-0.5 opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100"
-      >
+            <svg lucideCheck class="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            (click)="cancelRename()"
+            class="btn shrink-0 btn-ghost btn-xs"
+            aria-label="Cancel"
+          >
+            <svg lucideX class="h-4 w-4" />
+          </button>
+        </div>
+      } @else {
         <button
           type="button"
-          (click)="startRename(item.id, item.title); $event.stopPropagation()"
-          class="btn btn-ghost btn-xs"
-          title="Rename"
+          (click)="sessionClick.emit(item.id)"
+          [class.menu-active]="activeSessionId() === item.id"
+          class="flex w-full min-w-0 items-center gap-2 pr-16 text-left"
         >
-          <svg lucidePencil class="h-3.5 w-3.5" />
+          <svg lucideMessageCircle class="h-4 w-4 shrink-0 opacity-60" />
+          <span class="min-w-0 flex-1 overflow-hidden">
+            <span
+              class="block truncate text-[13px] leading-tight"
+              [innerHTML]="highlightedTitle(item.title)"
+            ></span>
+            <span
+              class="mt-0.5 block truncate text-[10px] leading-snug opacity-50"
+              >{{ item.learningLanguage | uppercase }} &bull;
+              {{ item.createdAt | date: 'shortDate' }}</span
+            >
+          </span>
         </button>
+        <!-- Action buttons: always reserved space (pr-16 on button above) -->
+        <span
+          class="pointer-events-none absolute top-1/2 right-1.5 flex -translate-y-1/2 gap-0.5 rounded-lg bg-base-200/95 p-0.5 opacity-0 shadow-md backdrop-blur-sm transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+        >
+          <button
+            type="button"
+            (click)="startRename(item.id, item.title); $event.stopPropagation()"
+            class="btn btn-ghost btn-xs"
+            aria-label="Rename"
+          >
+            <svg lucidePencil class="h-3.5 w-3.5" />
+          </button>
 
-        @if (confirmDeleteId() === item.id) {
-          <button
-            type="button"
-            (click)="confirmDelete(item.id); $event.stopPropagation()"
-            class="btn animate-pulse btn-ghost text-error btn-xs"
-            title="Confirm Delete"
-          >
-            <svg lucideCheck class="h-3.5 w-3.5" />
-          </button>
-        } @else {
-          <button
-            type="button"
-            (click)="initDelete(item.id); $event.stopPropagation()"
-            class="btn btn-ghost text-error/60 btn-xs hover:text-error"
-            title="Delete"
-          >
-            <svg lucideTrash2 class="h-3.5 w-3.5" />
-          </button>
-        }
-      </div>
-    }
-  </div>
-} @empty {
-  <div
-    class="flex flex-col items-center gap-2 px-3 py-8 text-center text-sm text-base-content/40 italic"
-  >
-    <svg lucideMessageCircle class="h-8 w-8 opacity-50" />
-    No history yet
-  </div>
-}
+          @if (confirmDeleteId() === item.id) {
+            <button
+              type="button"
+              (click)="confirmDelete(item.id); $event.stopPropagation()"
+              class="btn animate-pulse btn-ghost text-error btn-xs"
+              aria-label="Confirm Delete"
+            >
+              <svg lucideCheck class="h-3.5 w-3.5" />
+            </button>
+          } @else {
+            <button
+              type="button"
+              (click)="initDelete(item.id); $event.stopPropagation()"
+              class="btn btn-ghost text-error/60 btn-xs hover:text-error"
+              aria-label="Delete"
+            >
+              <svg lucideTrash2 class="h-3.5 w-3.5" />
+            </button>
+          }
+        </span>
+      }
+    </li>
+  } @empty {
+    <li
+      class="menu-disabled flex flex-col items-center gap-2 py-8 text-center italic"
+    >
+      <svg lucideMessageCircle class="h-8 w-8 opacity-50" />
+      <span>No history yet</span>
+    </li>
+  }
+</ul>

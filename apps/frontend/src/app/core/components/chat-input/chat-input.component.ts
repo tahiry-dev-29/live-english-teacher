@@ -27,19 +27,21 @@ import { LanguageService } from '@core/services/language.service';
     AudioRecorderComponent,
   ],
   template: `
-    <div class="mx-auto w-full max-w-4xl px-4 pb-2">
+    <div class="mx-auto w-full max-w-4xl">
       <div
-        class="flex items-center gap-3 rounded-2xl bg-base-300 px-4 py-3 shadow-lg"
+        class="flex items-center gap-2.5 rounded-2xl border border-base-300 bg-base-200/80 backdrop-blur-md px-3.5 py-2.5 shadow-lg transition-all focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20"
       >
         <!-- Language quick-select -->
         <div class="dropdown dropdown-top shrink-0">
-          <button
-            tabindex="0"
-            class="btn btn-circle btn-ghost btn-sm"
-            title="Learning language"
-          >
-            <span class="text-lg leading-none">{{ currentFlag() }}</span>
-          </button>
+          <div class="tooltip tooltip-top" data-tip="Learning language">
+            <button
+              tabindex="0"
+              class="btn btn-circle btn-ghost btn-sm"
+              aria-label="Learning language"
+            >
+              <span class="text-lg leading-none">{{ currentFlag() }}</span>
+            </button>
+          </div>
           <ul
             tabindex="0"
             class="menu dropdown-content z-50 mb-2 w-40 rounded-box border border-base-300 bg-base-200 p-2 shadow-lg"
@@ -74,7 +76,7 @@ import { LanguageService } from '@core/services/language.service';
               (keyup.enter)="onSubmit()"
               placeholder="Ask anything"
               [disabled]="disabled()"
-              class="w-full border-none bg-transparent text-base text-base-content outline-none placeholder:text-base-content/40"
+              class="w-full border-0 bg-transparent px-2 py-1 text-sm text-base-content placeholder:text-base-content/40 outline-none focus:border-0 focus:outline-none focus:ring-0"
             />
           }
         </div>

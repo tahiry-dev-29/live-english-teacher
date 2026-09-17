@@ -14,20 +14,24 @@ import { WELCOME_MESSAGES } from './chat-welcome.util';
   standalone: true,
   imports: [CommonModule, LucideMessageSquare],
   template: `
-    <div
-      class="flex min-h-[60vh] w-auto flex-col items-center justify-center p-8 text-center opacity-70 select-none"
-    >
-      <div
-        class="mb-6 flex h-24 w-24 animate-pulse items-center justify-center rounded-full bg-base-200"
-      >
-        <svg lucideMessageSquare class="h-12 w-12 text-base-content/40"></svg>
+    <div class="hero min-h-[60vh]">
+      <div class="hero-content text-center">
+        <div class="max-w-md opacity-70 select-none">
+          <div class="avatar mb-6 avatar-placeholder">
+            <div
+              class="w-24 animate-pulse rounded-full bg-base-200 text-base-content/40"
+            >
+              <svg lucideMessageSquare class="h-12 w-12"></svg>
+            </div>
+          </div>
+          <h3 class="mb-2 text-xl font-semibold text-base-content">
+            {{ welcomeMessage().title }}
+          </h3>
+          <p class="mx-auto max-w-xs text-base-content/60">
+            {{ welcomeMessage().subtitle }}
+          </p>
+        </div>
       </div>
-      <h3 class="mb-2 text-xl font-semibold text-base-content">
-        {{ welcomeMessage().title }}
-      </h3>
-      <p class="max-w-xs text-base-content/60">
-        {{ welcomeMessage().subtitle }}
-      </p>
     </div>
   `,
 })

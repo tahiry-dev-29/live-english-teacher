@@ -13,7 +13,6 @@ import {
   LucideRotateCw,
   LucideEye,
   LucideEyeOff,
-  LucideCpu,
   LucideExternalLink,
 } from '@lucide/angular';
 import {
@@ -24,6 +23,10 @@ import {
 } from '@core/services/ai-config.service';
 import { ApiKeyService } from '@core/services/api-key.service';
 import { I18nService } from '@core/services/i18n.service';
+import {
+  AppSelectComponent,
+  SelectOption,
+} from '@core/components/ui/select/select.component';
 
 @Component({
   selector: 'app-settings-tab-ai',
@@ -36,61 +39,76 @@ import { I18nService } from '@core/services/i18n.service';
     LucideRotateCw,
     LucideEye,
     LucideEyeOff,
-    LucideCpu,
     LucideExternalLink,
+    AppSelectComponent,
   ],
   template: `
     <div class="space-y-6">
-      <!-- 1. Provider Selection -->
-      <div class="space-y-2">
-        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
+      <!-- 1. Provider Selection (Canonical daisyUI fieldset & select) -->
+      <fieldset class="fieldset w-full">
+        <legend
+          class="fieldset-legend text-xs font-medium tracking-wider text-base-content/60 uppercase"
+        >
           {{ t('ai.provider') }}
-        </p>
-        <div class="space-y-1">
-          @for (p of providers; track p.id) {
-            <button
-              type="button"
-              class="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors"
-              [class.border-primary]="aiConfig.provider() === p.id"
-              [class.bg-primary/5]="aiConfig.provider() === p.id"
-              [class.text-primary]="aiConfig.provider() === p.id"
-              [class.border-base-300]="aiConfig.provider() !== p.id"
-              [class.text-base-content]="aiConfig.provider() !== p.id"
-              (click)="onProviderSelect(p.id)"
-            >
-              <span class="text-sm font-medium">{{ p.label }}</span>
-              <div class="flex items-center gap-2">
-                @if (p.quotaBadge) {
-                  <span class="badge badge-ghost badge-xs">{{ p.quotaBadge }}</span>
-                }
-                @if (aiConfig.provider() === p.id) {
-                  <span class="badge badge-xs badge-primary">Active</span>
-                }
-              </div>
-            </button>
+        </legend>
+        <div class="flex w-full items-center gap-2">
+          <app-select
+            class="flex-1"
+            [options]="providerOptions"
+            [value]="aiConfig.provider()"
+            (valueChange)="onProviderSelect($event)"
+            size="sm"
+            color="primary"
+          />
+          @if (aiConfig.provider() === 'default') {
+            <span class="badge shrink-0 badge-sm badge-success">Server</span>
+          } @else if (selectedProviderInfo()?.quotaBadge) {
+            <span class="badge shrink-0 badge-sm badge-neutral">{{
+              selectedProviderInfo()?.quotaBadge
+            }}</span>
           }
         </div>
-      </div>
+        <span class="label text-[11px] text-base-content/50">
+          Select your conversational intelligence provider or use server default
+        </span>
+      </fieldset>
 
       <!-- 2. API Key for Selected Provider -->
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-            API Key ({{ selectedProviderInfo()?.label || aiConfig.provider() }})
+          <p
+            class="text-xs font-medium tracking-wider text-base-content/50 uppercase"
+          >
+            API Key ({{
+              aiConfig.provider() === 'default'
+                ? 'Server Default'
+                : selectedProviderInfo()?.label || aiConfig.provider()
+            }})
           </p>
-          <span class="text-xs text-base-content/40">{{ t('ai.custom_keys.optional') }}</span>
+          <span class="text-xs text-base-content/40">{{
+            t('ai.custom_keys.optional')
+          }}</span>
         </div>
 
         <!-- Key mode status -->
-        <div class="flex items-center justify-between rounded-lg border border-base-300 bg-base-100/40 px-3 py-2">
+        <div
+          class="flex items-center justify-between rounded-lg border border-base-300 bg-base-100/40 px-3 py-2"
+        >
           <div class="flex items-center gap-2">
             <svg lucideKey class="h-3.5 w-3.5 text-base-content/40"></svg>
-            @if (currentKeyValue()) {
-              <span class="text-xs text-base-content/70">Custom key active</span>
+            @if (aiConfig.provider() === 'default') {
+              <span class="text-xs text-base-content/70"
+                >Using server preconfigured environment key</span
+              >
+              <span class="badge badge-xs badge-success">Server Active</span>
+            } @else if (currentKeyValue()) {
+              <span class="text-xs text-base-content/70"
+                >Custom key active</span
+              >
               <span class="badge badge-xs badge-success">Custom</span>
             } @else {
-              <span class="text-xs text-base-content/70">Using server key</span>
-              <span class="badge badge-xs badge-neutral">Server default</span>
+              <span class="text-xs text-base-content/70">No key provided</span>
+              <span class="badge badge-xs badge-warning">Key required</span>
             }
           </div>
           @if (selectedProviderInfo()?.consoleUrl) {
@@ -106,106 +124,157 @@ import { I18nService } from '@core/services/i18n.service';
           }
         </div>
 
-        <div class="join w-full">
-          <input
-            [type]="showKey() ? 'text' : 'password'"
-            class="input-bordered input join-item flex-1 font-mono text-xs input-sm"
-            [placeholder]="
-              'Enter ' +
-              (selectedProviderInfo()?.label || 'provider') +
-              ' API key (leave empty for server key)'
-            "
-            [ngModel]="currentKeyValue()"
-            (ngModelChange)="onKeyChange($event)"
-          />
-          <button
-            type="button"
-            class="btn join-item btn-ghost btn-sm"
-            (click)="showKey.set(!showKey())"
-            aria-label="Toggle key visibility"
-          >
-            @if (showKey()) {
-              <svg lucideEyeOff class="h-4 w-4"></svg>
-            } @else {
-              <svg lucideEye class="h-4 w-4"></svg>
-            }
-          </button>
-          @if (currentKeyValue()) {
+        @if (aiConfig.provider() !== 'default') {
+          <div class="join w-full">
+            <input
+              [type]="showKey() ? 'text' : 'password'"
+              class="input-bordered input join-item flex-1 font-mono text-xs input-sm"
+              [placeholder]="
+                'Enter ' +
+                (selectedProviderInfo()?.label || 'provider') +
+                ' API key to discover & use models...'
+              "
+              [ngModel]="currentKeyValue()"
+              (ngModelChange)="onKeyChange($event)"
+            />
             <button
               type="button"
-              class="btn join-item btn-ghost text-error btn-sm"
-              (click)="onClearKey()"
-              title="Remove custom key and fall back to server key"
+              class="btn join-item btn-ghost btn-sm"
+              (click)="showKey.set(!showKey())"
+              aria-label="Toggle key visibility"
             >
-              Reset to server key
+              @if (showKey()) {
+                <svg lucideEyeOff class="h-4 w-4"></svg>
+              } @else {
+                <svg lucideEye class="h-4 w-4"></svg>
+              }
+            </button>
+            @if (currentKeyValue()) {
+              <button
+                type="button"
+                class="btn join-item btn-ghost text-error btn-sm"
+                (click)="onClearKey()"
+                title="Remove custom key and fall back to server key"
+              >
+                Reset to server key
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- 3. Available Models (Hidden if user has not entered an API key and not using server default) -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <p
+            class="text-xs font-medium tracking-wider text-base-content/50 uppercase"
+          >
+            Available Models
+          </p>
+          @if (isKeyReady()) {
+            <button
+              type="button"
+              class="btn gap-1 btn-ghost btn-xs"
+              (click)="refreshModels()"
+              title="Sync live models from provider"
+            >
+              <svg
+                lucideRotateCw
+                class="h-3.5 w-3.5"
+                [class.animate-spin]="isModelsLoading()"
+              ></svg>
+              <span class="text-xs">Sync</span>
             </button>
           }
         </div>
-      </div>
 
-      <!-- 3. Available Models -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
-            Available Models
-          </p>
-          <button
-            type="button"
-            class="btn gap-1 btn-ghost btn-xs"
-            (click)="refreshModels()"
-            title="Sync live models from provider"
+        @if (!isKeyReady()) {
+          <!-- Empty State: Prompt user to enter API key -->
+          <div
+            class="flex flex-col items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-100/30 px-4 py-8 text-center"
           >
-            <svg
-              lucideRotateCw
-              class="h-3.5 w-3.5"
-              [class.animate-spin]="isModelsLoading()"
-            ></svg>
-            <span class="text-xs">Sync</span>
-          </button>
-        </div>
-
-        <div class="space-y-1">
-          @if (isModelsLoading() && filteredModels().length === 0) {
-            <div class="py-6 text-center text-xs text-base-content/60">
-              <span
-                class="loading mb-2 loading-sm loading-spinner text-primary"
-              ></span>
-              <p>Fetching models from provider...</p>
+            <div class="mb-2 rounded-full bg-base-200 p-2.5">
+              <svg lucideKey class="h-5 w-5 text-base-content/40"></svg>
             </div>
-          } @else {
-            @for (model of filteredModels(); track model.id) {
+            <p class="text-xs font-semibold text-base-content">
+              API Key required to view available models
+            </p>
+            <p class="mt-1 max-w-sm text-[11px] text-base-content/60">
+              Please enter your
+              {{ selectedProviderInfo()?.label || 'provider' }} API key above to
+              discover and activate the models list, or select "Server Default"
+              to use server configurations.
+            </p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            @if (isModelsLoading() && filteredModels().length === 0) {
               <div
-                class="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors"
-                [class.border-primary]="aiConfig.selectedModelId() === model.id"
-                [class.bg-primary/5]="aiConfig.selectedModelId() === model.id"
-                [class.border-base-300]="aiConfig.selectedModelId() !== model.id"
-                (click)="aiConfig.selectedModelId.set(model.id)"
-                (keyup.enter)="aiConfig.selectedModelId.set(model.id)"
-                tabindex="0"
-                role="button"
+                class="col-span-full py-6 text-center text-xs text-base-content/60"
               >
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <p class="text-sm font-medium">{{ model.name }}</p>
-                    @if (model.isDefault) {
-                      <span class="badge badge-ghost badge-xs">Default</span>
-                    }
-                    @if (aiConfig.selectedModelId() === model.id) {
-                      <span class="badge badge-xs badge-primary">Selected</span>
+                <span
+                  class="loading mb-2 loading-sm loading-spinner text-primary"
+                ></span>
+                <p>Fetching models from provider...</p>
+              </div>
+            } @else {
+              @for (model of filteredModels(); track model.id) {
+                <div
+                  class="flex cursor-pointer flex-col justify-between rounded-xl border p-3 transition-all"
+                  [class.border-primary]="
+                    aiConfig.selectedModelId() === model.id
+                  "
+                  [class.bg-primary/5]="aiConfig.selectedModelId() === model.id"
+                  [class.border-base-300]="
+                    aiConfig.selectedModelId() !== model.id
+                  "
+                  [class.bg-base-100/30]="
+                    aiConfig.selectedModelId() !== model.id
+                  "
+                  (click)="aiConfig.selectedModelId.set(model.id)"
+                  (keyup.enter)="aiConfig.selectedModelId.set(model.id)"
+                  tabindex="0"
+                  role="button"
+                >
+                  <div class="min-w-0 space-y-1">
+                    <div class="flex items-start justify-between gap-2">
+                      <p class="text-sm font-semibold text-base-content">
+                        {{ model.name }}
+                      </p>
+                      <div class="flex shrink-0 items-center gap-1">
+                        @if (model.isDefault) {
+                          <span class="badge badge-ghost badge-xs"
+                            >Default</span
+                          >
+                        }
+                        @if (aiConfig.selectedModelId() === model.id) {
+                          <span class="badge badge-xs badge-primary"
+                            >Selected</span
+                          >
+                        }
+                      </div>
+                    </div>
+                    <p class="line-clamp-2 text-xs text-base-content/60">
+                      {{ model.description || model.id }}
+                    </p>
+                  </div>
+                  <div
+                    class="mt-2.5 flex items-center justify-between border-t border-base-300/60 pt-2 text-[11px] text-base-content/50"
+                  >
+                    <span class="max-w-[150px] truncate font-mono">{{
+                      model.id
+                    }}</span>
+                    @if (model.size) {
+                      <span class="badge badge-ghost badge-xs">{{
+                        model.size
+                      }}</span>
                     }
                   </div>
-                  <p class="truncate text-xs text-base-content/50">
-                    {{ model.id }}
-                    @if (model.description) { · {{ model.description }} }
-                  </p>
                 </div>
-                @if (model.size) {
-                  <div class="badge badge-ghost badge-sm shrink-0">{{ model.size }}</div>
-                }
-              </div>
+              }
             }
-          }
-        </div>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -218,6 +287,15 @@ export class SettingsTabAiComponent {
 
   readonly providers = KNOWN_PROVIDERS;
   readonly showKey = signal<boolean>(false);
+
+  /** Options for the provider app-select, including the server default entry. */
+  readonly providerOptions: SelectOption[] = [
+    { value: 'default', label: 'Server Default (Default Backend AI)' },
+    ...KNOWN_PROVIDERS.map((p) => ({
+      value: p.id,
+      label: p.quotaBadge ? `${p.label} — (${p.quotaBadge})` : p.label,
+    })),
+  ];
 
   readonly selectedProviderInfo = computed<ProviderInfo | undefined>(() =>
     this.providers.find((p) => p.id === this.aiConfig.provider()),
@@ -233,6 +311,12 @@ export class SettingsTabAiComponent {
     this.aiConfig.getModelsForProvider(this.aiConfig.provider()),
   );
   readonly isModelsLoading = computed<boolean>(() => this.aiConfig.loading());
+
+  readonly isKeyReady = computed<boolean>(() => {
+    const provider = this.aiConfig.provider();
+    if (provider === 'default') return true;
+    return !!this.currentKeyValue()?.trim();
+  });
 
   constructor() {
     this.destroyRef.onDestroy(() => {

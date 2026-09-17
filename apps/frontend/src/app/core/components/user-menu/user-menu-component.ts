@@ -8,11 +8,12 @@ import { LucideEllipsis } from '@lucide/angular';
   imports: [LucideEllipsis],
   template: `
     <div class="flex items-center gap-3">
-      <!-- Avatar with gradient -->
-      <div
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary font-bold text-primary-content shadow-lg ring-2 ring-base-300 transition-all"
-      >
-        G
+      <div class="avatar avatar-placeholder">
+        <div
+          class="w-10 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-content shadow-lg ring-2 ring-base-300"
+        >
+          <span class="font-bold">G</span>
+        </div>
       </div>
 
       <!-- User Info -->
@@ -24,17 +25,18 @@ import { LucideEllipsis } from '@lucide/angular';
       </div>
 
       <!-- Menu Button -->
-      <button
-        (click)="openSettings.emit()"
-        class="group/btn btn btn-circle btn-ghost text-base-content/60 btn-sm hover:text-base-content"
-        title="Settings"
-        aria-label="Settings"
-      >
-        <svg
-          lucideEllipsis
-          class="h-5 w-5 transition-transform duration-300 group-hover/btn:rotate-90"
-        ></svg>
-      </button>
+      <div class="tooltip tooltip-top" data-tip="Settings">
+        <button
+          (click)="openSettings.emit()"
+          class="btn btn-circle btn-ghost text-base-content/60 btn-sm hover:text-base-content"
+          aria-label="Settings"
+        >
+          <svg
+            lucideEllipsis
+            class="h-5 w-5 transition-transform duration-300 group-hover/btn:rotate-90"
+          ></svg>
+        </button>
+      </div>
     </div>
   `,
 })

@@ -36,7 +36,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'azure',
     label: 'Azure Speech',
     quotaNote: '500 000 chars/mo (free lifetime)',
-    quality: '⭐⭐⭐⭐⭐ Neural',
+    quality: 'Neural HD',
     review: 'Best choice (quota + natural voices)',
     keyHeader: 'x-azure-tts-key',
     consoleUrl:
@@ -49,7 +49,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'google',
     label: 'Google Cloud TTS',
     quotaNote: '1M to 4M chars/mo free',
-    quality: '⭐⭐⭐⭐ Fluid',
+    quality: 'Fluid Neural',
     review: 'Ultra generous volume',
     keyHeader: 'x-google-tts-key',
     consoleUrl: 'https://console.cloud.google.com/apis/credentials',
@@ -61,7 +61,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'polly',
     label: 'AWS Polly',
     quotaNote: '1M to 5M chars/mo (12 mo free tier)',
-    quality: '⭐⭐⭐ Good to very good',
+    quality: 'Neural Standard',
     review: 'Free first 12 months',
     keyHeader: 'x-aws-polly-key',
     consoleUrl: 'https://console.aws.amazon.com/polly/',
@@ -73,7 +73,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'openai',
     label: 'OpenAI Audio',
     quotaNote: 'Paid (pay-as-you-go)',
-    quality: '⭐⭐⭐⭐⭐ Natural',
+    quality: 'Natural HD',
     review: 'High quality neural speech',
     keyHeader: 'x-openai-api-key',
     consoleUrl: 'https://platform.openai.com/api-keys',
@@ -89,7 +89,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'minimax',
     label: 'MiniMax Audio',
     quotaNote: 'Trial credits available',
-    quality: '⭐⭐⭐⭐ Expressive',
+    quality: 'Expressive',
     review: 'Expressive and multilingual',
     keyHeader: 'x-minimax-tts-key',
     consoleUrl: 'https://api.minimax.chat/',
@@ -101,7 +101,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'elevenlabs',
     label: 'ElevenLabs',
     quotaNote: 'Account free/paid tier',
-    quality: '⭐⭐⭐⭐⭐ Ultra Natural',
+    quality: 'Ultra Natural',
     review: 'Industry leading voice cloning & naturalness',
     keyHeader: 'x-elevenlabs-api-key',
     consoleUrl: 'https://elevenlabs.io/app/speech-synthesis',
@@ -113,7 +113,7 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     id: 'browser',
     label: 'Web Speech (Browser)',
     quotaNote: 'Unlimited local',
-    quality: '⭐⭐ Dependent on OS',
+    quality: 'System Voice',
     review: 'Always available offline fallback',
     keyHeader: '',
     consoleUrl: '',
@@ -314,6 +314,11 @@ export class ElevenLabsVoiceService {
     const selectedVoice = voiceId || this.selectedVoiceId();
     const selectedModel = this.selectedModelId() || undefined;
 
+    // "default" means "let the server decide" — omit the provider field entirely
+    // so the backend uses its own configured default (elevenlabs) rather than
+    // failing with "TTS not available for provider 'default'".
+    const isServerDefault = activeProvider === 'default';
+
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -324,7 +329,7 @@ export class ElevenLabsVoiceService {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          provider: activeProvider,
+          ...(isServerDefault ? {} : { provider: activeProvider }),
           voiceId: selectedVoice,
           modelId: selectedModel,
           text,

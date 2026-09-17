@@ -1,8 +1,119 @@
 @import 'tailwindcss';
+
 @plugin 'daisyui' {
-  themes:
-    halloween --default,
-    emerald;
+  themes: forest --default;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Live English Teacher — Design System
+   Palette: Violet primary (intelligence) · Cyan secondary (voice AI) · Rose accent
+   Both dark & light share identical hue angles → fully consistent brand identity
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── app-dark : deep slate background, violet/cyan brand ───────────────── */
+@plugin 'daisyui/theme' {
+  name: 'app-dark';
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+
+  /* Surfaces — deep neutral slate with a subtle cool tint */
+  --color-base-100: oklch(18% 0.015 250);
+  --color-base-200: oklch(14% 0.012 250);
+  --color-base-300: oklch(11% 0.01 250);
+  --color-base-content: oklch(92% 0.01 250);
+
+  /* Primary — electric violet (intelligence, AI, learning) */
+  --color-primary: oklch(62% 0.24 285);
+  --color-primary-content: oklch(99% 0.005 285);
+
+  /* Secondary — rich cyan (voice, audio, real-time) */
+  --color-secondary: oklch(68% 0.2 195);
+  --color-secondary-content: oklch(10% 0.03 195);
+
+  /* Accent — warm rose (encouragement, gamification) */
+  --color-accent: oklch(65% 0.22 340);
+  --color-accent-content: oklch(99% 0.005 340);
+
+  /* Neutral — muted slate */
+  --color-neutral: oklch(30% 0.02 250);
+  --color-neutral-content: oklch(88% 0.01 250);
+
+  /* Semantic — harmonized with the brand hues */
+  --color-info: oklch(66% 0.19 215);
+  --color-info-content: oklch(99% 0.005 215);
+
+  --color-success: oklch(64% 0.22 152);
+  --color-success-content: oklch(99% 0.005 152);
+
+  --color-warning: oklch(76% 0.2 78);
+  --color-warning-content: oklch(18% 0.05 78);
+
+  --color-error: oklch(62% 0.24 22);
+  --color-error-content: oklch(99% 0.005 22);
+
+  /* Shape & depth */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* ── app-light : fresh white background, same violet/cyan brand ─────────── */
+@plugin 'daisyui/theme' {
+  name: 'app-light';
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  /* Surfaces — near-white with a subtle cool lavender tint */
+  --color-base-100: oklch(99% 0.004 250);
+  --color-base-200: oklch(95% 0.008 250);
+  --color-base-300: oklch(90% 0.012 250);
+  --color-base-content: oklch(18% 0.015 250);
+
+  /* Primary — deep violet (same hue as dark, adjusted lightness for contrast) */
+  --color-primary: oklch(52% 0.24 285);
+  --color-primary-content: oklch(99% 0.005 285);
+
+  /* Secondary — teal-cyan (same hue as dark) */
+  --color-secondary: oklch(55% 0.2 195);
+  --color-secondary-content: oklch(99% 0.005 195);
+
+  /* Accent — rose (same hue as dark) */
+  --color-accent: oklch(56% 0.22 340);
+  --color-accent-content: oklch(99% 0.005 340);
+
+  /* Neutral — warm light gray */
+  --color-neutral: oklch(55% 0.015 250);
+  --color-neutral-content: oklch(99% 0.005 250);
+
+  /* Semantic — same hues, tuned for light contrast */
+  --color-info: oklch(52% 0.19 215);
+  --color-info-content: oklch(99% 0.005 215);
+
+  --color-success: oklch(50% 0.22 152);
+  --color-success-content: oklch(99% 0.005 152);
+
+  --color-warning: oklch(56% 0.2 78);
+  --color-warning-content: oklch(99% 0.005 78);
+
+  --color-error: oklch(52% 0.24 22);
+  --color-error-content: oklch(99% 0.005 22);
+
+  /* Shape & depth */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
 }
 
 * {
@@ -37,3 +148,4 @@
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+

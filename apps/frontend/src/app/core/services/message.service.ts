@@ -1,4 +1,5 @@
 import { Injectable, inject, resource, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { Apollo } from 'apollo-angular';
 import { ERROR_CODES, MESSAGES } from '@core/constants/messages';
 import {
@@ -37,13 +38,13 @@ export class MessageService {
       if (!sessionId) return [];
 
       try {
-        const result = await this.apollo
-          .query<SessionMessagesQuery>({
+        const result = await firstValueFrom(
+          this.apollo.query<SessionMessagesQuery>({
             query: GET_SESSION_MESSAGES,
             variables: { sessionId },
             fetchPolicy: 'network-only',
-          })
-          .toPromise();
+          }),
+        );
 
         const sessionMessages = result?.data?.sessionMessages ?? [];
         const formatted: ChatMessage[] = sessionMessages.map(

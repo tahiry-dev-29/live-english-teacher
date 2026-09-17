@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { HttpHeaders } from '@angular/common/http';
 import { Apollo } from 'apollo-angular';
 import { environment } from '@environment';
@@ -43,8 +44,8 @@ export class ChatAudioService {
 
   async sendAudio(request: AudioChatRequest): Promise<AudioChatResult> {
     try {
-      const result = await this.apollo
-        .mutate<ChatMutationResult>({
+      const result = await firstValueFrom(
+        this.apollo.mutate<ChatMutationResult>({
           mutation: CHAT_MUTATION,
           variables: {
             content: '',
@@ -58,8 +59,8 @@ export class ChatAudioService {
           context: {
             headers: new HttpHeaders(this.chatStream.buildApiHeaders()),
           },
-        })
-        .toPromise();
+        }),
+      );
 
       if (!result?.data) return { kind: 'empty' };
 

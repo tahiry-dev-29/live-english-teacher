@@ -67,7 +67,10 @@ export class TtsProviderService {
     apiKey?: string;
     targetLanguage?: string;
   }): Promise<TtsSynthesisResult | null> {
-    const providerId = options.provider || 'elevenlabs';
+    // "default" is a frontend sentinel meaning "use whatever the server has configured".
+    // Resolve it to the actual server-side default provider (elevenlabs).
+    const rawProvider = options.provider || 'elevenlabs';
+    const providerId = rawProvider === 'default' ? 'elevenlabs' : rawProvider;
     const config = TTS_PROVIDERS_REGISTRY[providerId];
     if (!config) return null;
 
@@ -101,11 +104,7 @@ export class TtsProviderService {
           effectiveKey,
         );
       case 'polly':
-        return this.synthesizePolly(
-          options.text,
-          options.voiceId || config.defaultVoiceId,
-          effectiveKey,
-        );
+        return this.synthesizePolly(options.voiceId || config.defaultVoiceId);
       case 'minimax':
         return this.synthesizeMiniMax(
           options.text,
@@ -307,9 +306,7 @@ export class TtsProviderService {
   }
 
   private async synthesizePolly(
-    text: string,
     voiceId: string,
-    apiKey: string,
   ): Promise<TtsSynthesisResult | null> {
     this.logger.log(`Polly TTS invoked for voice ${voiceId}`);
     return null;

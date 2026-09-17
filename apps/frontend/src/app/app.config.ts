@@ -19,8 +19,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
-    // Instancie ThemeService au boot : `data-theme` (cookie → legacy → défaut)
-    // est posé avant le premier rendu — anti-flash, 100% Angular, sans script inline.
     provideAppInitializer(() => {
       inject(ThemeService);
     }),

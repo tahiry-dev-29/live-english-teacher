@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ElevenLabsVoiceService } from './elevenlabs-voice.service';
+import { base64ToBlob } from '@core/utils/text.util';
 import { MESSAGES } from '@core/constants/messages';
 
 interface TtsSpeechOptions {
@@ -96,13 +97,7 @@ export class TtsService {
     options?: TtsSpeechOptions,
   ): void {
     try {
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: mimeType });
+      const blob = base64ToBlob(base64Data, mimeType);
 
       this.audioUrl = URL.createObjectURL(blob);
       this.currentAudio = new Audio(this.audioUrl);
