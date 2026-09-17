@@ -26,9 +26,6 @@
       "purpose": "maskable"
     }
   ],
-  "categories": [
-    "education",
-    "productivity"
-  ],
+  "categories": ["education", "productivity"],
   "lang": "en"
 }

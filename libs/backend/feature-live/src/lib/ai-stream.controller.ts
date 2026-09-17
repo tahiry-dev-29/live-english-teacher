@@ -150,7 +150,9 @@ export class AiStreamController {
       }
     } catch (error) {
       if (error instanceof QuotaExceededError) {
-        this.logger?.warn?.(`Quota exceeded for ${error.provider}, prompting user for own key.`);
+        this.logger?.warn?.(
+          `Quota exceeded for ${error.provider}, prompting user for own key.`
+        );
         res.write(
           `data: ${JSON.stringify({
             error: true,
@@ -159,7 +161,8 @@ export class AiStreamController {
           })}\n\n`
         );
       } else {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        const errorMsg =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger?.error?.(`SSE stream error: ${errorMsg}`);
         res.write(
           `data: ${JSON.stringify({ error: true, message: errorMsg })}\n\n`

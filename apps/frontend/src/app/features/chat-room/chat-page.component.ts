@@ -62,7 +62,9 @@ export class ChatPageComponent implements OnInit {
 
   readonly isLiveMode = signal<boolean>(false);
   readonly showSettings = signal<boolean>(false);
-  readonly settingsInitialTab = signal<'general' | 'ai_model' | 'voices' | 'language'>('general');
+  readonly settingsInitialTab = signal<
+    'general' | 'ai_model' | 'voices' | 'language'
+  >('general');
   readonly userInput = signal<string>('');
   readonly showVoiceControl = signal<boolean>(false);
   readonly playingMessageIndex = signal<number | null>(null);

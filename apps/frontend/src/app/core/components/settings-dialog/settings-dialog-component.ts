@@ -79,7 +79,7 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
   ],
   template: `
     <dialog #dialogEl class="modal">
-      <div class="modal-box max-w-4xl p-0 h-[85vh] flex overflow-hidden bg-base-200 text-base-content border border-base-300 shadow-2xl">
+      <div class="modal-box max-w-5xl p-0 h-[85vh] flex overflow-hidden bg-base-200 text-base-content border border-base-300 shadow-2xl">
 
         <!-- Left: Tab Navigation -->
         <div class="w-48 bg-base-300/50 border-r border-base-300 flex flex-col shrink-0">
@@ -303,7 +303,7 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
 
                 <div class="space-y-1 mb-3">
                   <div class="flex items-center justify-between">
-                    <label class="text-xs text-base-content/60">{{ t('ai.keys.groq') }}</label>
+                    <label for="groq-api-key" class="text-xs text-base-content/60">{{ t('ai.keys.groq') }}</label>
                     @if (tempGroqKey()) {
                     <span class="badge badge-primary badge-xs">{{ t('ai.keys.custom') }}</span>
                     } @else {
@@ -311,7 +311,7 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
                     }
                   </div>
                   <div class="join w-full">
-                    <input [type]="showGroqKey() ? 'text' : 'password'"
+                    <input id="groq-api-key" [type]="showGroqKey() ? 'text' : 'password'"
                       class="input input-sm input-bordered join-item flex-1 font-mono text-xs"
                       placeholder="gsk_..." [ngModel]="tempGroqKey()" (ngModelChange)="tempGroqKey.set($event)" />
                     <button type="button" class="btn btn-sm btn-ghost join-item" (click)="showGroqKey.set(!showGroqKey())">
@@ -328,7 +328,7 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
 
                 <div class="space-y-1 mb-3">
                   <div class="flex items-center justify-between">
-                    <label class="text-xs text-base-content/60">{{ t('ai.keys.gemini') }}</label>
+                    <label for="gemini-api-key" class="text-xs text-base-content/60">{{ t('ai.keys.gemini') }}</label>
                     @if (tempGeminiKey()) {
                     <span class="badge badge-primary badge-xs">{{ t('ai.keys.custom') }}</span>
                     } @else {
@@ -336,7 +336,7 @@ type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
                     }
                   </div>
                   <div class="join w-full">
-                    <input [type]="showGeminiKey() ? 'text' : 'password'"
+                    <input id="gemini-api-key" [type]="showGeminiKey() ? 'text' : 'password'"
                       class="input input-sm input-bordered join-item flex-1 font-mono text-xs"
                       placeholder="AIza..." [ngModel]="tempGeminiKey()" (ngModelChange)="tempGeminiKey.set($event)" />
                     <button type="button" class="btn btn-sm btn-ghost join-item" (click)="showGeminiKey.set(!showGeminiKey())">

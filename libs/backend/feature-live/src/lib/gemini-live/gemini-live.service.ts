@@ -127,10 +127,7 @@ export class GeminiLiveService {
       }
 
       // Quota exhausted on server key → signal frontend to ask user for their own key
-      if (
-        (response.status === 429 || response.status === 402) &&
-        !isUserKey
-      ) {
+      if ((response.status === 429 || response.status === 402) && !isUserKey) {
         throw new QuotaExceededError('gemini');
       }
 

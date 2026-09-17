@@ -8,3 +8,7 @@
 # le fichier compile sous Angular (tsc + ng build OK), on l'exclut du format
 # jusqu'à la montée de version Prettier >= 3.
 apps/frontend/src/app/core/components/sidebar/sidebar-session-list.component.html
+# Generated pnpm lockfile: prettier 2.8 is very slow on it and any reflow is pure noise.
+/pnpm-lock.yaml
+# Agent-managed tooling + generated task outputs (skill files are hash-synced with skills-lock.json).
+/.agents
