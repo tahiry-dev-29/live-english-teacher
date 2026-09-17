@@ -42,6 +42,7 @@ export class SidebarSearchModalComponent {
   readonly sessionSelected = output<string>();
   readonly renameSession = output<{ id: string; title: string }>();
   readonly deleteSession = output<string>();
+  readonly togglePinSession = output<{ id: string; isPinned: boolean }>();
   readonly reloadHistory = output<void>();
   readonly closed = output<void>();
 

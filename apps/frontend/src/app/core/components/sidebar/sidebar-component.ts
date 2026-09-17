@@ -16,13 +16,14 @@ import { PwaService } from '@core/services/pwa.service';
 import { ThemeService } from '@core/services/theme.service';
 import {
   LucideMessageCirclePlus,
+  LucideSquarePen,
   LucideSearch,
+  LucideSettings,
+  LucidePanelLeftClose,
+  LucidePanelLeftOpen,
+  LucideDownload,
   LucideChevronDown,
   LucideChevronUp,
-  LucideSettings,
-  LucidePanelRightClose,
-  LucidePanelRightOpen,
-  LucideDownload,
 } from '@lucide/angular';
 
 @Component({
@@ -35,13 +36,14 @@ import {
     SidebarSearchModalComponent,
     SidebarSessionListComponent,
     LucideMessageCirclePlus,
+    LucideSquarePen,
     LucideSearch,
+    LucideSettings,
+    LucidePanelLeftClose,
+    LucidePanelLeftOpen,
+    LucideDownload,
     LucideChevronDown,
     LucideChevronUp,
-    LucideSettings,
-    LucidePanelRightClose,
-    LucidePanelRightOpen,
-    LucideDownload,
   ],
   templateUrl: './sidebar-component.html',
 })
@@ -49,11 +51,11 @@ export class SidebarComponent {
   private readonly pwa = inject(PwaService);
   private readonly themeService = inject(ThemeService);
 
-  /** Theme-aware app logo – switches between light and dark variants. */
+  /** Theme-aware app logo – white icon for dark background, dark icon for light background. */
   readonly logoSrc = computed<string>(() =>
     this.themeService.resolvedTheme() === 'app-dark'
-      ? 'dark/apple-touch-icon.png'
-      : 'apple-touch-icon.png',
+      ? 'apple-touch-icon.png'
+      : 'dark/apple-touch-icon.png',
   );
 
   readonly isOpen = signal<boolean>(true);
@@ -65,14 +67,14 @@ export class SidebarComponent {
   readonly activeSessionId = input<string | null>(null);
   readonly isReloading = input<boolean>(false);
 
-  readonly initialLimit = 5;
-  readonly visibleLimit = signal<number>(5);
+  readonly initialLimit = 10;
+  readonly visibleLimit = signal<number>(this.initialLimit);
   readonly showingAll = signal<boolean>(false);
 
   readonly displayedSessions = computed<Session[]>(() => {
-    const sessions = this.sessions();
-    if (this.showingAll()) return sessions;
-    return sessions.slice(0, this.visibleLimit());
+    const list = this.sessions();
+    if (this.showingAll()) return list;
+    return list.slice(0, this.visibleLimit());
   });
 
   readonly hasMoreSessions = computed<boolean>(() => {
@@ -80,13 +82,14 @@ export class SidebarComponent {
   });
 
   readonly remainingCount = computed<number>(() => {
-    return this.sessions().length - this.visibleLimit();
+    return Math.max(0, this.sessions().length - this.visibleLimit());
   });
 
   readonly newChat = output<void>();
   readonly sessionSelected = output<string>();
   readonly renameSession = output<{ id: string; title: string }>();
   readonly deleteSession = output<string>();
+  readonly togglePinSession = output<{ id: string; isPinned: boolean }>();
   readonly reloadHistory = output<void>();
   readonly openSettings = output<void>();
 

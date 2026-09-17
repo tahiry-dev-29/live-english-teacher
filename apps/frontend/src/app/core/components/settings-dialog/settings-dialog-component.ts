@@ -47,7 +47,7 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
   template: `
     <dialog #dialogEl class="modal">
       <div
-        class="modal-box flex h-[85vh] max-w-5xl overflow-hidden border border-base-300 bg-base-200 p-0 text-base-content"
+        class="modal-box flex h-[85vh] max-w-3xl overflow-hidden border border-base-300 bg-base-200 p-0 text-base-content"
       >
         <!-- Left: Tab Navigation -->
         <div

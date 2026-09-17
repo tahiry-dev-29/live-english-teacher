@@ -11,6 +11,9 @@ export class SessionResponse {
   @Field({ nullable: true })
   learningLanguage?: string;
 
+  @Field(() => Boolean, { defaultValue: false })
+  isPinned!: boolean;
+
   @Field()
   createdAt!: string;
 
@@ -44,6 +47,9 @@ export class SessionDetailResponse {
   @Field()
   learningLanguage!: string;
 
+  @Field(() => Boolean, { defaultValue: false })
+  isPinned!: boolean;
+
   @Field()
   createdAt!: string;
 
@@ -61,4 +67,8 @@ export class UpdateSessionInput {
 
   @Field({ nullable: true })
   title?: string;
+
+  @Field({ nullable: true })
+  isPinned?: boolean;
 }
+

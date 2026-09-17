@@ -3,10 +3,13 @@ import {
   input,
   output,
   signal,
+  computed,
   ChangeDetectionStrategy,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Session } from '@models/session.model';
+import { NotificationService } from '@core/services/notification.service';
 import {
   LucideMessageCircle,
   LucidePencil,
@@ -14,7 +17,15 @@ import {
   LucideCheck,
   LucideX,
   LucideRefreshCw,
+  LucidePin,
+  LucidePinOff,
+  LucideShare2,
+  LucideEllipsis,
+  LucideSlidersHorizontal,
 } from '@lucide/angular';
+import { ShareDialogComponent } from '@core/components/share-dialog/share-dialog.component';
+
+export type SessionSortBy = 'activity' | 'created' | 'name';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,18 +33,25 @@ import {
   standalone: true,
   imports: [
     CommonModule,
+    ShareDialogComponent,
     LucideMessageCircle,
     LucidePencil,
     LucideTrash2,
     LucideCheck,
     LucideX,
     LucideRefreshCw,
+    LucidePin,
+    LucidePinOff,
+    LucideShare2,
+    LucideEllipsis,
+    LucideSlidersHorizontal,
   ],
   templateUrl: './sidebar-session-list.component.html',
 })
 export class SidebarSessionListComponent {
+  private readonly notificationService = inject(NotificationService);
+
   readonly sessions = input<Session[]>([]);
-  readonly totalSessions = input<number>(0);
   readonly activeSessionId = input<string | null>(null);
   readonly isReloading = input<boolean>(false);
   /** Terme à surligner dans les titres (vide = pas de surlignage). */
@@ -42,14 +60,79 @@ export class SidebarSessionListComponent {
   readonly sessionClick = output<string>();
   readonly renameSession = output<{ id: string; title: string }>();
   readonly deleteSession = output<string>();
+  readonly togglePinSession = output<{ id: string; isPinned: boolean }>();
   readonly reloadHistory = output<void>();
 
   readonly editingSessionId = signal<string | null>(null);
   readonly editTitle = signal<string>('');
   readonly confirmDeleteId = signal<string | null>(null);
+  readonly sortBy = signal<SessionSortBy>('activity');
+  readonly sharingSession = signal<Session | null>(null);
+
   private deleteTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  startRename(sessionId: string, currentTitle: string): void {
+  /** Sessions triées selon le critère actif. */
+  readonly sortedSessions = computed<Session[]>(() => {
+    const list = [...this.sessions()];
+    const sort = this.sortBy();
+
+    return list.sort((a, b) => {
+      if (sort === 'name') {
+        return a.title.localeCompare(b.title);
+      }
+      if (sort === 'created') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      // 'activity' (default)
+      const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    });
+  });
+
+  /** Sessions épinglées (Pinned). */
+  readonly pinnedSessions = computed<Session[]>(() => {
+    return this.sortedSessions().filter((s) => Boolean(s.isPinned));
+  });
+
+  /** Sessions récentes non-épinglées (Recents). */
+  readonly recentSessions = computed<Session[]>(() => {
+    return this.sortedSessions().filter((s) => !s.isPinned);
+  });
+
+  // ── Pinning ─────────────────────────────────────────────────────────────
+
+  togglePin(sessionId: string, event?: Event): void {
+    event?.stopPropagation();
+    const session = this.sessions().find((s) => s.id === sessionId);
+    const nextPinned = session ? !session.isPinned : true;
+    this.togglePinSession.emit({ id: sessionId, isPinned: nextPinned });
+    if (nextPinned) {
+      this.notificationService.success('Conversation pinned to top');
+    } else {
+      this.notificationService.info('Conversation unpinned');
+    }
+  }
+
+  isPinned(sessionId: string): boolean {
+    const session = this.sessions().find((s) => s.id === sessionId);
+    return Boolean(session?.isPinned);
+  }
+
+  // ── Sharing ─────────────────────────────────────────────────────────────
+  shareConversation(item: Session, event?: Event): void {
+    event?.stopPropagation();
+    this.sharingSession.set(item);
+  }
+
+  closeShareDialog(): void {
+    this.sharingSession.set(null);
+  }
+
+  // ── Renaming ────────────────────────────────────────────────────────────
+
+  startRename(sessionId: string, currentTitle: string, event?: Event): void {
+    event?.stopPropagation();
     this.editingSessionId.set(sessionId);
     this.editTitle.set(currentTitle);
     this.confirmDeleteId.set(null);
@@ -67,7 +150,10 @@ export class SidebarSessionListComponent {
     this.editingSessionId.set(null);
   }
 
-  initDelete(sessionId: string): void {
+  // ── Deleting ────────────────────────────────────────────────────────────
+
+  initDelete(sessionId: string, event?: Event): void {
+    event?.stopPropagation();
     this.confirmDeleteId.set(sessionId);
     this.editingSessionId.set(null);
 
@@ -77,16 +163,15 @@ export class SidebarSessionListComponent {
     }, 3000);
   }
 
-  confirmDelete(sessionId: string): void {
+  confirmDelete(sessionId: string, event?: Event): void {
+    event?.stopPropagation();
     this.deleteSession.emit(sessionId);
     this.confirmDeleteId.set(null);
     if (this.deleteTimeout) clearTimeout(this.deleteTimeout);
   }
 
-  /**
-   * Titre avec occurrences du terme surlignées (`<mark>`).
-   * Titres = saisie utilisateur → tout est échappé avant injection.
-   */
+  // ── Highlighting ────────────────────────────────────────────────────────
+
   highlightedTitle(title: string): string {
     const term = this.highlightTerm().trim().toLowerCase();
     if (!term) return escapeHtml(title);
@@ -111,3 +196,4 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+

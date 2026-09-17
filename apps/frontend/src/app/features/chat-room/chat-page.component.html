@@ -16,6 +16,7 @@
     (sessionSelected)="loadSession($event)"
     (renameSession)="onRenameSession($event)"
     (deleteSession)="onDeleteSession($event)"
+    (togglePinSession)="onTogglePinSession($event)"
     (reloadHistory)="chatService.sessionsResource.reload()"
     (openSettings)="showSettings.set(true)"
     #sidebar
@@ -74,7 +75,7 @@
           class="btn btn-circle btn-ghost btn-sm"
           aria-label="Toggle sidebar"
         >
-          <svg lucidePanelRightOpen class="h-5 w-5"></svg>
+          <svg lucidePanelLeftOpen class="h-5 w-5"></svg>
         </button>
         <span
           class="bg-gradient-to-r from-primary to-secondary bg-clip-text font-bold text-transparent"

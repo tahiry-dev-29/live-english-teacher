@@ -58,13 +58,13 @@
       } @else {
         <app-sidebar-session-list
           [sessions]="filteredSessions()"
-          [totalSessions]="filteredSessions().length"
           [activeSessionId]="activeSessionId()"
           [isReloading]="isReloading()"
           [highlightTerm]="searchTerm()"
           (sessionClick)="onSessionClick($event)"
           (renameSession)="renameSession.emit($event)"
           (deleteSession)="deleteSession.emit($event)"
+          (togglePinSession)="togglePinSession.emit($event)"
           (reloadHistory)="reloadHistory.emit()"
         />
       }

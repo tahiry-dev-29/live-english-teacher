@@ -149,3 +149,11 @@
   background: transparent;
 }
 
+/* ── Prevent any scale / transform / font-size jump on sidebar & menu hover ── */
+aside button,
+aside .btn,
+.menu li > * {
+  transform: none !important;
+  scale: 1 !important;
+}
+

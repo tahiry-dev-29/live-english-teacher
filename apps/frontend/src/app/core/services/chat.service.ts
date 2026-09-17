@@ -10,6 +10,7 @@ const GET_SESSIONS_QUERY = gql`
       id
       title
       learningLanguage
+      isPinned
       createdAt
       updatedAt
       lastMessage
@@ -22,6 +23,16 @@ const RENAME_SESSION_MUTATION = gql`
     updateSession(data: { sessionId: $id, title: $title }) {
       id
       title
+      isPinned
+    }
+  }
+`;
+
+const TOGGLE_PIN_SESSION_MUTATION = gql`
+  mutation TogglePinSession($id: String!, $isPinned: Boolean!) {
+    updateSession(data: { sessionId: $id, isPinned: $isPinned }) {
+      id
+      isPinned
     }
   }
 `;
@@ -64,6 +75,16 @@ export class ChatService {
       this.apollo.mutate({
         mutation: RENAME_SESSION_MUTATION,
         variables: { id, title },
+      }),
+    );
+    this.sessionsResource.reload();
+  }
+
+  async togglePinSession(id: string, isPinned: boolean) {
+    await firstValueFrom(
+      this.apollo.mutate({
+        mutation: TOGGLE_PIN_SESSION_MUTATION,
+        variables: { id, isPinned },
       }),
     );
     this.sessionsResource.reload();

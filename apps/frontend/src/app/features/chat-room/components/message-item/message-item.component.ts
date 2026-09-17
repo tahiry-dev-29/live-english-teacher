@@ -152,8 +152,8 @@ import { ChatMessage } from '@models/chat-message.model';
                 </button>
               </div>
 
-              <!-- ⋯ Three dots menu dropdown -->
-              <div class="dropdown dropdown-end dropdown-bottom">
+              <!-- ⋯ Three dots menu dropdown (opens rightwards to avoid clipping) -->
+              <div class="dropdown dropdown-start dropdown-bottom">
                 <div class="tooltip tooltip-bottom" data-tip="More">
                   <button
                     tabindex="0"

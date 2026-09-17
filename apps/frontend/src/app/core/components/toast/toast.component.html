@@ -1,27 +1,30 @@
-@for (n of notifications(); track n.id) {
-  <div class="toast toast-center">
-    <div [class]="alertClass(n.type)">
+<div class="toast toast-top toast-center z-50 pointer-events-none pt-4 max-w-md w-full px-4">
+  @for (n of notifications(); track n.id) {
+    <div
+      [class]="alertClass(n.type)"
+      class="pointer-events-auto flex items-center gap-2.5 rounded-2xl px-4 py-2.5 shadow-2xl border border-base-300/40 backdrop-blur-md text-sm transition-all"
+    >
       @if (n.type === 'info') {
-        <svg lucideInfo class="h-5 w-5 shrink-0" />
+        <svg lucideInfo class="h-4 w-4 shrink-0 text-info" />
       }
       @if (n.type === 'success') {
-        <svg lucideCheckCircle class="h-5 w-5 shrink-0" />
+        <svg lucideCheckCircle class="h-4 w-4 shrink-0 text-success" />
       }
       @if (n.type === 'warning') {
-        <svg lucideAlertTriangle class="h-5 w-5 shrink-0" />
+        <svg lucideAlertTriangle class="h-4 w-4 shrink-0 text-warning" />
       }
       @if (n.type === 'error') {
-        <svg lucideAlertCircle class="h-5 w-5 shrink-0" />
+        <svg lucideAlertCircle class="h-4 w-4 shrink-0 text-error" />
       }
+      <span class="flex-1 text-xs font-medium">{{ n.message }}</span>
       <button
         type="button"
-        class="btn btn-circle btn-ghost btn-xs"
+        class="btn btn-circle btn-ghost btn-xs h-5 w-5 min-h-0 opacity-60 hover:opacity-100"
         aria-label="Dismiss"
         (click)="dismiss.emit(n.id)"
       >
-        <svg lucideX class="h-4 w-4" />
+        <svg lucideX class="h-3.5 w-3.5" />
       </button>
-      <span class="flex-1 text-sm">{{ n.message }}</span>
     </div>
-  </div>
-}
+  }
+</div>

@@ -1,115 +1,374 @@
-<ul class="menu w-full gap-0.5 menu-sm p-0">
-  <li class="flex flex-row items-center justify-between menu-title px-2">
-    <span>History</span>
-    <span class="flex items-center gap-1">
-      <span class="badge badge-ghost badge-sm">{{ totalSessions() }}</span>
-      <button
-        type="button"
-        (click)="reloadHistory.emit(); $event.stopPropagation()"
-        class="btn btn-ghost btn-xs"
-        aria-label="Reload history"
-        [disabled]="isReloading()"
+<div class="flex w-full flex-col gap-2">
+  <!-- 1. Pinned Chats Section (if any) -->
+  @if (pinnedSessions().length > 0) {
+    <div class="flex flex-col gap-0.5">
+      <div
+        class="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-base-content/50 uppercase"
       >
-        <svg
-          lucideRefreshCw
-          class="h-3.5 w-3.5"
-          [class.animate-spin]="isReloading()"
-        />
-      </button>
-    </span>
-  </li>
-  @for (item of sessions(); track item.id) {
-    <li class="group relative w-full overflow-hidden">
-      @if (editingSessionId() === item.id) {
-        <div class="flex w-full min-w-0 items-center gap-1 px-1 py-1">
-          <input
-            #editInput
-            type="text"
-            [value]="editTitle()"
-            (input)="editTitle.set(editInput.value)"
-            (keyup.enter)="saveRename(item.id)"
-            (keyup.escape)="cancelRename()"
-            class="input min-w-0 flex-1 input-sm"
-            placeholder="Session title"
-          />
+        <svg lucidePin class="h-3 w-3 text-primary"></svg>
+        <span>Pinned</span>
+      </div>
+
+      <ul class="flex w-full flex-col gap-0.5 p-0 list-none m-0">
+        @for (item of pinnedSessions(); track item.id) {
+          <li class="group relative w-full overflow-visible">
+            @if (editingSessionId() === item.id) {
+              <div class="flex w-full min-w-0 items-center gap-1 px-1 py-1">
+                <input
+                  #editInput
+                  type="text"
+                  [value]="editTitle()"
+                  (input)="editTitle.set(editInput.value)"
+                  (keyup.enter)="saveRename(item.id)"
+                  (keyup.escape)="cancelRename()"
+                  class="input min-w-0 flex-1 input-xs bg-base-100 border-base-300"
+                  placeholder="Session title"
+                />
+                <button
+                  type="button"
+                  (click)="saveRename(item.id)"
+                  class="btn shrink-0 btn-ghost text-success btn-xs"
+                  aria-label="Save"
+                >
+                  <svg lucideCheck class="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  (click)="cancelRename()"
+                  class="btn shrink-0 btn-ghost btn-xs"
+                  aria-label="Cancel"
+                >
+                  <svg lucideX class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            } @else {
+              <div
+                class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 group-hover:bg-secondary/15 select-none"
+                [class.bg-secondary/20]="activeSessionId() === item.id"
+                [class.text-primary]="activeSessionId() === item.id"
+                [class.font-medium]="activeSessionId() === item.id"
+              >
+                <!-- Title & click target -->
+                <button
+                  type="button"
+                  (click)="sessionClick.emit(item.id)"
+                  class="flex min-w-0 flex-1 items-center gap-2 text-left outline-none cursor-pointer"
+                >
+                  <span
+                    class="block truncate text-xs leading-5 font-normal"
+                    [innerHTML]="highlightedTitle(item.title)"
+                  ></span>
+                </button>
+
+                <!-- Pinned pin icon (visible when not hovered) -->
+                <svg
+                  lucidePin
+                  class="h-3.5 w-3.5 shrink-0 text-primary opacity-70 group-hover:hidden"
+                ></svg>
+
+                <!-- Hover 3-dots action menu (appears on hover) -->
+                <div class="dropdown dropdown-end dropdown-bottom hidden group-hover:inline-block">
+                  <button
+                    tabindex="0"
+                    type="button"
+                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 hover:bg-base-300 hover:text-base-content outline-none cursor-pointer"
+                    (click)="$event.stopPropagation()"
+                    aria-label="Chat options"
+                  >
+                    <svg lucideEllipsis class="h-3.5 w-3.5" />
+                  </button>
+                  <ul
+                    tabindex="0"
+                    class="menu dropdown-content z-50 mt-1 w-48 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
+                  >
+                    <li>
+                      <button
+                        type="button"
+                        (click)="shareConversation(item, $event)"
+                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                      >
+                        <svg lucideShare2 class="h-3.5 w-3.5 text-base-content/70" />
+                        <span>Share conversation</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        (click)="togglePin(item.id, $event)"
+                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                      >
+                        <svg lucidePinOff class="h-3.5 w-3.5 text-base-content/70" />
+                        <span>Unpin</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        (click)="startRename(item.id, item.title, $event)"
+                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                      >
+                        <svg lucidePencil class="h-3.5 w-3.5 text-base-content/70" />
+                        <span>Rename</span>
+                      </button>
+                    </li>
+                    <li class="border-t border-base-300/60 mt-1 pt-1">
+                      @if (confirmDeleteId() === item.id) {
+                        <button
+                          type="button"
+                          (click)="confirmDelete(item.id, $event)"
+                          class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error font-semibold animate-pulse"
+                        >
+                          <svg lucideCheck class="h-3.5 w-3.5" />
+                          <span>Confirm Delete</span>
+                        </button>
+                      } @else {
+                        <button
+                          type="button"
+                          (click)="initDelete(item.id, $event)"
+                          class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error hover:bg-error/10"
+                        >
+                          <svg lucideTrash2 class="h-3.5 w-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      }
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <!-- 2. Recent Chats Section -->
+  <div class="flex flex-col gap-0.5">
+    <!-- Header with Sort & Reload -->
+    <div
+      class="flex items-center justify-between px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-base-content/50 uppercase"
+    >
+      <span>Recents</span>
+
+      <div class="flex items-center gap-0.5">
+        <!-- Sort dropdown -->
+        <div class="dropdown dropdown-end dropdown-bottom">
           <button
+            tabindex="0"
             type="button"
-            (click)="saveRename(item.id)"
-            class="btn shrink-0 btn-ghost text-success btn-xs"
-            aria-label="Save"
+            class="btn btn-circle btn-ghost btn-xs h-6 w-6 min-h-0 text-base-content/50 hover:text-base-content"
+            title="Sort options"
+            aria-label="Sort options"
           >
-            <svg lucideCheck class="h-4 w-4" />
+            <svg lucideSlidersHorizontal class="h-3 w-3" />
           </button>
-          <button
-            type="button"
-            (click)="cancelRename()"
-            class="btn shrink-0 btn-ghost btn-xs"
-            aria-label="Cancel"
+          <ul
+            tabindex="0"
+            class="menu dropdown-content z-50 mt-1 w-44 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
           >
-            <svg lucideX class="h-4 w-4" />
-          </button>
+            <li class="menu-title px-2 py-1 text-[10px] uppercase text-base-content/40">Sort by</li>
+            <li>
+              <button
+                type="button"
+                (click)="sortBy.set('activity')"
+                class="flex items-center justify-between rounded-xl py-1.5 text-xs"
+                [class.font-semibold]="sortBy() === 'activity'"
+                [class.text-primary]="sortBy() === 'activity'"
+              >
+                <span>Last activity</span>
+                @if (sortBy() === 'activity') {
+                  <svg lucideCheck class="h-3.5 w-3.5" />
+                }
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                (click)="sortBy.set('created')"
+                class="flex items-center justify-between rounded-xl py-1.5 text-xs"
+                [class.font-semibold]="sortBy() === 'created'"
+                [class.text-primary]="sortBy() === 'created'"
+              >
+                <span>Date created</span>
+                @if (sortBy() === 'created') {
+                  <svg lucideCheck class="h-3.5 w-3.5" />
+                }
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                (click)="sortBy.set('name')"
+                class="flex items-center justify-between rounded-xl py-1.5 text-xs"
+                [class.font-semibold]="sortBy() === 'name'"
+                [class.text-primary]="sortBy() === 'name'"
+              >
+                <span>Name</span>
+                @if (sortBy() === 'name') {
+                  <svg lucideCheck class="h-3.5 w-3.5" />
+                }
+              </button>
+            </li>
+          </ul>
         </div>
-      } @else {
+
+        <!-- Reload button -->
         <button
           type="button"
-          (click)="sessionClick.emit(item.id)"
-          [class.menu-active]="activeSessionId() === item.id"
-          class="flex w-full min-w-0 items-center gap-2 pr-16 text-left"
+          (click)="reloadHistory.emit(); $event.stopPropagation()"
+          class="btn btn-circle btn-ghost btn-xs h-6 w-6 min-h-0 text-base-content/50 hover:text-base-content"
+          title="Reload history"
+          aria-label="Reload history"
+          [disabled]="isReloading()"
         >
-          <svg lucideMessageCircle class="h-4 w-4 shrink-0 opacity-60" />
-          <span class="min-w-0 flex-1 overflow-hidden">
-            <span
-              class="block truncate text-[13px] leading-tight"
-              [innerHTML]="highlightedTitle(item.title)"
-            ></span>
-            <span
-              class="mt-0.5 block truncate text-[10px] leading-snug opacity-50"
-              >{{ item.learningLanguage | uppercase }} &bull;
-              {{ item.createdAt | date: 'shortDate' }}</span
-            >
-          </span>
+          <svg
+            lucideRefreshCw
+            class="h-3 w-3"
+            [class.animate-spin]="isReloading()"
+          />
         </button>
-        <!-- Action buttons: always reserved space (pr-16 on button above) -->
-        <span
-          class="pointer-events-none absolute top-1/2 right-1.5 flex -translate-y-1/2 gap-0.5 rounded-lg bg-base-200/95 p-0.5 opacity-0 shadow-md backdrop-blur-sm transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
-        >
-          <button
-            type="button"
-            (click)="startRename(item.id, item.title); $event.stopPropagation()"
-            class="btn btn-ghost btn-xs"
-            aria-label="Rename"
-          >
-            <svg lucidePencil class="h-3.5 w-3.5" />
-          </button>
+      </div>
+    </div>
 
-          @if (confirmDeleteId() === item.id) {
-            <button
-              type="button"
-              (click)="confirmDelete(item.id); $event.stopPropagation()"
-              class="btn animate-pulse btn-ghost text-error btn-xs"
-              aria-label="Confirm Delete"
-            >
-              <svg lucideCheck class="h-3.5 w-3.5" />
-            </button>
+    <!-- Sessions list -->
+    <ul class="flex w-full flex-col gap-0.5 p-0 list-none m-0">
+      @for (item of recentSessions(); track item.id) {
+        <li class="group relative w-full overflow-visible">
+          @if (editingSessionId() === item.id) {
+            <div class="flex w-full min-w-0 items-center gap-1 px-1 py-1">
+              <input
+                #editInput
+                type="text"
+                [value]="editTitle()"
+                (input)="editTitle.set(editInput.value)"
+                (keyup.enter)="saveRename(item.id)"
+                (keyup.escape)="cancelRename()"
+                class="input min-w-0 flex-1 input-xs bg-base-100 border-base-300"
+                placeholder="Session title"
+              />
+              <button
+                type="button"
+                (click)="saveRename(item.id)"
+                class="btn shrink-0 btn-ghost text-success btn-xs"
+                aria-label="Save"
+              >
+                <svg lucideCheck class="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                (click)="cancelRename()"
+                class="btn shrink-0 btn-ghost btn-xs"
+                aria-label="Cancel"
+              >
+                <svg lucideX class="h-3.5 w-3.5" />
+              </button>
+            </div>
           } @else {
-            <button
-              type="button"
-              (click)="initDelete(item.id); $event.stopPropagation()"
-              class="btn btn-ghost text-error/60 btn-xs hover:text-error"
-              aria-label="Delete"
+            <div
+              class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 group-hover:bg-secondary/15 select-none"
+              [class.bg-secondary/20]="activeSessionId() === item.id"
+              [class.text-primary]="activeSessionId() === item.id"
+              [class.font-medium]="activeSessionId() === item.id"
             >
-              <svg lucideTrash2 class="h-3.5 w-3.5" />
-            </button>
+              <!-- Title & click target -->
+              <button
+                type="button"
+                (click)="sessionClick.emit(item.id)"
+                class="flex min-w-0 flex-1 items-center gap-2 text-left outline-none cursor-pointer"
+              >
+                <span
+                  class="block truncate text-xs leading-5 font-normal"
+                  [innerHTML]="highlightedTitle(item.title)"
+                ></span>
+              </button>
+
+              <!-- Hover 3-dots action menu -->
+              <div class="dropdown dropdown-end dropdown-bottom hidden group-hover:inline-block">
+                <button
+                  tabindex="0"
+                  type="button"
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 hover:bg-base-300 hover:text-base-content outline-none cursor-pointer"
+                  (click)="$event.stopPropagation()"
+                  aria-label="Chat options"
+                >
+                  <svg lucideEllipsis class="h-3.5 w-3.5" />
+                </button>
+                <ul
+                  tabindex="0"
+                  class="menu dropdown-content z-50 mt-1 w-48 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
+                >
+                  <li>
+                    <button
+                      type="button"
+                      (click)="shareConversation(item, $event)"
+                      class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                    >
+                      <svg lucideShare2 class="h-3.5 w-3.5 text-base-content/70" />
+                      <span>Share conversation</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      (click)="togglePin(item.id, $event)"
+                      class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                    >
+                      <svg lucidePin class="h-3.5 w-3.5 text-base-content/70" />
+                      <span>Pin</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      (click)="startRename(item.id, item.title, $event)"
+                      class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                    >
+                      <svg lucidePencil class="h-3.5 w-3.5 text-base-content/70" />
+                      <span>Rename</span>
+                    </button>
+                  </li>
+                  <li class="border-t border-base-300/60 mt-1 pt-1">
+                    @if (confirmDeleteId() === item.id) {
+                      <button
+                        type="button"
+                        (click)="confirmDelete(item.id, $event)"
+                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error font-semibold animate-pulse"
+                      >
+                        <svg lucideCheck class="h-3.5 w-3.5" />
+                        <span>Confirm Delete</span>
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        (click)="initDelete(item.id, $event)"
+                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error hover:bg-error/10"
+                      >
+                        <svg lucideTrash2 class="h-3.5 w-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    }
+                  </li>
+                </ul>
+              </div>
+            </div>
           }
-        </span>
+        </li>
+      } @empty {
+        @if (pinnedSessions().length === 0) {
+          <li class="flex flex-col items-center gap-2 py-8 text-center italic text-base-content/40">
+            <svg lucideMessageCircle class="h-8 w-8 opacity-50" />
+            <span class="text-xs">No conversations yet</span>
+          </li>
+        }
       }
-    </li>
-  } @empty {
-    <li
-      class="menu-disabled flex flex-col items-center gap-2 py-8 text-center italic"
-    >
-      <svg lucideMessageCircle class="h-8 w-8 opacity-50" />
-      <span>No history yet</span>
-    </li>
-  }
-</ul>
+    </ul>
+  </div>
+
+  <!-- Share Conversation Modal Dialog -->
+  <app-share-dialog
+    [session]="sharingSession()"
+    [isOpen]="sharingSession() !== null"
+    (closed)="closeShareDialog()"
+  />
+</div>
+

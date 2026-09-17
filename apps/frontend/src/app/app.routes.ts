@@ -17,6 +17,14 @@ export const appRoutes: Route[] = [
       ),
   },
   {
+    path: 'share/:sessionId',
+    title: 'Shared Chat',
+    loadComponent: () =>
+      import('./features/chat-room/chat-page.component').then(
+        (m) => m.ChatPageComponent,
+      ),
+  },
+  {
     path: '**',
     title: 'Not Found',
     loadComponent: () =>

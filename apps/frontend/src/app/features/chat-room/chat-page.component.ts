@@ -15,7 +15,7 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import {
   LucideKeyRound,
   LucideMessageCircle,
-  LucidePanelRightOpen,
+  LucidePanelLeftOpen,
   LucideTriangleAlert,
   LucideX,
 } from '@lucide/angular';
@@ -42,15 +42,15 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
     FormsModule,
     CommonModule,
     LucideMessageCircle,
-    LucidePanelRightOpen,
-    LucideKeyRound,
+    LucidePanelLeftOpen,
     LucideTriangleAlert,
+    LucideKeyRound,
     LucideX,
     SidebarComponent,
+    SettingsDialogComponent,
     CallInterfaceComponent,
     ChatInputComponent,
     ChatContainerComponent,
-    SettingsDialogComponent,
     ToastComponent,
   ],
   templateUrl: './chat-page.component.html',
@@ -183,6 +183,10 @@ export class ChatPageComponent implements OnInit {
 
   onRenameSession(event: { id: string; title: string }): void {
     this.chatService.renameSession(event.id, event.title);
+  }
+
+  onTogglePinSession(event: { id: string; isPinned: boolean }): void {
+    this.chatService.togglePinSession(event.id, event.isPinned);
   }
 
   onDeleteSession(sessionId: string): void {
