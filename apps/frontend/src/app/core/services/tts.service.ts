@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ElevenLabsVoiceService } from './elevenlabs-voice.service';
+import { MESSAGES } from '@core/constants/messages';
 
 interface TtsSpeechOptions {
   voice?: SpeechSynthesisVoice;
@@ -76,7 +77,7 @@ export class TtsService {
         return;
       }
     } catch (err) {
-      console.warn('ElevenLabs TTS failed, falling back to Web Speech:', err);
+      console.warn(MESSAGES.log.ttsFallback, err);
     }
 
     // 2. Fallback to Web Speech API
@@ -124,7 +125,7 @@ export class TtsService {
         this.stopProgressTracking();
         this.isPlaying.set(false);
         this.cleanupAudio();
-        console.warn('Audio playback error, fallback to Web Speech');
+        console.warn(MESSAGES.log.audioFallback);
         this.speakWebSpeech(fallbackText, options);
       };
 
@@ -137,7 +138,7 @@ export class TtsService {
           this.startProgressTracking();
         })
         .catch((playErr) => {
-          console.warn('Audio play error, fallback to Web Speech:', playErr);
+          console.warn(MESSAGES.log.audioFallbackFailed, playErr);
           this.speakWebSpeech(fallbackText, options);
         });
     } catch {
@@ -204,7 +205,7 @@ export class TtsService {
       this.currentAudioTime.set(0);
       this.currentUtterance = null;
       this.synthesisFailures = 0;
-      console.error('TTS speak() failed:', error);
+      console.error(MESSAGES.log.ttsSpeakFailed, error);
       options?.onError?.(error);
     }
   }

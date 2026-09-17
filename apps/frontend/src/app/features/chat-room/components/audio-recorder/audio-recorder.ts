@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { LucideMic, LucideSquare } from '@lucide/angular';
 import { AudioRecorderService } from '@core/services/audio-recorder-service';
+import { MESSAGES } from '@core/constants/messages';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,7 +51,7 @@ export class AudioRecorderComponent {
       this.isRecording.set(true);
       this.recordingStateChange.emit(true);
     } catch (error) {
-      console.error('Failed to start recording', error);
+      console.error(MESSAGES.log.recordingStartFailed, error);
     }
   }
 
@@ -62,7 +63,7 @@ export class AudioRecorderComponent {
       this.recordingStateChange.emit(false);
       this.audioRecorded.emit({ base64: result.base64 });
     } catch (error) {
-      console.error('Failed to stop recording', error);
+      console.error(MESSAGES.log.recordingStopFailed, error);
       this.isRecording.set(false);
       this.recordingStateChange.emit(false);
     }

@@ -15,6 +15,8 @@ import {
   LucideRefreshCw,
   LucideGitFork,
 } from '@lucide/angular';
+import { MESSAGES } from '@core/constants/messages';
+import { ChatMessage } from '@models/chat-message.model';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -160,19 +162,16 @@ import {
   ],
 })
 export class MessageItemComponent {
-  readonly message = input.required<{ role: 'user' | 'ai'; text: string }>();
+  readonly message = input.required<ChatMessage>();
   readonly isPlaying = input<boolean>(false);
 
   readonly playRequested = output<void>();
   readonly stop = output<void>();
   readonly retry = output<void>();
   readonly fork = output<void>();
-  readonly copied = output<void>();
+  readonly copied = output<string>();
 
-  readonly isError = computed<boolean>(() => {
-    const text = this.message().text;
-    return text.startsWith('⚠️') || text.startsWith('Error:');
-  });
+  readonly isError = computed<boolean>(() => this.message().kind === 'error');
 
   handlePlayStop(): void {
     if (this.isPlaying()) {
@@ -185,7 +184,7 @@ export class MessageItemComponent {
   async onCopy(): Promise<void> {
     try {
       await navigator.clipboard.writeText(this.message().text);
-      this.copied.emit();
+      this.copied.emit(MESSAGES.success.messageCopied);
     } catch {
       // Fallback
       const textarea = document.createElement('textarea');

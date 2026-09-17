@@ -31,12 +31,14 @@ interface GeminiRawModel {
 export class AiModelsService {
   private readonly logger = new Logger(AiModelsService.name);
 
-  async getModels(options: {
-    provider?: string;
-    keys?: Record<string, string>;
-    groqApiKey?: string;
-    geminiApiKey?: string;
-  } = {}): Promise<DiscoveredAiModel[]> {
+  async getModels(
+    options: {
+      provider?: string;
+      keys?: Record<string, string>;
+      groqApiKey?: string;
+      geminiApiKey?: string;
+    } = {},
+  ): Promise<DiscoveredAiModel[]> {
     const keys: Record<string, string> = {
       ...(options.keys || {}),
     };
@@ -188,4 +190,3 @@ export class AiModelsService {
     return match ? match[1].toUpperCase() : undefined;
   }
 }
-

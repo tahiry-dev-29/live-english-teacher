@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { buildTutorSystemPrompt } from './tutor-prompt';
 import { AI_PROVIDERS_REGISTRY } from './ai-providers.registry';
+import { BACKEND_MESSAGES } from './constants/messages';
 
 const MAX_HISTORY_LENGTH = 10;
 const MAX_CONTENT_LENGTH = 1500;
@@ -21,8 +22,7 @@ export class OpenAiCompatService {
   ): OpenAiCompatMessage[] {
     const trimmed = history.slice(-MAX_HISTORY_LENGTH).map((msg) => ({
       role: (msg.role === 'model' ? 'assistant' : 'user') as
-        | 'assistant'
-        | 'user',
+        'assistant' | 'user',
       content: (msg.text || '').slice(0, MAX_CONTENT_LENGTH),
     }));
 
@@ -93,12 +93,14 @@ export class OpenAiCompatService {
       };
       return (
         body.choices?.[0]?.message?.content ||
-        'No response received from model.'
+        BACKEND_MESSAGES.error.noResponseReceived
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Error in ${config.label}: ${msg}`);
-      return `Could not reach ${config.label} service.`;
+      this.logger.error(
+        BACKEND_MESSAGES.template.providerError(config.label, msg),
+      );
+      return BACKEND_MESSAGES.template.providerUnreachable(config.label);
     }
   }
 
@@ -189,8 +191,10 @@ export class OpenAiCompatService {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Stream error in ${config.label}: ${msg}`);
-      yield `Could not reach ${config.label} service.`;
+      this.logger.error(
+        BACKEND_MESSAGES.template.providerStreamError(config.label, msg),
+      );
+      yield BACKEND_MESSAGES.template.providerUnreachable(config.label);
     }
   }
 

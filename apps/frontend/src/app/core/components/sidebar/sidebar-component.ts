@@ -65,6 +65,7 @@ export class SidebarComponent {
 
   readonly sessions = input<Session[]>([]);
   readonly activeSessionId = input<string | null>(null);
+  readonly isReloading = input<boolean>(false);
 
   readonly searchTerm = signal<string>('');
 
@@ -100,6 +101,7 @@ export class SidebarComponent {
   readonly sessionSelected = output<string>();
   readonly renameSession = output<{ id: string; title: string }>();
   readonly deleteSession = output<string>();
+  readonly reloadHistory = output<void>();
   readonly openSettings = output<void>();
 
   readonly canInstall = computed<boolean>(

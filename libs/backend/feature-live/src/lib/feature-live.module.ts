@@ -11,6 +11,7 @@ import { LiveResolver } from './live.resolver';
 import { ChatHistoryService } from './chat-history/chat-history.service';
 
 import { OpenAiCompatService } from './openai-compat.service';
+import { TtsProviderService } from './tts/tts-provider.service';
 
 @Module({
   imports: [DataAccessPrismaModule],
@@ -23,6 +24,7 @@ import { OpenAiCompatService } from './openai-compat.service';
     AiModelsService,
     AiProviderService,
     OpenAiCompatService,
+    TtsProviderService,
     LiveResolver,
     ChatHistoryService,
   ],
@@ -34,6 +36,7 @@ import { OpenAiCompatService } from './openai-compat.service';
     AiModelsService,
     AiProviderService,
     OpenAiCompatService,
+    TtsProviderService,
     ChatHistoryService,
   ],
 })

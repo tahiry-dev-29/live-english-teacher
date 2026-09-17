@@ -47,70 +47,96 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
   template: `
     <dialog #dialogEl class="modal">
       <div
-        class="modal-box flex h-[85vh] max-w-5xl overflow-hidden border border-base-300 bg-base-200 p-0 text-base-content shadow-2xl"
+        class="modal-box flex h-[85vh] max-w-5xl overflow-hidden border border-base-300 bg-base-200 p-0 text-base-content"
       >
         <!-- Left: Tab Navigation -->
         <div
-          class="flex w-48 shrink-0 flex-col border-r border-base-300 bg-base-300/50"
+          class="flex w-48 shrink-0 flex-col border-r border-base-300 bg-base-300/30"
         >
-          <div class="flex items-center gap-2 border-b border-base-300 p-4">
-            <svg lucideSettings class="h-5 w-5 text-primary"></svg>
-            <h3 class="text-sm font-bold">{{ t('settings.title') }}</h3>
+          <!-- Sidebar header -->
+          <div class="flex items-center gap-2 border-b border-base-300 px-4 py-3">
+            <svg lucideSettings class="h-4 w-4 text-base-content/50"></svg>
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">
+              {{ t('settings.title') }}
+            </h3>
           </div>
 
-          <div class="flex flex-1 flex-col gap-1 p-2">
+          <!-- Nav items: left-border active state -->
+          <nav class="flex flex-1 flex-col gap-0.5 p-2" role="navigation" aria-label="Settings sections">
             <button
               type="button"
-              class="btn justify-start gap-2 normal-case btn-sm"
-              [class.btn-primary]="activeTab() === 'general'"
-              [class.btn-ghost]="activeTab() !== 'general'"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              [class.border-l-2]="activeTab() === 'general'"
+              [class.border-primary]="activeTab() === 'general'"
+              [class.text-primary]="activeTab() === 'general'"
+              [class.font-medium]="activeTab() === 'general'"
+              [class.bg-primary/5]="activeTab() === 'general'"
+              [class.text-base-content]="activeTab() !== 'general'"
               (click)="activeTab.set('general')"
             >
-              <svg lucidePalette class="h-4 w-4"></svg>
-              {{ t('settings.general') }}
+              <svg lucidePalette class="h-4 w-4 shrink-0"></svg>
+              <span class="truncate">{{ t('settings.general') }}</span>
             </button>
             <button
               type="button"
-              class="btn justify-start gap-2 normal-case btn-sm"
-              [class.btn-primary]="activeTab() === 'ai_model'"
-              [class.btn-ghost]="activeTab() !== 'ai_model'"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              [class.border-l-2]="activeTab() === 'ai_model'"
+              [class.border-primary]="activeTab() === 'ai_model'"
+              [class.text-primary]="activeTab() === 'ai_model'"
+              [class.font-medium]="activeTab() === 'ai_model'"
+              [class.bg-primary/5]="activeTab() === 'ai_model'"
+              [class.text-base-content]="activeTab() !== 'ai_model'"
               (click)="activeTab.set('ai_model')"
             >
-              <svg lucideBot class="h-4 w-4"></svg>
-              {{ t('settings.ai_model') }}
+              <svg lucideBot class="h-4 w-4 shrink-0"></svg>
+              <span class="truncate">{{ t('settings.ai_model') }}</span>
             </button>
             <button
               type="button"
-              class="btn justify-start gap-2 normal-case btn-sm"
-              [class.btn-primary]="activeTab() === 'voices'"
-              [class.btn-ghost]="activeTab() !== 'voices'"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              [class.border-l-2]="activeTab() === 'voices'"
+              [class.border-primary]="activeTab() === 'voices'"
+              [class.text-primary]="activeTab() === 'voices'"
+              [class.font-medium]="activeTab() === 'voices'"
+              [class.bg-primary/5]="activeTab() === 'voices'"
+              [class.text-base-content]="activeTab() !== 'voices'"
               (click)="activeTab.set('voices')"
             >
-              <svg lucideMic class="h-4 w-4"></svg>
-              {{ t('settings.voices') }}
+              <svg lucideMic class="h-4 w-4 shrink-0"></svg>
+              <span class="truncate">{{ t('settings.voices') }}</span>
             </button>
             <button
               type="button"
-              class="btn justify-start gap-2 normal-case btn-sm"
-              [class.btn-primary]="activeTab() === 'language'"
-              [class.btn-ghost]="activeTab() !== 'language'"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors normal-case text-left"
+              [class.border-l-2]="activeTab() === 'language'"
+              [class.border-primary]="activeTab() === 'language'"
+              [class.text-primary]="activeTab() === 'language'"
+              [class.font-medium]="activeTab() === 'language'"
+              [class.bg-primary/5]="activeTab() === 'language'"
+              [class.text-base-content]="activeTab() !== 'language'"
               (click)="activeTab.set('language')"
             >
-              <svg lucideLanguages class="h-4 w-4"></svg>
-              {{ t('settings.language') }}
+              <svg lucideLanguages class="h-4 w-4 shrink-0"></svg>
+              <span class="truncate">{{ t('settings.language') }}</span>
             </button>
-          </div>
+          </nav>
         </div>
 
         <!-- Right: Tab Content -->
         <div class="flex min-w-0 flex-1 flex-col">
-          <!-- Close button header -->
-          <div class="flex shrink-0 justify-end border-b border-base-300 p-3">
+          <!-- Unified header: active tab title + close in one row -->
+          <div class="flex shrink-0 items-center justify-between border-b border-base-300 px-6 py-3">
+            <h2 class="text-sm font-semibold text-base-content">
+              @if (activeTab() === 'general') { {{ t('settings.general') }} }
+              @else if (activeTab() === 'ai_model') { {{ t('settings.ai_model') }} }
+              @else if (activeTab() === 'voices') { {{ t('settings.voices') }} }
+              @else if (activeTab() === 'language') { {{ t('settings.language') }} }
+            </h2>
             <button
               type="button"
               class="btn btn-circle btn-ghost btn-sm"
               (click)="close()"
-              aria-label="Close"
+              aria-label="Close settings"
             >
               <svg lucideX class="h-4 w-4"></svg>
             </button>

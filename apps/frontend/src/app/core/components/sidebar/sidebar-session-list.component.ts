@@ -13,6 +13,7 @@ import {
   LucideTrash2,
   LucideCheck,
   LucideX,
+  LucideRefreshCw,
 } from '@lucide/angular';
 
 @Component({
@@ -26,6 +27,7 @@ import {
     LucideTrash2,
     LucideCheck,
     LucideX,
+    LucideRefreshCw,
   ],
   templateUrl: './sidebar-session-list.component.html',
 })
@@ -33,10 +35,12 @@ export class SidebarSessionListComponent {
   readonly sessions = input<Session[]>([]);
   readonly totalSessions = input<number>(0);
   readonly activeSessionId = input<string | null>(null);
+  readonly isReloading = input<boolean>(false);
 
   readonly sessionClick = output<string>();
   readonly renameSession = output<{ id: string; title: string }>();
   readonly deleteSession = output<string>();
+  readonly reloadHistory = output<void>();
 
   readonly editingSessionId = signal<string | null>(null);
   readonly editTitle = signal<string>('');

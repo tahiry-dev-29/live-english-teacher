@@ -67,3 +67,7 @@ Le rendu d'erreur ne doit plus dépendre d'un sniffing de texte (`startsWith('�
 - `rg -n "text: '[A-Z][a-z]+ .{20,}'" apps/frontend/src` → 0 message user-facing en dur hors `messages.ts`.
 - `wc -l apps/frontend/src/app/core/services/*.ts` → chaque fichier ≤ 200 lignes.
 - `pnpm lint` (4 projets) OK, `npx nx build frontend` OK, `npx nx build backend` OK, `pnpm format:check` OK.
+
+## Extension — Architecture de gestion globale des erreurs (Task 32)
+
+> Voir task `32_error-handling-architecture.md` pour le découpage détaillé. La task 31 pose le socle (constantes + résolution) ; la task 32 ajoute l'infrastructure Toast + HTTP interceptor + global error handler. Les imports de la Task 32 se font depuis `@core/services/notification.service` et `@core/interceptors/error-interceptor.ts`.

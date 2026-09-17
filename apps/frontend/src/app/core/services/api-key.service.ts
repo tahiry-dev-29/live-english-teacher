@@ -80,6 +80,20 @@ export class ApiKeyService {
     return this.getKeyHeader('gemini');
   }
 
+  getTtsHeaders(provider: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      'x-tts-provider': provider,
+      'x-provider': provider,
+    };
+    const key = this.getKey(provider);
+    if (key) {
+      headers[`x-${provider}-api-key`] = key;
+      headers[`x-${provider}-tts-key`] = key;
+      headers['x-provider-api-key'] = key;
+    }
+    return headers;
+  }
+
   private loadAllKeys(): Record<string, string> {
     const keys: Record<string, string> = {};
     try {
@@ -126,4 +140,3 @@ export class ApiKeyService {
     }
   }
 }
-

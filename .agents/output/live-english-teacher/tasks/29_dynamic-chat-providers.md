@@ -1,7 +1,8 @@
 # Task 29 — Providers conversation dynamiques + clés par provider (registre unifié)
 
-**Status: TODO**
+**Status: COMPLETED**
 **Priorité:** 🔴 Haute — après Task 20 (auto-save), avant Task 27 (validation)
+
 
 ## Goal
 

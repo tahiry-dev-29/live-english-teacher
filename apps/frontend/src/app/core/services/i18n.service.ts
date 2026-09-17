@@ -1,4 +1,10 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { CookieService } from 'ngx-cookie-service';
+import {
+  migrateLocalStorageToCookie,
+  readPrefCookie,
+  writePrefCookie,
+} from '../utils/cookie.util';
 
 export type AppLanguage = 'en' | 'fr' | 'es';
 
@@ -31,8 +37,11 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'ai.keys.tutorial': 'How to get your API keys',
     'ai.keys.clear': 'Clear',
     'voices.title': 'AI Tutor Voices',
+    'voices.provider': 'TTS Provider',
     'voices.hd': 'HD Audio',
     'voices.selected': 'Selected',
+    'voices.model': 'Audio Model',
+    'voices.stt_model': 'Speech-to-Text (STT) Model',
     'language.learning': 'Learning Language',
     'language.learning_hint': 'Also selectable from the chat input',
     'chat.placeholder': 'Type a message...',
@@ -66,8 +75,11 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'ai.keys.tutorial': 'Comment obtenir vos clés API',
     'ai.keys.clear': 'Effacer',
     'voices.title': 'Voix du tuteur IA',
+    'voices.provider': 'Fournisseur TTS',
     'voices.hd': 'Audio HD',
     'voices.selected': 'Sélectionnée',
+    'voices.model': 'Modèle audio',
+    'voices.stt_model': 'Modèle Reconnaissance Vocale (STT)',
     'language.learning': "Langue d'apprentissage",
     'language.learning_hint': 'Aussi sélectionnable depuis la barre de chat',
     'chat.placeholder': 'Tapez un message...',
@@ -101,8 +113,11 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     'ai.keys.tutorial': 'Cómo obtener sus claves API',
     'ai.keys.clear': 'Borrar',
     'voices.title': 'Voces del tutor IA',
+    'voices.provider': 'Proveedor TTS',
     'voices.hd': 'Audio HD',
     'voices.selected': 'Seleccionada',
+    'voices.model': 'Modelo de audio',
+    'voices.stt_model': 'Modelo Reconocimiento de Voz (STT)',
     'language.learning': 'Idioma de aprendizaje',
     'language.learning_hint': 'También seleccionable desde la entrada de chat',
     'chat.placeholder': 'Escribe un mensaje...',
@@ -114,7 +129,9 @@ const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
   providedIn: 'root',
 })
 export class I18nService {
-  private static readonly STORAGE_KEY = 'app_language';
+  private static readonly COOKIE_NAME = 'app_language';
+
+  private readonly cookies = inject(CookieService);
 
   readonly lang = signal<AppLanguage>(this.load());
 
@@ -128,7 +145,7 @@ export class I18nService {
 
     effect(() => {
       const l = this.lang();
-      localStorage.setItem(I18nService.STORAGE_KEY, l);
+      writePrefCookie(this.cookies, I18nService.COOKIE_NAME, l);
       this.applyLang(l);
     });
   }
@@ -143,12 +160,18 @@ export class I18nService {
   }
 
   private load(): AppLanguage {
-    try {
-      return (
-        (localStorage.getItem(I18nService.STORAGE_KEY) as AppLanguage) || 'en'
-      );
-    } catch {
-      return 'en';
+    // 1. Cookie = source de vérité.
+    const fromCookie = readPrefCookie(this.cookies, I18nService.COOKIE_NAME);
+    if (fromCookie === 'en' || fromCookie === 'fr' || fromCookie === 'es') {
+      return fromCookie;
     }
+
+    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
+    const migrated = migrateLocalStorageToCookie(I18nService.COOKIE_NAME);
+    if (migrated === 'en' || migrated === 'fr' || migrated === 'es') {
+      writePrefCookie(this.cookies, I18nService.COOKIE_NAME, migrated);
+      return migrated;
+    }
+    return 'en';
   }
 }

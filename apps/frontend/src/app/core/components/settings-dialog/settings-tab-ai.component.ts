@@ -42,139 +42,143 @@ import { I18nService } from '@core/services/i18n.service';
   template: `
     <div class="space-y-6">
       <!-- 1. Provider Selection -->
-      <fieldset class="fieldset">
-        <legend
-          class="fieldset-legend flex w-full items-center justify-between text-sm font-semibold"
-        >
-          <span>{{ t('ai.provider') }}</span>
-          <span class="badge badge-outline text-xs badge-accent">Multi-provider</span>
-        </legend>
-
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div class="space-y-2">
+        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
+          {{ t('ai.provider') }}
+        </p>
+        <div class="space-y-1">
           @for (p of providers; track p.id) {
             <button
               type="button"
-              class="btn flex items-center justify-between normal-case btn-sm"
-              [class.btn-primary]="aiConfig.provider() === p.id"
-              [class.btn-outline]="aiConfig.provider() !== p.id"
+              class="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors"
+              [class.border-primary]="aiConfig.provider() === p.id"
+              [class.bg-primary/5]="aiConfig.provider() === p.id"
+              [class.text-primary]="aiConfig.provider() === p.id"
+              [class.border-base-300]="aiConfig.provider() !== p.id"
+              [class.text-base-content]="aiConfig.provider() !== p.id"
               (click)="onProviderSelect(p.id)"
             >
-              <span class="truncate">{{ p.label }}</span>
-              @if (p.quotaBadge) {
-                <span class="badge badge-xs badge-ghost">{{ p.quotaBadge }}</span>
-              }
+              <span class="text-sm font-medium">{{ p.label }}</span>
+              <div class="flex items-center gap-2">
+                @if (p.quotaBadge) {
+                  <span class="badge badge-ghost badge-xs">{{ p.quotaBadge }}</span>
+                }
+                @if (aiConfig.provider() === p.id) {
+                  <span class="badge badge-xs badge-primary">Active</span>
+                }
+              </div>
             </button>
           }
         </div>
-      </fieldset>
+      </div>
 
       <!-- 2. API Key for Selected Provider -->
-      <fieldset class="fieldset">
-        <legend
-          class="fieldset-legend flex w-full items-center justify-between text-sm font-semibold"
-        >
-          <span class="flex items-center gap-2">
-            <svg lucideKey class="h-4 w-4"></svg>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
             API Key ({{ selectedProviderInfo()?.label || aiConfig.provider() }})
-          </span>
-          <span class="badge badge-ghost text-xs">{{
-            t('ai.custom_keys.optional')
-          }}</span>
-        </legend>
+          </p>
+          <span class="text-xs text-base-content/40">{{ t('ai.custom_keys.optional') }}</span>
+        </div>
 
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-base-content/70">
-              {{ currentKeyValue() ? 'Using custom API key' : 'Using server default (if configured)' }}
-            </span>
-            @if (selectedProviderInfo()?.consoleUrl) {
-              <a
-                [href]="selectedProviderInfo()?.consoleUrl"
-                target="_blank"
-                rel="noopener"
-                class="link flex items-center gap-1 text-xs link-primary"
-              >
-                <span>Get API key</span>
-                <svg lucideExternalLink class="h-3 w-3"></svg>
-              </a>
+        <!-- Key mode status -->
+        <div class="flex items-center justify-between rounded-lg border border-base-300 bg-base-100/40 px-3 py-2">
+          <div class="flex items-center gap-2">
+            <svg lucideKey class="h-3.5 w-3.5 text-base-content/40"></svg>
+            @if (currentKeyValue()) {
+              <span class="text-xs text-base-content/70">Custom key active</span>
+              <span class="badge badge-xs badge-success">Custom</span>
+            } @else {
+              <span class="text-xs text-base-content/70">Using server key</span>
+              <span class="badge badge-xs badge-neutral">Server default</span>
             }
           </div>
+          @if (selectedProviderInfo()?.consoleUrl) {
+            <a
+              [href]="selectedProviderInfo()?.consoleUrl"
+              target="_blank"
+              rel="noopener"
+              class="flex link items-center gap-1 text-xs link-primary"
+            >
+              <span>Get key</span>
+              <svg lucideExternalLink class="h-3 w-3"></svg>
+            </a>
+          }
+        </div>
 
-          <div class="join w-full">
-            <input
-              [type]="showKey() ? 'text' : 'password'"
-              class="input-bordered input join-item flex-1 font-mono text-xs input-sm"
-              [placeholder]="'Enter ' + (selectedProviderInfo()?.label || 'provider') + ' API key...'"
-              [ngModel]="currentKeyValue()"
-              (ngModelChange)="onKeyChange($event)"
-            />
+        <div class="join w-full">
+          <input
+            [type]="showKey() ? 'text' : 'password'"
+            class="input-bordered input join-item flex-1 font-mono text-xs input-sm"
+            [placeholder]="
+              'Enter ' +
+              (selectedProviderInfo()?.label || 'provider') +
+              ' API key (leave empty for server key)'
+            "
+            [ngModel]="currentKeyValue()"
+            (ngModelChange)="onKeyChange($event)"
+          />
+          <button
+            type="button"
+            class="btn join-item btn-ghost btn-sm"
+            (click)="showKey.set(!showKey())"
+            aria-label="Toggle key visibility"
+          >
+            @if (showKey()) {
+              <svg lucideEyeOff class="h-4 w-4"></svg>
+            } @else {
+              <svg lucideEye class="h-4 w-4"></svg>
+            }
+          </button>
+          @if (currentKeyValue()) {
             <button
               type="button"
-              class="btn join-item btn-ghost btn-sm"
-              (click)="showKey.set(!showKey())"
-              aria-label="Toggle key visibility"
+              class="btn join-item btn-ghost text-error btn-sm"
+              (click)="onClearKey()"
+              title="Remove custom key and fall back to server key"
             >
-              @if (showKey()) {
-                <svg lucideEyeOff class="h-4 w-4"></svg>
-              } @else {
-                <svg lucideEye class="h-4 w-4"></svg>
-              }
+              Reset to server key
             </button>
-            @if (currentKeyValue()) {
-              <button
-                type="button"
-                class="btn join-item btn-ghost text-error btn-sm"
-                (click)="onClearKey()"
-              >
-                {{ t('ai.keys.clear') }}
-              </button>
-            }
-          </div>
+          }
         </div>
-      </fieldset>
+      </div>
 
-      <!-- 3. Models Discovered with Effective Key -->
-      <fieldset class="fieldset">
-        <legend
-          class="fieldset-legend flex w-full items-center justify-between text-sm font-semibold"
-        >
-          <span class="flex items-center gap-2">
-            <svg lucideCpu class="h-4 w-4"></svg>
+      <!-- 3. Available Models -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
             Available Models
-          </span>
+          </p>
           <button
             type="button"
             class="btn gap-1 btn-ghost btn-xs"
             (click)="refreshModels()"
-            title="Refresh live models"
+            title="Sync live models from provider"
           >
             <svg
               lucideRotateCw
               class="h-3.5 w-3.5"
               [class.animate-spin]="isModelsLoading()"
             ></svg>
-            <span class="text-xs">Live Sync</span>
+            <span class="text-xs">Sync</span>
           </button>
-        </legend>
+        </div>
 
-        <div class="space-y-2">
+        <div class="space-y-1">
           @if (isModelsLoading() && filteredModels().length === 0) {
             <div class="py-6 text-center text-xs text-base-content/60">
               <span
                 class="loading mb-2 loading-sm loading-spinner text-primary"
               ></span>
-              <p>Discovering available models...</p>
+              <p>Fetching models from provider...</p>
             </div>
           } @else {
             @for (model of filteredModels(); track model.id) {
               <div
-                class="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all"
+                class="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors"
                 [class.border-primary]="aiConfig.selectedModelId() === model.id"
-                [class.bg-primary/10]="aiConfig.selectedModelId() === model.id"
-                [class.border-base-300]="
-                  aiConfig.selectedModelId() !== model.id
-                "
-                [class.bg-base-100/50]="aiConfig.selectedModelId() !== model.id"
+                [class.bg-primary/5]="aiConfig.selectedModelId() === model.id"
+                [class.border-base-300]="aiConfig.selectedModelId() !== model.id"
                 (click)="aiConfig.selectedModelId.set(model.id)"
                 (keyup.enter)="aiConfig.selectedModelId.set(model.id)"
                 tabindex="0"
@@ -182,26 +186,27 @@ import { I18nService } from '@core/services/i18n.service';
               >
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
-                    <p class="text-sm font-semibold">{{ model.name }}</p>
-                    @if (aiConfig.selectedModelId() === model.id) {
-                      <span class="badge badge-xs badge-primary">Selected</span>
-                    }
+                    <p class="text-sm font-medium">{{ model.name }}</p>
                     @if (model.isDefault) {
                       <span class="badge badge-ghost badge-xs">Default</span>
                     }
+                    @if (aiConfig.selectedModelId() === model.id) {
+                      <span class="badge badge-xs badge-primary">Selected</span>
+                    }
                   </div>
-                  <p class="truncate text-xs text-base-content/60">
-                    {{ model.id }} · {{ model.description }}
+                  <p class="truncate text-xs text-base-content/50">
+                    {{ model.id }}
+                    @if (model.description) { · {{ model.description }} }
                   </p>
                 </div>
                 @if (model.size) {
-                  <div class="badge badge-ghost badge-sm">{{ model.size }}</div>
+                  <div class="badge badge-ghost badge-sm shrink-0">{{ model.size }}</div>
                 }
               </div>
             }
           }
         </div>
-      </fieldset>
+      </div>
     </div>
   `,
 })
@@ -271,4 +276,3 @@ export class SettingsTabAiComponent {
     void this.aiConfig.fetchModels(provider);
   }
 }
-

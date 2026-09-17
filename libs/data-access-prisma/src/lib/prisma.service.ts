@@ -5,6 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { PRISMA_MESSAGES } from './constants/messages';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
@@ -14,19 +15,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     try {
       await this.$connect();
     } catch (error) {
-      this.logger.error('╔══════════════════════════════════════════════╗');
-      this.logger.error('║  DATABASE CONNECTION FAILED                  ║');
-      this.logger.error('╠══════════════════════════════════════════════╣');
       this.logger.error(
-        `║  ${
+        PRISMA_MESSAGES.error.connectionFailed(
           error instanceof Error
             ? error.message.split('\n')[0]
-            : 'Unknown error'
-        }`,
+            : PRISMA_MESSAGES.error.unknown,
+        ),
       );
-      this.logger.error('║                                              ║');
-      this.logger.error('║  Fix: Start PostgreSQL and check DATABASE_URL║');
-      this.logger.error('╚══════════════════════════════════════════════╝');
       throw error;
     }
   }

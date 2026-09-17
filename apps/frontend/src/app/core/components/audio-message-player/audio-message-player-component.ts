@@ -10,6 +10,7 @@ import {
 import { LucidePlay, LucidePause } from '@lucide/angular';
 import { formatTime } from '@core/utils/time.util';
 import { base64ToBlob } from '@core/utils/text.util';
+import { MESSAGES } from '@core/constants/messages';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -140,12 +141,12 @@ export class AudioMessagePlayerComponent implements OnDestroy {
       };
 
       this.audio.onerror = (error) => {
-        console.error('Audio playback error:', error);
+        console.error(MESSAGES.log.audioPlaybackFailed, error);
         this.isPlaying.set(false);
         this.stopProgressTracking();
       };
     } catch (error) {
-      console.error('Error creating audio blob:', error);
+      console.error(MESSAGES.log.audioBlobFailed, error);
     }
   }
 
@@ -169,7 +170,7 @@ export class AudioMessagePlayerComponent implements OnDestroy {
         this.startProgressTracking();
       })
       .catch((error) => {
-        console.error('Failed to play audio:', error);
+        console.error(MESSAGES.log.audioPlayFailed, error);
       });
   }
 

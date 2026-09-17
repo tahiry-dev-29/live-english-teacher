@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { VadService } from './vad.service';
-import { MessageService } from './message.service';
+import { ChatAudioService } from './chat-audio.service';
+import { MESSAGES } from '@core/constants/messages';
 
 export enum CallState {
   IDLE = 'idle',
@@ -42,7 +43,7 @@ type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 })
 export class VoiceCallService {
   private readonly vadService = inject(VadService);
-  private readonly messageService = inject(MessageService);
+  private readonly chatAudio = inject(ChatAudioService);
 
   readonly callState = signal<CallState>(CallState.IDLE);
   readonly currentTranscript = signal<string>('');
@@ -96,7 +97,7 @@ export class VoiceCallService {
       this.setState(CallState.LISTENING);
       this.startInactivityTimer();
     } catch (error) {
-      console.error('Error starting voice call:', error);
+      console.error(MESSAGES.log.voiceCallStartFailed, error);
       throw error;
     }
   }
@@ -186,7 +187,7 @@ export class VoiceCallService {
             reader.onloadend = async () => {
               const base64 = (reader.result as string).split(',')[1];
               if (base64) {
-                const transcript = await this.messageService.transcribeAudio(
+                const transcript = await this.chatAudio.transcribe(
                   base64,
                   mimeType,
                   this.targetLanguageCode,
@@ -202,10 +203,10 @@ export class VoiceCallService {
           };
         })
         .catch((e) => {
-          console.warn('Could not setup MediaRecorder for Whisper:', e);
+          console.warn(MESSAGES.log.mediaRecorderSetupFailed, e);
         });
     } catch (e) {
-      console.warn('MediaRecorder error:', e);
+      console.warn(MESSAGES.log.mediaRecorderFailed, e);
     }
   }
 

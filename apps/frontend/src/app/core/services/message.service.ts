@@ -1,82 +1,44 @@
 import { Injectable, inject, resource, signal } from '@angular/core';
-import { HttpHeaders } from '@angular/common/http';
-import { Apollo, gql } from 'apollo-angular';
-import { environment } from '@environment';
-import { AiConfigService } from '@core/services/ai-config.service';
-import { ApiKeyService } from '@core/services/api-key.service';
-
-export interface Message {
-  role: 'user' | 'ai';
-  text: string;
-  audioData?: string;
-  mimeType?: string;
-}
-
-const CHAT_MUTATION = gql`
-  mutation Chat(
-    $content: String!
-    $sessionId: String
-    $audioData: String
-    $mimeType: String
-    $targetLanguage: String
-    $model: String
-    $provider: String
-  ) {
-    chat(
-      content: $content
-      sessionId: $sessionId
-      audioData: $audioData
-      mimeType: $mimeType
-      targetLanguage: $targetLanguage
-      model: $model
-      provider: $provider
-    ) {
-      text
-      sessionId
-    }
-  }
-`;
-
-const GET_SESSION_MESSAGES = gql`
-  query GetSessionMessages($sessionId: String!) {
-    sessionMessages(sessionId: $sessionId) {
-      role
-      content
-      createdAt
-    }
-  }
-`;
+import { Apollo } from 'apollo-angular';
+import { ERROR_CODES, MESSAGES } from '@core/constants/messages';
+import {
+  GET_SESSION_MESSAGES,
+  SessionMessagesQuery,
+} from '@core/graphql/chat.operations';
+import {
+  AudioChatRequest,
+  ChatAudioService,
+} from '@core/services/chat-audio.service';
+import { ChatStreamService } from '@core/services/chat-stream.service';
+import { formatApiError } from '@core/utils/api-error.util';
+import { ChatMessage, toChatRole } from '@models/chat-message.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MessageService {
   private readonly apollo = inject(Apollo);
-  private readonly aiConfig = inject(AiConfigService);
-  private readonly apiKeyService = inject(ApiKeyService);
+  private readonly chatStream = inject(ChatStreamService);
+  private readonly chatAudio = inject(ChatAudioService);
 
   readonly currentSessionId = signal<string | null>(null);
-  readonly messages = signal<Message[]>([]);
+  readonly messages = signal<ChatMessage[]>([]);
   readonly loading = signal<boolean>(false);
-  /** Set when the server API key quota is exhausted — prompts user to add their own key. */
-  readonly quotaExceeded = signal<'groq' | 'gemini' | null>(null);
+  /** Set when the server API key quota is exhausted — prompts the user for their own key. */
+  readonly quotaExceeded = signal<string | null>(null);
 
-  /**
-   * Resource réactive pour charger automatiquement les messages de session
-   */
-  readonly messagesResource = resource<Message[], unknown>({
+  private streamingIndex: number | null = null;
+  private streamingText = '';
+
+  /** Reactive loader for the messages of the active session. */
+  readonly messagesResource = resource<ChatMessage[], unknown>({
     loader: async () => {
       const sessionId = this.currentSessionId();
       if (!sessionId) return [];
+
       try {
         const result = await this.apollo
-          .query<{
-            sessionMessages: {
-              role: string;
-              content: string;
-              createdAt: string;
-            }[];
-          }>({
+          .query<SessionMessagesQuery>({
             query: GET_SESSION_MESSAGES,
             variables: { sessionId },
             fetchPolicy: 'network-only',
@@ -84,14 +46,16 @@ export class MessageService {
           .toPromise();
 
         const sessionMessages = result?.data?.sessionMessages ?? [];
-        const formatted: Message[] = sessionMessages.map((msg): Message => ({
-          role: msg.role === 'model' ? 'ai' : (msg.role as Message['role']),
-          text: msg.content,
-        }));
+        const formatted: ChatMessage[] = sessionMessages.map(
+          (msg): ChatMessage => ({
+            role: toChatRole(msg.role),
+            text: msg.content,
+          }),
+        );
         this.messages.set(formatted);
         return formatted;
       } catch (error) {
-        console.error('Error in messagesResource loader:', error);
+        console.error(MESSAGES.log.messagesResourceFailed, error);
         this.messages.set([]);
         return [];
       }
@@ -104,40 +68,104 @@ export class MessageService {
   }
 
   /**
-   * Envoie un message via l'endpoint SSE POST /api/ai/chat/stream.
-   * `sessionId` est null pour un new chat : le backend crée la session
-   * (Prisma uuid) et retourne son id dans le premier event SSE.
+   * Sends a message through the SSE endpoint. `sessionId` is null for a new chat:
+   * the backend creates the session and returns its id in the first event.
    */
   async sendTextMessage(
     content: string,
     sessionId: string | null,
     targetLanguage: string,
-  ): Promise<{ text: string; sessionId: string | null } | null> {
+  ): Promise<{ text: string; sessionId: string | null }> {
     this.messages.update((msgs) => [...msgs, { role: 'user', text: content }]);
     this.loading.set(true);
+    this.streamingText = '';
 
     try {
-      const result = await this.streamViaSSE(
-        content,
-        sessionId,
-        targetLanguage,
+      const result = await this.chatStream.streamChat(
+        { message: content, sessionId, targetLanguage },
+        (token) => this.pushStreamingToken(token),
       );
       this.loading.set(false);
-      return result;
+      this.streamingIndex = null;
+
+      if (result.error) {
+        if (result.error.code === ERROR_CODES.quotaExceeded) {
+          this.quotaExceeded.set(result.error.provider ?? 'groq');
+        }
+        const text = formatApiError(result.error.message);
+        this.appendErrorMessage(text);
+        return { text, sessionId: result.sessionId ?? sessionId };
+      }
+
+      return { text: result.text, sessionId: result.sessionId ?? sessionId };
     } catch (error) {
-      console.error('SSE streaming failed, falling back to GraphQL:', error);
+      console.error(MESSAGES.log.streamFailed, error);
       this.removeStreamingPlaceholder();
       this.loading.set(false);
-      // Show error message instead of silent fallback
-      const errorMsg = this.formatApiError(
+      const text = formatApiError(
         error instanceof Error ? error.message : String(error),
       );
-      this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
-      return { text: errorMsg, sessionId };
+      this.appendErrorMessage(text);
+      return { text, sessionId };
     }
   }
 
-  private streamingIndex: number | null = null;
+  async sendAudioMessage(
+    audioData: string,
+    mimeType: string,
+    sessionId: string | null,
+    targetLanguage: string,
+  ): Promise<{ text: string; sessionId: string } | null> {
+    this.loading.set(true);
+    const request: AudioChatRequest = {
+      audioData,
+      mimeType,
+      sessionId,
+      targetLanguage,
+    };
+    const result = await this.chatAudio.sendAudio(request);
+    this.loading.set(false);
+
+    if (result.kind === 'ok') {
+      this.messages.update((msgs) => [
+        ...msgs,
+        { role: 'user', text: '[Audio message]' },
+        { role: 'ai', text: result.text },
+      ]);
+      return { text: result.text, sessionId: result.sessionId };
+    }
+
+    if (result.kind === 'error') {
+      this.appendErrorMessage(MESSAGES.error.audioProcessingFailed);
+    }
+
+    return null;
+  }
+
+  clearMessages(): void {
+    this.currentSessionId.set(null);
+    this.messages.set([]);
+  }
+
+  addMessage(message: ChatMessage): void {
+    this.messages.update((msgs) => [...msgs, message]);
+  }
+
+  private pushStreamingToken(token: string): void {
+    this.streamingText += token;
+    const fullText = this.streamingText;
+
+    this.messages.update((msgs) => {
+      if (this.streamingIndex !== null) {
+        return msgs.map((msg, i) =>
+          i === this.streamingIndex ? { ...msg, text: fullText } : msg,
+        );
+      }
+
+      this.streamingIndex = msgs.length;
+      return [...msgs, { role: 'ai', text: fullText }];
+    });
+  }
 
   private removeStreamingPlaceholder(): void {
     if (this.streamingIndex === null) return;
@@ -149,306 +177,10 @@ export class MessageService {
     );
   }
 
-  private async streamViaSSE(
-    content: string,
-    sessionId: string | null,
-    targetLanguage: string,
-  ): Promise<{ text: string; sessionId: string | null }> {
-    const url = `${environment.apiBaseUrl}/ai/chat/stream`;
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    const activeProvider = this.aiConfig.provider();
-    const providerKey = this.apiKeyService.getKeyHeader(activeProvider);
-    if (providerKey) {
-      headers[`x-${activeProvider}-api-key`] = providerKey;
-      headers['x-provider-api-key'] = providerKey;
-    }
-    const groqKey = this.apiKeyService.getGroqKeyHeader();
-    const geminiKey = this.apiKeyService.getGeminiKeyHeader();
-    if (groqKey) headers['x-groq-api-key'] = groqKey;
-    if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        message: content,
-        sessionId: sessionId || undefined,
-        targetLanguage,
-        model: this.aiConfig.selectedModelId(),
-        provider: this.aiConfig.provider(),
-      }),
-    });
-
-    if (!response.ok || !response.body) {
-      throw new Error(`SSE request failed with status ${response.status}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let resolvedSessionId = sessionId;
-    let fullText = '';
-    let streamFailed = false;
-    let streamErrorMessage = '';
-
-    const pushToken = (token: string): void => {
-      fullText += token;
-
-      this.messages.update((msgs) => {
-        if (this.streamingIndex !== null) {
-          return msgs.map((msg, i) =>
-            i === this.streamingIndex ? { ...msg, text: fullText } : msg,
-          );
-        }
-
-        this.streamingIndex = msgs.length;
-        return [...msgs, { role: 'ai', text: fullText }];
-      });
-    };
-
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let newlineIndex = buffer.indexOf('\n');
-      while (newlineIndex !== -1) {
-        const line = buffer.slice(0, newlineIndex).trim();
-        buffer = buffer.slice(newlineIndex + 1);
-
-        if (line.startsWith('data:')) {
-          const payload = line.slice(5).trim();
-
-          if (payload && payload !== '[DONE]') {
-            const data = JSON.parse(payload) as {
-              sessionId?: string;
-              token?: string;
-              error?: boolean;
-              errorCode?: string;
-              provider?: 'groq' | 'gemini';
-            };
-
-            if (data.error) {
-              if (data.errorCode === 'QUOTA_EXCEEDED') {
-                streamFailed = true;
-                streamErrorMessage = 'QUOTA_EXCEEDED';
-                this.quotaExceeded.set(data.provider ?? 'groq');
-              } else {
-                streamFailed = true;
-                streamErrorMessage =
-                  (data as { message?: string }).message || 'AI service error';
-              }
-            } else {
-              if (data.sessionId) resolvedSessionId = data.sessionId;
-              if (data.token) pushToken(data.token);
-            }
-          }
-        }
-
-        newlineIndex = buffer.indexOf('\n');
-      }
-    }
-
-    if (streamFailed) {
-      this.streamingIndex = null;
-      const errorMsg = this.formatApiError(streamErrorMessage);
-      this.messages.update((msgs) => [...msgs, { role: 'ai', text: errorMsg }]);
-      return { text: errorMsg, sessionId: resolvedSessionId || sessionId };
-    }
-
-    this.streamingIndex = null;
-    return { text: fullText, sessionId: resolvedSessionId || sessionId };
-  }
-
-  private getApiHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {};
-    const groqKey = this.apiKeyService.getGroqKeyHeader();
-    const geminiKey = this.apiKeyService.getGeminiKeyHeader();
-    if (groqKey) headers['x-groq-api-key'] = groqKey;
-    if (geminiKey) headers['x-gemini-api-key'] = geminiKey;
-    return headers;
-  }
-
-  private async sendViaGraphQL(
-    content: string,
-    sessionId: string | null,
-    targetLanguage: string,
-  ): Promise<{ text: string; sessionId: string } | null> {
-    try {
-      const result = await this.apollo
-        .mutate<{ chat: { text: string; sessionId: string } }>({
-          mutation: CHAT_MUTATION,
-          variables: {
-            content,
-            sessionId,
-            targetLanguage,
-            model: this.aiConfig.selectedModelId(),
-            provider: this.aiConfig.provider(),
-          },
-          context: {
-            headers: new HttpHeaders(this.getApiHeaders()),
-          },
-        })
-        .toPromise();
-
-      if (result?.data) {
-        const chat = result.data.chat;
-
-        this.messages.update((msgs) => [
-          ...msgs,
-          {
-            role: 'ai',
-            text: chat.text,
-          },
-        ]);
-
-        return {
-          text: chat.text,
-          sessionId: chat.sessionId,
-        };
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error sending message:', error);
-
-      this.messages.update((msgs) => [
-        ...msgs,
-        {
-          role: 'ai',
-          text: '⚠️ Could not connect to AI. Please check your connection and try again.',
-        },
-      ]);
-
-      return null;
-    }
-  }
-
-  async sendAudioMessage(
-    audioData: string,
-    mimeType: string,
-    sessionId: string | null,
-    targetLanguage: string,
-  ): Promise<{ text: string; sessionId: string } | null> {
-    this.loading.set(true);
-    try {
-      const result = await this.apollo
-        .mutate<{ chat: { text: string; sessionId: string } }>({
-          mutation: CHAT_MUTATION,
-          variables: {
-            content: '',
-            sessionId,
-            audioData,
-            mimeType,
-            targetLanguage,
-            model: this.aiConfig.selectedModelId(),
-            provider: this.aiConfig.provider(),
-          },
-          context: {
-            headers: new HttpHeaders(this.getApiHeaders()),
-          },
-        })
-        .toPromise();
-
-      this.loading.set(false);
-
-      if (result?.data) {
-        const chat = result.data.chat;
-        this.messages.update((msgs) => [
-          ...msgs,
-          { role: 'user', text: '[Audio message]' },
-          { role: 'ai', text: chat.text },
-        ]);
-        return { text: chat.text, sessionId: chat.sessionId };
-      }
-      return null;
-    } catch (error) {
-      this.loading.set(false);
-      console.error('Error sending audio message:', error);
-      this.messages.update((msgs) => [
-        ...msgs,
-        {
-          role: 'ai',
-          text: '⚠️ Could not process audio. Please try again or send a text message.',
-        },
-      ]);
-      return null;
-    }
-  }
-
-  /**
-   * Transcribe audio using Groq Whisper via backend endpoint
-   */
-  async transcribeAudio(
-    audioData: string,
-    mimeType = 'audio/webm',
-    language?: string,
-  ): Promise<string | null> {
-    try {
-      const res = await fetch(`${environment.apiBaseUrl}/ai/transcribe`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioData, mimeType, language }),
-      });
-
-      if (!res.ok) return null;
-      const data = (await res.json()) as { transcript?: string };
-      return data.transcript || null;
-    } catch (error) {
-      console.warn('Transcription request failed:', error);
-      return null;
-    }
-  }
-
-  clearMessages(): void {
-    this.currentSessionId.set(null);
-    this.messages.set([]);
-  }
-
-  addMessage(message: Message): void {
-    this.messages.update((msgs) => [...msgs, message]);
-  }
-
-  private formatApiError(raw: string): string {
-    if (!raw) return '⚠️ AI service unavailable. Please try again.';
-
-    if (raw === 'QUOTA_EXCEEDED') {
-      return '⚠️ Server quota exhausted. Add your own API key in Settings > AI Model to keep chatting.';
-    }
-
-    const lower = raw.toLowerCase();
-
-    if (
-      lower.includes('404') ||
-      lower.includes('not found') ||
-      (lower.includes('model') && lower.includes('not available'))
-    ) {
-      return '⚠️ Model not available. Open Settings > AI Model to select a working model, or add your own API key.';
-    }
-    if (
-      lower.includes('401') ||
-      lower.includes('403') ||
-      lower.includes('invalid api key') ||
-      lower.includes('unauthorized')
-    ) {
-      return '⚠️ Invalid API key. Open Settings > AI Model to add or check your API key.';
-    }
-    if (lower.includes('no api key') || lower.includes('not set')) {
-      return '⚠️ No API key configured. Open Settings > AI Model to add your API key.';
-    }
-    if (
-      lower.includes('could not') ||
-      lower.includes('network') ||
-      lower.includes('fetch')
-    ) {
-      return '⚠️ Could not reach AI service. Check your internet connection and try again.';
-    }
-
-    const truncated = raw.length > 200 ? raw.slice(0, 197) + '...' : raw;
-    return truncated.startsWith('⚠️') ? truncated : `⚠️ ${truncated}`;
+  private appendErrorMessage(text: string): void {
+    this.messages.update((msgs) => [
+      ...msgs,
+      { role: 'ai', text, kind: 'error' },
+    ]);
   }
 }

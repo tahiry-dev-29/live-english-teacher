@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { MESSAGES } from '@core/constants/messages';
 
 interface RecordingResult {
   base64: string;
@@ -27,7 +28,7 @@ export class AudioRecorderService {
 
   async stopRecording(): Promise<RecordingResult> {
     if (!this.mediaRecorder) {
-      throw new Error('No active recording');
+      throw new Error(MESSAGES.error.noActiveRecording);
     }
     const recorder = this.mediaRecorder;
     const mimeType = recorder.mimeType || 'audio/webm';

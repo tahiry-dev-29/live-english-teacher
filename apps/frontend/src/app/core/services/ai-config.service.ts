@@ -1,11 +1,21 @@
 import { Injectable, signal, effect, inject } from '@angular/core';
 import { environment } from '@environment';
+import { CookieService } from 'ngx-cookie-service';
+import {
+  migrateLocalStorageToCookie,
+  readPrefCookie,
+  writePrefCookie,
+} from '../utils/cookie.util';
 import { ApiKeyService } from './api-key.service';
+import { MESSAGES } from '@core/constants/messages';
+
+export type AiProvider = string;
 
 export interface AiModel {
   id: string;
   name: string;
   provider: string;
+
   description: string;
   size?: string;
   contextWindow?: number;
@@ -73,9 +83,10 @@ export const KNOWN_PROVIDERS: ProviderInfo[] = [
   providedIn: 'root',
 })
 export class AiConfigService {
-  private static readonly STORAGE_KEY_PROVIDER = 'ai_provider';
-  private static readonly STORAGE_KEY_MODEL = 'ai_model';
+  private static readonly COOKIE_PROVIDER = 'ai_provider';
+  private static readonly COOKIE_MODEL = 'ai_model';
 
+  private readonly cookies = inject(CookieService);
   private readonly apiKeyService = inject(ApiKeyService);
 
   private readonly defaultModels: AiModel[] = [
@@ -155,17 +166,11 @@ export class AiConfigService {
   readonly loading = signal<boolean>(false);
 
   readonly provider = signal<string>(
-    this.loadFromStorage<string>(
-      AiConfigService.STORAGE_KEY_PROVIDER,
-      'groq',
-    ),
+    this.loadCookie(AiConfigService.COOKIE_PROVIDER, 'groq'),
   );
 
   readonly selectedModelId = signal<string>(
-    this.loadFromStorage<string>(
-      AiConfigService.STORAGE_KEY_MODEL,
-      'llama-3.3-70b-versatile',
-    ),
+    this.loadCookie(AiConfigService.COOKIE_MODEL, 'llama-3.3-70b-versatile'),
   );
 
   readonly selectedModel = signal<AiModel>(
@@ -178,8 +183,8 @@ export class AiConfigService {
     effect(() => {
       const p = this.provider();
       const m = this.selectedModelId();
-      localStorage.setItem(AiConfigService.STORAGE_KEY_PROVIDER, p);
-      localStorage.setItem(AiConfigService.STORAGE_KEY_MODEL, m);
+      writePrefCookie(this.cookies, AiConfigService.COOKIE_PROVIDER, p);
+      writePrefCookie(this.cookies, AiConfigService.COOKIE_MODEL, m);
       this.selectedModel.set(this.resolveModel(p, m));
     });
   }
@@ -209,7 +214,7 @@ export class AiConfigService {
         }
       }
     } catch (error) {
-      console.warn('Failed to fetch dynamic AI models, using defaults:', error);
+      console.warn(MESSAGES.log.modelsFetchFailed, error);
     } finally {
       this.loading.set(false);
     }
@@ -242,12 +247,19 @@ export class AiConfigService {
     return providerModels[0] || this.defaultModels[0];
   }
 
-  private loadFromStorage<T>(key: string, fallback: T): T {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
+  private loadCookie(key: string, fallback: string): string {
+    // 1. Cookie = source de vérité.
+    const fromCookie = readPrefCookie(this.cookies, key);
+    if (fromCookie) return fromCookie;
+
+    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
+    // Compat JSON.parse : les anciennes valeurs pouvaient être stockées
+    // brutes ("groq") ou via JSON.stringify ('"groq"').
+    const migrated = migrateLocalStorageToCookie(key);
+    if (migrated) {
+      writePrefCookie(this.cookies, key, migrated);
+      return migrated;
     }
+    return fallback;
   }
 }

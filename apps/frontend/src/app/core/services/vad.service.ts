@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { MESSAGES } from '@core/constants/messages';
 
 export interface VadEvent {
   type: 'speechStart' | 'speechEnd' | 'silence';
@@ -60,9 +61,9 @@ export class VadService {
 
       this.monitor();
 
-      console.log('VAD started successfully');
+      console.log(MESSAGES.log.vadStarted);
     } catch (error) {
-      console.error('Error starting VAD:', error);
+      console.error(MESSAGES.log.vadStartFailed, error);
       throw error;
     }
   }
@@ -92,7 +93,7 @@ export class VadService {
     this.speechStartTime = null;
     this.lastSpeechTime = null;
 
-    console.log('VAD stopped');
+    console.log(MESSAGES.log.vadStopped);
   }
 
   private monitor(): void {
@@ -110,7 +111,7 @@ export class VadService {
         } else if (now - this.speechStartTime > this.SPEECH_START_DELAY) {
           this.isSpeaking.set(true);
           this.onSpeechStart?.();
-          console.log('Speech started', { volume });
+          console.log(MESSAGES.log.speechStarted, { volume });
         }
       }
 
@@ -124,7 +125,7 @@ export class VadService {
           this.isSpeaking.set(false);
           this.speechStartTime = null;
           this.onSpeechEnd?.();
-          console.log('Speech ended');
+          console.log(MESSAGES.log.speechEnded);
         }
       } else {
         this.speechStartTime = null;

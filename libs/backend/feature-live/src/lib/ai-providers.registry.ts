@@ -92,7 +92,8 @@ export const AI_PROVIDERS_REGISTRY: Record<string, AiProviderConfig> = {
     label: 'Qwen / DashScope',
     chatApi: 'openai-compatible',
     modelsUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models',
-    chatUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
+    chatUrl:
+      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
     keyHeader: 'x-qwen-api-key',
     keyEnv: 'DASHSCOPE_API_KEY',
     consoleUrl: 'https://dashscope.console.aliyun.com/apiKey',
@@ -104,7 +105,13 @@ export const AI_PROVIDERS_REGISTRY: Record<string, AiProviderConfig> = {
 
 export const FALLBACK_MODELS_BY_PROVIDER: Record<
   string,
-  { id: string; name: string; description: string; size?: string; isDefault?: boolean }[]
+  {
+    id: string;
+    name: string;
+    description: string;
+    size?: string;
+    isDefault?: boolean;
+  }[]
 > = {
   groq: [
     {

@@ -1,40 +1,46 @@
-import type { Document } from '@angular/common';
+import { CookieService } from 'ngx-cookie-service';
 
-/** 1 an — les préférences UI/IA sont durables, pas des données de session. */
-export const COOKIE_MAX_AGE_1Y = 60 * 60 * 24 * 365;
+/**
+ * Adaptateur unique au-dessus de `ngx-cookie-service` pour les 4 préférences
+ * persistées en cookies : `app_theme`, `app_font_size`, `app_language`,
+ * `ai_provider`, `ai_model`.
+ *
+ * - 365 jours ≈ Max-Age 1 an, `Path=/`, `SameSite=Lax`, `Secure` auto en https.
+ * - `CookieService` gère l'encodage, le parsing et le garde SSR
+ *   (`isPlatformBrowser`) — pas de `document.cookie` manuel dans les services.
+ */
+export const PREF_COOKIE_EXPIRES_DAYS = 365;
+export const PREF_COOKIE_PATH = '/';
 
-export function readCookie(doc: Document | null | undefined, name: string): string | null {
-  if (!doc) return null;
+function isHttps(): boolean {
+  return typeof window !== 'undefined' && window.location.protocol === 'https:';
+}
+
+export function readPrefCookie(
+  cookies: CookieService,
+  name: string,
+): string | null {
   try {
-    const cookies = doc.cookie ? doc.cookie.split('; ') : [];
-    for (const part of cookies) {
-      const eq = part.indexOf('=');
-      if (eq < 0) continue;
-      if (part.slice(0, eq) === name) {
-        return decodeURIComponent(part.slice(eq + 1));
-      }
-    }
+    if (!cookies.check(name)) return null;
+    const value = cookies.get(name);
+    return value ? value : null;
   } catch {
     return null;
   }
-  return null;
 }
 
-export function writeCookie(
-  doc: Document | null | undefined,
+export function writePrefCookie(
+  cookies: CookieService,
   name: string,
   value: string,
-  maxAge = COOKIE_MAX_AGE_1Y,
 ): void {
-  if (!doc) return;
   try {
-    const secure =
-      typeof window !== 'undefined' && window.location.protocol === 'https:'
-        ? '; Secure'
-        : '';
-    doc.cookie =
-      `${name}=${encodeURIComponent(value)}` +
-      `; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
+    cookies.set(name, value, {
+      expires: PREF_COOKIE_EXPIRES_DAYS,
+      path: PREF_COOKIE_PATH,
+      secure: isHttps(),
+      sameSite: 'Lax',
+    });
   } catch {
     // Cookies bloqués : la préférence reste en mémoire pour la session.
   }

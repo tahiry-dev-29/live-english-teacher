@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { BACKEND_MESSAGES } from '../constants/messages';
 
 export interface VoiceInfo {
   id: string;
@@ -74,7 +75,7 @@ export class ElevenLabsService {
     voiceId?: string,
   ): Promise<{ audioData: string; mimeType: string } | null> {
     if (!this.apiKey) {
-      this.logger.warn('ELEVENLABS_API_KEY is not configured.');
+      this.logger.warn(BACKEND_MESSAGES.log.elevenLabsKeyMissing);
       return null;
     }
 
@@ -121,7 +122,7 @@ export class ElevenLabsService {
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to generate ElevenLabs TTS: ${msg}`);
+      this.logger.error(BACKEND_MESSAGES.template.elevenLabsTtsFailed(msg));
       return null;
     }
   }

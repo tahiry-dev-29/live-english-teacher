@@ -1,4 +1,4 @@
-import { Injectable, inject, resource, signal } from '@angular/core';
+import { Injectable, computed, inject, resource, signal } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { firstValueFrom } from 'rxjs';
 import { Session } from '@models/session.model';
@@ -41,6 +41,11 @@ export class ChatService {
 
   activeSessionId = signal<string | null>(null);
 
+  /**
+   * Liste des sessions (historique) — fetching réactif via `resource()`.
+   * `reload()` / `isLoading()` alimentent le bouton reload du header History.
+   * Les mutations (rename/delete) restent impératives + `reload()`.
+   */
   sessionsResource = resource({
     loader: () => {
       return firstValueFrom(
@@ -52,7 +57,7 @@ export class ChatService {
     },
   });
 
-  sessions = this.sessionsResource.value;
+  sessions = computed(() => this.sessionsResource.value() ?? []);
 
   async renameSession(id: string, title: string) {
     await firstValueFrom(

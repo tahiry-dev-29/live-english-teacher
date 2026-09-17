@@ -1,7 +1,8 @@
 # Task 30 — Providers TTS multi-fournisseurs + voix/modèles audio dynamiques
 
-**Status: TODO**
+**Status: COMPLETED**
 **Priorité:** 🔴 Haute — après Task 20 (auto-save), avant Task 27 (validation)
+
 
 ## Goal
 

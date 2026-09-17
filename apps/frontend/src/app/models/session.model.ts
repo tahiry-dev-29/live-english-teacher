@@ -6,13 +6,3 @@ export interface Session {
   updatedAt: string;
   lastMessage?: string;
 }
-
-export interface SessionDetail extends Session {
-  messages: Message[];
-}
-
-export interface Message {
-  role: string;
-  content: string;
-  createdAt: string;
-}

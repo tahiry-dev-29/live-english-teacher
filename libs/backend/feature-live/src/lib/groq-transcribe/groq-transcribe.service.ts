@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { BACKEND_MESSAGES } from '../constants/messages';
 
 @Injectable()
 export class GroqTranscribeService {
@@ -10,11 +11,16 @@ export class GroqTranscribeService {
     audioData: string,
     mimeType = 'audio/webm',
     language?: string,
+    modelOverride?: string,
+    customApiKey?: string,
   ): Promise<string | null> {
-    if (!this.apiKey) {
-      this.logger.warn('GROQ_API_KEY is not configured for transcription.');
+    const key = customApiKey || this.apiKey;
+    if (!key) {
+      this.logger.warn(BACKEND_MESSAGES.log.groqTranscribeKeyMissing);
       return null;
     }
+
+    const selectedModel = modelOverride || this.model;
 
     try {
       const audioBuffer = Buffer.from(audioData, 'base64');
@@ -29,7 +35,7 @@ export class GroqTranscribeService {
       const formData = new FormData();
       const blob = new Blob([audioBuffer], { type: mimeType });
       formData.append('file', blob, `audio.${ext}`);
-      formData.append('model', this.model);
+      formData.append('model', selectedModel);
       formData.append('temperature', '0');
       if (language) {
         formData.append('language', language);
@@ -40,7 +46,7 @@ export class GroqTranscribeService {
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${key}`,
           },
           body: formData,
         },
@@ -58,7 +64,7 @@ export class GroqTranscribeService {
       return data.text || null;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to transcribe audio with Groq: ${msg}`);
+      this.logger.error(BACKEND_MESSAGES.template.groqTranscribeFailed(msg));
       return null;
     }
   }

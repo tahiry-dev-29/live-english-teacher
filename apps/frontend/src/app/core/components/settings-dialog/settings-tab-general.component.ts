@@ -12,10 +12,10 @@ import { I18nService } from '@core/services/i18n.service';
   template: `
     <div class="space-y-6">
       <!-- Theme -->
-      <fieldset class="fieldset">
-        <legend class="fieldset-legend text-sm font-semibold">
+      <div class="space-y-2">
+        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
           {{ t('general.theme') }}
-        </legend>
+        </p>
         <div class="flex gap-2">
           <button
             type="button"
@@ -45,13 +45,13 @@ import { I18nService } from '@core/services/i18n.service';
             {{ t('general.theme.system') }}
           </button>
         </div>
-      </fieldset>
+      </div>
 
       <!-- Font Size -->
-      <fieldset class="fieldset">
-        <legend class="fieldset-legend text-sm font-semibold">
+      <div class="space-y-2">
+        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
           {{ t('general.font_size') }}
-        </legend>
+        </p>
         <div class="flex gap-2">
           <button
             type="button"
@@ -78,40 +78,43 @@ import { I18nService } from '@core/services/i18n.service';
             <span class="text-lg">{{ t('general.font.large') }}</span>
           </button>
         </div>
-      </fieldset>
+      </div>
 
       <!-- App Language -->
-      <fieldset class="fieldset">
-        <legend class="fieldset-legend text-sm font-semibold">
+      <div class="space-y-2">
+        <p class="text-xs font-medium uppercase tracking-wider text-base-content/50">
           {{ t('general.app_language') }}
-        </legend>
+        </p>
         <div class="flex gap-2">
           <button
             type="button"
-            class="btn flex-1 gap-2 btn-outline btn-sm"
+            class="btn flex-1 gap-1.5 btn-outline btn-sm normal-case"
             [class.btn-primary]="i18n.lang() === 'en'"
             (click)="i18n.setLang('en')"
           >
-            🇬🇧 English
+            <span class="text-xs font-bold tracking-wide">EN</span>
+            <span>English</span>
           </button>
           <button
             type="button"
-            class="btn flex-1 gap-2 btn-outline btn-sm"
+            class="btn flex-1 gap-1.5 btn-outline btn-sm normal-case"
             [class.btn-primary]="i18n.lang() === 'fr'"
             (click)="i18n.setLang('fr')"
           >
-            🇫🇷 Français
+            <span class="text-xs font-bold tracking-wide">FR</span>
+            <span>Francais</span>
           </button>
           <button
             type="button"
-            class="btn flex-1 gap-2 btn-outline btn-sm"
+            class="btn flex-1 gap-1.5 btn-outline btn-sm normal-case"
             [class.btn-primary]="i18n.lang() === 'es'"
             (click)="i18n.setLang('es')"
           >
-            🇪🇸 Español
+            <span class="text-xs font-bold tracking-wide">ES</span>
+            <span>Espanol</span>
           </button>
         </div>
-      </fieldset>
+      </div>
     </div>
   `,
 })

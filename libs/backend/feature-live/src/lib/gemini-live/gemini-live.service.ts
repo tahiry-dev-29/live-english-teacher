@@ -12,6 +12,7 @@ import {
   ChatMessage,
 } from './gemini-live.util';
 import { QuotaExceededError } from '../groq-live/groq-live.service';
+import { BACKEND_MESSAGES } from '../constants/messages';
 
 /** Low-level Gemini REST helpers shared by all Gemini Live service methods. */
 const postJson = async (url: string, payload: unknown): Promise<Response> =>
@@ -37,8 +38,8 @@ export class GeminiLiveService {
   ): Promise<string> {
     const key = apiKeyOverride || GEMINI_API_KEY || '';
     if (!key) {
-      this.logger.warn('GEMINI_API_KEY is not set.');
-      return 'No API key configured. Please add your Gemini API key in Settings > AI Model to continue chatting.';
+      this.logger.warn(BACKEND_MESSAGES.log.geminiKeyMissing);
+      return BACKEND_MESSAGES.error.geminiApiKeyMissing;
     }
 
     const model = modelOverride || GEMINI_CHAT_MODEL;
@@ -51,18 +52,24 @@ export class GeminiLiveService {
       targetLanguage,
     );
 
-    this.logger.log(`Requesting Chat from: ${apiUrl.replace(key, '***')}`);
+    this.logger.log(
+      BACKEND_MESSAGES.template.requestingChat(apiUrl.replace(key, '***')),
+    );
 
     try {
       return await this.postWithRetry(apiUrl, payload, !!apiKeyOverride);
     } catch (error) {
       if (error instanceof QuotaExceededError) throw error;
       if (error instanceof Error) {
-        this.logger.error(`Error in getGeminiChatResponse: ${error.message}`);
+        this.logger.error(
+          BACKEND_MESSAGES.template.geminiChatError(error.message),
+        );
       } else {
-        this.logger.error(`Error in getGeminiChatResponse: ${String(error)}`);
+        this.logger.error(
+          BACKEND_MESSAGES.template.geminiChatError(String(error)),
+        );
       }
-      return "I'm experiencing connectivity issues. Please try again later or verify your Gemini API key in Settings.";
+      return BACKEND_MESSAGES.error.geminiConnectivity;
     }
   }
 
@@ -77,29 +84,36 @@ export class GeminiLiveService {
     const voice = getVoiceForLanguage(targetLanguage || 'en');
     const payload = buildTtsPayload(text, voice);
 
-    this.logger.log(`Generating TTS audio with voice: ${voice}`);
+    this.logger.log(BACKEND_MESSAGES.template.generatingTts(voice));
 
     try {
       const response = await postJson(apiUrl, payload);
       if (!response.ok) {
         this.logger.error(
-          `TTS API Error: ${response.status} - ${response.statusText}`,
+          BACKEND_MESSAGES.template.ttsApiError(
+            response.status,
+            response.statusText,
+          ),
         );
         return null;
       }
 
       const audio = extractResponseAudio(await response.json());
       if (audio) {
-        this.logger.log('TTS audio generated successfully.');
+        this.logger.log(BACKEND_MESSAGES.log.geminiTtsGenerated);
       } else {
-        this.logger.warn('No audio data in TTS response.');
+        this.logger.warn(BACKEND_MESSAGES.log.geminiTtsNoAudio);
       }
       return audio;
     } catch (error) {
       if (error instanceof Error) {
-        this.logger.error(`Error in getGeminiTtsAudio: ${error.message}`);
+        this.logger.error(
+          BACKEND_MESSAGES.template.geminiTtsError(error.message),
+        );
       } else {
-        this.logger.error(`Error in getGeminiTtsAudio: ${String(error)}`);
+        this.logger.error(
+          BACKEND_MESSAGES.template.geminiTtsError(String(error)),
+        );
       }
       return null;
     }
@@ -119,11 +133,11 @@ export class GeminiLiveService {
       if (response.ok) {
         const text = extractResponseText(await response.json());
         if (text) {
-          this.logger.log('Gemini chat response received.');
+          this.logger.log(BACKEND_MESSAGES.log.geminiChatReceived);
           return text;
         }
-        this.logger.warn('Gemini response was okay but content was empty.');
-        return "I'm sorry, I couldn't generate a response right now. Could you try asking something else?";
+        this.logger.warn(BACKEND_MESSAGES.log.geminiEmptyContent);
+        return BACKEND_MESSAGES.error.geminiEmptyResponse;
       }
 
       // Quota exhausted on server key → signal frontend to ask user for their own key
@@ -144,8 +158,6 @@ export class GeminiLiveService {
       }
     }
 
-    throw new Error(
-      'Failed to get response from Gemini after multiple retries.',
-    );
+    throw new Error(BACKEND_MESSAGES.error.geminiRetriesExhausted);
   }
 }

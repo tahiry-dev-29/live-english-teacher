@@ -14,11 +14,7 @@ import { LucideArrowDown } from '@lucide/angular';
 import { MessageItemComponent } from '../message-item/message-item.component';
 import { VoiceControlComponent } from '@core/components/voice-control/voice-control-component';
 import { ChatWelcomeComponent } from './chat-welcome.component';
-
-export interface Message {
-  role: 'user' | 'ai';
-  text: string;
-}
+import { ChatMessage } from '@models/chat-message.model';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,7 +31,7 @@ export interface Message {
   styleUrl: './chat-container.component.css',
 })
 export class ChatContainerComponent implements AfterViewInit, OnDestroy {
-  readonly messages = input<Message[]>([]);
+  readonly messages = input<ChatMessage[]>([]);
   readonly loading = input<boolean>(false);
   readonly isPlaying = input<boolean>(false);
   readonly showVoiceControl = input<boolean>(false);

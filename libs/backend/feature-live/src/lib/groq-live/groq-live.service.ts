@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { buildTutorSystemPrompt } from '../tutor-prompt';
+import { BACKEND_MESSAGES } from '../constants/messages';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MAX_HISTORY_LENGTH = 10;
@@ -91,8 +92,8 @@ export class GroqLiveService {
   ): Promise<string> {
     const apiKey = customApiKey || this.apiKey;
     if (!apiKey) {
-      this.logger.warn('GROQ_API_KEY is not set.');
-      return 'No API key configured. Please add your Groq API key in Settings > AI Model to continue chatting.';
+      this.logger.warn(BACKEND_MESSAGES.log.groqKeyMissing);
+      return BACKEND_MESSAGES.error.groqApiKeyMissing;
     }
 
     const messages = this.buildMessages(history, newMessage, targetLanguage);
@@ -142,8 +143,8 @@ export class GroqLiveService {
       return this.extractText(await response.json());
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error in getGroqChatResponse: ${message}`);
-      return 'Could not reach AI service. Please check your internet connection or try a different model in Settings.';
+      this.logger.error(BACKEND_MESSAGES.template.groqChatError(message));
+      return BACKEND_MESSAGES.error.aiUnreachable;
     }
   }
 
@@ -169,8 +170,8 @@ export class GroqLiveService {
   ): AsyncGenerator<string, void, unknown> {
     const apiKey = customApiKey || this.apiKey;
     if (!apiKey) {
-      this.logger.warn('GROQ_API_KEY is not set.');
-      yield 'No API key configured. Please add your Groq API key in Settings > AI Model to continue chatting.';
+      this.logger.warn(BACKEND_MESSAGES.log.groqKeyMissing);
+      yield BACKEND_MESSAGES.error.groqApiKeyMissing;
       return;
     }
 

@@ -61,15 +61,17 @@
   <div class="flex gap-2 p-4">
     <button
       (click)="onNewChat()"
-      class="btn btn-circle flex-1 btn-primary"
+      class="btn flex-1 gap-2 btn-primary"
       title="New Chat"
     >
       <svg lucideMessageCirclePlus class="h-5 w-5"></svg>
+      <span>New Chat</span>
     </button>
     <button
       (click)="openSearch()"
-      class="btn btn-circle flex-1 btn-ghost"
-      title="Search"
+      class="btn btn-square btn-ghost"
+      title="Search history"
+      aria-label="Search history"
     >
       <svg lucideSearch class="h-5 w-5"></svg>
     </button>
@@ -82,9 +84,11 @@
       [sessions]="displayedSessions()"
       [totalSessions]="filteredSessions().length"
       [activeSessionId]="activeSessionId()"
+      [isReloading]="isReloading()"
       (sessionClick)="onSessionClick($event)"
       (renameSession)="renameSession.emit($event)"
       (deleteSession)="deleteSession.emit($event)"
+      (reloadHistory)="reloadHistory.emit()"
     />
 
     @if (hasMoreSessions()) {
@@ -168,14 +172,25 @@
     role="document"
   >
     <div class="flex items-center gap-3 border-b border-base-300 p-4">
-      <svg lucideSearch class="h-5 w-5 text-base-content/50"></svg>
+      <svg lucideSearch class="h-5 w-5 shrink-0 text-base-content/50"></svg>
       <input
         type="text"
         placeholder="Search history..."
+        autofocus
         [ngModel]="searchTerm()"
         (ngModelChange)="onSearchInput($event)"
-        class="flex-1 border-none bg-transparent text-base-content outline-none placeholder:text-base-content/40"
+        (keyup.escape)="closeSearch()"
+        class="min-w-0 flex-1 border-none bg-transparent text-base-content outline-none placeholder:text-base-content/40"
       />
+      @if (searchTerm()) {
+        <button
+          (click)="onSearchInput('')"
+          class="btn btn-circle btn-ghost btn-xs"
+          aria-label="Clear search"
+        >
+          <svg lucideX class="h-4 w-4"></svg>
+        </button>
+      }
       <button
         (click)="closeSearch()"
         class="btn btn-circle btn-ghost btn-sm"
@@ -183,6 +198,11 @@
       >
         <svg lucideX class="h-4 w-4"></svg>
       </button>
+    </div>
+    <div class="border-b border-base-300 px-4 py-1.5 text-xs text-base-content/50">
+      {{ filteredSessions().length }} result{{
+        filteredSessions().length > 1 ? 's' : ''
+      }}
     </div>
     <div class="max-h-80 overflow-y-auto p-2">
       @if (filteredSessions().length === 0) {
@@ -192,9 +212,11 @@
         [sessions]="filteredSessions()"
         [totalSessions]="filteredSessions().length"
         [activeSessionId]="activeSessionId()"
+        [isReloading]="isReloading()"
         (sessionClick)="onSessionClick($event); closeSearch()"
         (renameSession)="renameSession.emit($event)"
         (deleteSession)="deleteSession.emit($event)"
+        (reloadHistory)="reloadHistory.emit()"
       />
       }
     </div>

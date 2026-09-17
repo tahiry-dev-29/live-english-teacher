@@ -12,6 +12,10 @@ export class TranscribeDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  @IsString()
+  model?: string;
 }
 
 export class GenerateTtsDto {
@@ -21,7 +25,15 @@ export class GenerateTtsDto {
 
   @IsOptional()
   @IsString()
+  provider?: string;
+
+  @IsOptional()
+  @IsString()
   voiceId?: string;
+
+  @IsOptional()
+  @IsString()
+  modelId?: string;
 
   @IsOptional()
   @IsString()

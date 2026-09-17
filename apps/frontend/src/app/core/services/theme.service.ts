@@ -1,8 +1,9 @@
 import { Injectable, signal, effect, inject, DOCUMENT } from '@angular/core';
+import { CookieService } from 'ngx-cookie-service';
 import {
   migrateLocalStorageToCookie,
-  readCookie,
-  writeCookie,
+  readPrefCookie,
+  writePrefCookie,
 } from '../utils/cookie.util';
 
 export type Theme = 'dark' | 'light' | 'system';
@@ -15,7 +16,8 @@ export type FontSize = 'small' | 'medium' | 'large';
  *   `data-theme` est posé avant le premier rendu — pas de flash.
  * - Réactivité signals : `effect()` persiste le cookie + applique le DOM
  *   à chaque changement (zoneless-safe).
- * - Persistance : cookie `app_theme` (Max-Age 1 an, Path=/, SameSite=Lax).
+ * - Persistance : cookies `app_theme` et `app_font_size` via
+ *   `ngx-cookie-service` (Expires 365 j, Path=/, SameSite=Lax).
  */
 @Injectable({
   providedIn: 'root',
@@ -23,11 +25,10 @@ export type FontSize = 'small' | 'medium' | 'large';
 export class ThemeService {
   private static readonly COOKIE_NAME = 'app_theme';
   private static readonly LEGACY_STORAGE_KEY = 'app_theme';
-  private static readonly FONT_SIZE_STORAGE_KEY = 'app_font_size';
-  /** 1 an — le thème est une préférence durable, pas une donnée de session. */
-  private static readonly COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+  private static readonly FONT_SIZE_COOKIE_NAME = 'app_font_size';
 
   private readonly document = inject(DOCUMENT);
+  private readonly cookies = inject(CookieService);
 
   readonly theme = signal<Theme>(this.load());
   readonly resolvedTheme = signal<string>('halloween');
@@ -42,6 +43,12 @@ export class ThemeService {
       const t = this.theme();
       this.saveCookie(t);
       this.applyTheme(t);
+    });
+
+    effect(() => {
+      const s = this.fontSize();
+      writePrefCookie(this.cookies, ThemeService.FONT_SIZE_COOKIE_NAME, s);
+      this.applyFontSize(s);
     });
 
     if (typeof window !== 'undefined') {
@@ -61,14 +68,6 @@ export class ThemeService {
 
   setFontSize(size: FontSize): void {
     this.fontSize.set(size);
-    this.applyFontSize(size);
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(ThemeService.FONT_SIZE_STORAGE_KEY, size);
-      }
-    } catch {
-      // ignore
-    }
   }
 
   private applyFontSize(size: FontSize): void {
@@ -83,17 +82,30 @@ export class ThemeService {
   }
 
   private loadFontSize(): FontSize {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const saved = localStorage.getItem(
-          ThemeService.FONT_SIZE_STORAGE_KEY,
-        ) as FontSize | null;
-        if (saved === 'small' || saved === 'medium' || saved === 'large') {
-          return saved;
-        }
-      }
-    } catch {
-      // ignore
+    // 1. Cookie = source de vérité.
+    const fromCookie = readPrefCookie(
+      this.cookies,
+      ThemeService.FONT_SIZE_COOKIE_NAME,
+    );
+    if (
+      fromCookie === 'small' ||
+      fromCookie === 'medium' ||
+      fromCookie === 'large'
+    ) {
+      return fromCookie;
+    }
+
+    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
+    const migrated = migrateLocalStorageToCookie(
+      ThemeService.FONT_SIZE_COOKIE_NAME,
+    );
+    if (migrated === 'small' || migrated === 'medium' || migrated === 'large') {
+      writePrefCookie(
+        this.cookies,
+        ThemeService.FONT_SIZE_COOKIE_NAME,
+        migrated,
+      );
+      return migrated;
     }
     return 'medium';
   }
@@ -156,38 +168,13 @@ export class ThemeService {
   }
 
   private saveCookie(theme: Theme): void {
-    const doc = this.document;
-    if (!doc) return;
-    try {
-      const secure =
-        typeof window !== 'undefined' && window.location.protocol === 'https:'
-          ? '; Secure'
-          : '';
-      doc.cookie =
-        `${ThemeService.COOKIE_NAME}=${encodeURIComponent(theme)}` +
-        `; Max-Age=${ThemeService.COOKIE_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
-    } catch {
-      // Cookies bloqués : le thème reste appliqué en mémoire pour la session.
-    }
+    writePrefCookie(this.cookies, ThemeService.COOKIE_NAME, theme);
   }
 
   private readCookie(): Theme | null {
-    const doc = this.document;
-    if (!doc) return null;
-    try {
-      const cookies = doc.cookie ? doc.cookie.split('; ') : [];
-      for (const part of cookies) {
-        const [name, ...rest] = part.split('=');
-        if (name === ThemeService.COOKIE_NAME) {
-          const value = decodeURIComponent(rest.join('='));
-          if (value === 'dark' || value === 'light' || value === 'system')
-            return value;
-          return null;
-        }
-      }
-    } catch {
-      return null;
-    }
+    const value = readPrefCookie(this.cookies, ThemeService.COOKIE_NAME);
+    if (value === 'dark' || value === 'light' || value === 'system')
+      return value;
     return null;
   }
 
@@ -197,19 +184,12 @@ export class ThemeService {
     if (fromCookie) return fromCookie;
 
     // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const legacy = localStorage.getItem(
-          ThemeService.LEGACY_STORAGE_KEY,
-        ) as Theme | null;
-        if (legacy === 'dark' || legacy === 'light' || legacy === 'system') {
-          this.saveCookie(legacy);
-          localStorage.removeItem(ThemeService.LEGACY_STORAGE_KEY);
-          return legacy;
-        }
-      }
-    } catch {
-      // localStorage indisponible : on ignore.
+    const legacy = migrateLocalStorageToCookie(
+      ThemeService.LEGACY_STORAGE_KEY,
+    ) as Theme | null;
+    if (legacy === 'dark' || legacy === 'light' || legacy === 'system') {
+      this.saveCookie(legacy);
+      return legacy;
     }
 
     return 'dark';

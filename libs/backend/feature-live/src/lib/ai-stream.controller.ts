@@ -22,10 +22,12 @@ import type { Response } from 'express';
 import { AiModelsService, DiscoveredAiModel } from './ai-models.service';
 import { AiProviderService } from './ai-provider.service';
 import { ChatHistoryService } from './chat-history/chat-history.service';
-import { ElevenLabsService, VoiceInfo } from './elevenlabs/elevenlabs.service';
 import { GroqTranscribeService } from './groq-transcribe/groq-transcribe.service';
 import { TranscribeDto, GenerateTtsDto } from './dto/transcribe.dto';
 import { QuotaExceededError } from './groq-live/groq-live.service';
+import { TtsProviderService } from './tts/tts-provider.service';
+import { TtsVoiceInfo, TtsProviderConfig } from './tts/tts-providers.registry';
+import { BACKEND_MESSAGES } from './constants/messages';
 
 class StreamChatDto {
   @IsString()
@@ -56,11 +58,12 @@ class StreamChatDto {
 
 /**
  * Endpoints IA :
- * GET /api/ai/models — Modèles découverts dynamiquement (Groq/Gemini)
+ * GET /api/ai/models — Modèles découverts dynamiquement
  * POST /api/ai/chat/stream — Streaming SSE
  * POST /api/ai/transcribe — STT Whisper
- * POST /api/ai/tts — TTS ElevenLabs
- * GET /api/ai/voices — Liste des voix ElevenLabs
+ * POST /api/ai/tts — TTS multi-providers (ElevenLabs, Azure, Google, Polly, OpenAI, MiniMax)
+ * GET /api/ai/voices — Liste des voix par provider
+ * GET /api/ai/tts-providers — Liste des providers TTS avec métadonnées/quotas
  */
 @UsePipes(new ValidationPipe({ transform: true }))
 @Controller('ai')
@@ -71,7 +74,7 @@ export class AiStreamController {
     private readonly aiModelsService: AiModelsService,
     private readonly aiProviderService: AiProviderService,
     private readonly chatHistoryService: ChatHistoryService,
-    private readonly elevenLabsService: ElevenLabsService,
+    private readonly ttsProviderService: TtsProviderService,
     private readonly groqTranscribeService: GroqTranscribeService,
   ) {}
 
@@ -103,9 +106,36 @@ export class AiStreamController {
     });
   }
 
+  @Get('tts-providers')
+  getTtsProviders(): TtsProviderConfig[] {
+    return this.ttsProviderService.getProviders();
+  }
+
   @Get('voices')
-  getVoices(): VoiceInfo[] {
-    return this.elevenLabsService.getVoices();
+  async getVoices(
+    @Headers('x-provider') provider?: string,
+    @Headers('x-tts-provider') ttsProviderHeader?: string,
+    @Headers('x-azure-tts-key') azureKey?: string,
+    @Headers('x-elevenlabs-api-key') elevenKey?: string,
+    @Headers('x-openai-api-key') openaiKey?: string,
+    @Headers('x-google-tts-key') googleKey?: string,
+    @Headers('x-aws-polly-key') pollyKey?: string,
+    @Headers('x-minimax-tts-key') minimaxKey?: string,
+  ): Promise<TtsVoiceInfo[]> {
+    const activeProvider = ttsProviderHeader || provider || 'elevenlabs';
+    const keyMap: Record<string, string | undefined> = {
+      azure: azureKey,
+      elevenlabs: elevenKey,
+      openai: openaiKey,
+      google: googleKey,
+      polly: pollyKey,
+      minimax: minimaxKey,
+    };
+    const apiKey = keyMap[activeProvider];
+    return this.ttsProviderService.getVoices({
+      provider: activeProvider,
+      apiKey,
+    });
   }
 
   @Post('chat/stream')
@@ -211,8 +241,12 @@ export class AiStreamController {
         );
       } else {
         const errorMsg =
-          error instanceof Error ? error.message : 'Unknown error';
-        this.logger?.error?.(`SSE stream error: ${errorMsg}`);
+          error instanceof Error
+            ? error.message
+            : BACKEND_MESSAGES.error.unknown;
+        this.logger?.error?.(
+          BACKEND_MESSAGES.template.sseStreamError(errorMsg),
+        );
         res.write(
           `data: ${JSON.stringify({ error: true, message: errorMsg })}\n\n`,
         );
@@ -225,16 +259,19 @@ export class AiStreamController {
   @Post('transcribe')
   async transcribe(
     @Body() dto: TranscribeDto,
+    @Headers('x-groq-api-key') groqApiKey?: string,
   ): Promise<{ transcript: string }> {
     const transcript = await this.groqTranscribeService.transcribe(
       dto.audioData,
       dto.mimeType,
       dto.language,
+      dto.model,
+      groqApiKey,
     );
 
     if (transcript === null) {
       throw new HttpException(
-        'Transcription failed or service unavailable',
+        BACKEND_MESSAGES.error.transcriptionFailed,
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
@@ -245,15 +282,40 @@ export class AiStreamController {
   @Post('tts')
   async tts(
     @Body() dto: GenerateTtsDto,
+    @Headers('x-provider') headerProvider?: string,
+    @Headers('x-tts-provider') headerTtsProvider?: string,
+    @Headers('x-azure-tts-key') azureKey?: string,
+    @Headers('x-elevenlabs-api-key') elevenKey?: string,
+    @Headers('x-openai-api-key') openaiKey?: string,
+    @Headers('x-google-tts-key') googleKey?: string,
+    @Headers('x-aws-polly-key') pollyKey?: string,
+    @Headers('x-minimax-tts-key') minimaxKey?: string,
+    @Headers('x-provider-api-key') providerKey?: string,
   ): Promise<{ audioData: string; mimeType: string }> {
-    const audio = await this.elevenLabsService.generateTtsAudio(
-      dto.text,
-      dto.voiceId,
-    );
+    const activeProvider =
+      dto.provider || headerTtsProvider || headerProvider || 'elevenlabs';
+    const keyMap: Record<string, string | undefined> = {
+      azure: azureKey,
+      elevenlabs: elevenKey,
+      openai: openaiKey,
+      google: googleKey,
+      polly: pollyKey,
+      minimax: minimaxKey,
+    };
+    const apiKey = providerKey || keyMap[activeProvider];
+
+    const audio = await this.ttsProviderService.synthesize({
+      provider: activeProvider,
+      voiceId: dto.voiceId,
+      modelId: dto.modelId,
+      text: dto.text,
+      apiKey,
+      targetLanguage: dto.targetLanguage,
+    });
 
     if (!audio) {
       throw new HttpException(
-        'ElevenLabs TTS not available',
+        BACKEND_MESSAGES.template.ttsUnavailable(activeProvider),
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }

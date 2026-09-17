@@ -1,4 +1,4 @@
-import { CommonModule, UpperCasePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
   Component,
   inject,
@@ -12,7 +12,14 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { LucideMessageCircle, LucidePanelRightOpen } from '@lucide/angular';
+import {
+  LucideKeyRound,
+  LucideMessageCircle,
+  LucidePanelRightOpen,
+  LucideTriangleAlert,
+  LucideX,
+} from '@lucide/angular';
+import { MESSAGES, MESSAGE_TEMPLATES } from '@core/constants/messages';
 import { CallInterfaceComponent } from '@core/components/call-interface/call-interface.component';
 import { ChatInputComponent } from '@core/components/chat-input/chat-input.component';
 import { SidebarComponent } from '@core/components/sidebar/sidebar-component';
@@ -32,9 +39,11 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
     RouterModule,
     FormsModule,
     CommonModule,
-    UpperCasePipe,
     LucideMessageCircle,
     LucidePanelRightOpen,
+    LucideKeyRound,
+    LucideTriangleAlert,
+    LucideX,
     SidebarComponent,
     CallInterfaceComponent,
     ChatInputComponent,
@@ -70,6 +79,13 @@ export class ChatPageComponent implements OnInit {
   readonly playingMessageIndex = signal<number | null>(null);
   readonly vocalEnabled = signal<boolean>(false);
   readonly isAudioRecording = signal<boolean>(false);
+
+  readonly quotaBannerTitle = computed<string>(() => {
+    const provider = this.messageService.quotaExceeded();
+    return provider ? MESSAGE_TEMPLATES.quotaBannerTitle(provider) : '';
+  });
+  readonly quotaBannerBody = MESSAGES.warning.quotaBannerBody;
+  readonly quotaBannerAction = MESSAGES.warning.quotaBannerAction;
 
   readonly currentSession = computed(() => {
     const id = this.chatService.activeSessionId();
@@ -130,11 +146,9 @@ export class ChatPageComponent implements OnInit {
           },
         })
         .catch((err) => {
-          console.error('Failed to start voice call:', err);
+          console.error(MESSAGES.log.voiceCallUiStartFailed, err);
           this.isLiveMode.set(false);
-          alert(
-            'Could not access microphone. Please check your browser permissions.',
-          );
+          alert(MESSAGES.error.microphoneAccessDenied);
         });
     }
   }
@@ -301,7 +315,7 @@ export class ChatPageComponent implements OnInit {
   }
 
   private handleInactivity(): void {
-    const fallbackMessage = "I can't hear you. Are you still there?";
+    const fallbackMessage = MESSAGES.warning.inactivityPrompt;
     this.messageService.addMessage({ role: 'ai', text: fallbackMessage });
     this.speakText(fallbackMessage);
   }
