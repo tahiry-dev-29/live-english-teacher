@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   inject,
@@ -10,7 +9,6 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import {
   LucideKeyRound,
@@ -39,8 +37,6 @@ import { ChatContainerComponent } from './components/chat-container/chat-contain
   standalone: true,
   imports: [
     RouterModule,
-    FormsModule,
-    CommonModule,
     LucideMessageCircle,
     LucidePanelLeftOpen,
     LucideTriangleAlert,
@@ -83,6 +79,7 @@ export class ChatPageComponent implements OnInit {
   readonly playingMessageIndex = signal<number | null>(null);
   readonly vocalEnabled = signal<boolean>(false);
   readonly isAudioRecording = signal<boolean>(false);
+  readonly isShared = signal<boolean>(false);
 
   readonly quotaBannerTitle = computed<string>(() => {
     const provider = this.messageService.quotaExceeded();
@@ -99,22 +96,26 @@ export class ChatPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const isShareRoute = this.router.url.startsWith('/share/');
+    this.isShared.set(isShareRoute);
+
     this.route.params
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         const sessionId = params['sessionId'] as string | undefined;
+        this.isShared.set(this.router.url.startsWith('/share/'));
         if (sessionId) {
           this.loadSession(sessionId);
         } else {
-          // État "new chat" : pas d'id côté frontend, le backend génère l'uuid
-          // au premier message (Prisma @default(uuid())).
+        // "new chat" state: no id on frontend side, backend generates the uuid
+        // on the first message (Prisma @default(uuid())).
           this.chatService.createNewSession();
           this.userInput.set('');
         }
       });
   }
 
-  /** Session existante ou null si "new chat" (id géré par le backend). */
+  /** Existing session or null for "new chat" (id managed by the backend). */
   get sessionId(): string | null {
     return this.chatService.activeSessionId();
   }
@@ -163,8 +164,12 @@ export class ChatPageComponent implements OnInit {
     }
   }
 
+  onLanguageChange(code: string): void {
+    this.languageService.setLanguage(code);
+  }
+
   onNewChat(): void {
-    // Pas d'id généré ici : le backend crée la session au premier message.
+    // No id generated here: the backend creates the session on the first message.
     this.chatService.createNewSession();
     this.router.navigate(['/']);
     this.userInput.set('');
@@ -177,7 +182,9 @@ export class ChatPageComponent implements OnInit {
 
   loadSession(sessionId: string): void {
     this.chatService.loadSession(sessionId);
-    this.router.navigate(['/chat', sessionId]);
+    if (!this.isShared()) {
+      this.router.navigate(['/chat', sessionId]);
+    }
     this.userInput.set('');
   }
 
@@ -189,12 +196,18 @@ export class ChatPageComponent implements OnInit {
     this.chatService.togglePinSession(event.id, event.isPinned);
   }
 
-  onDeleteSession(sessionId: string): void {
-    this.chatService.deleteSession(sessionId);
-    // Si on supprime la session active, on revient à l'état "new chat" (sans id).
-    if (this.chatService.activeSessionId() === sessionId) {
-      this.chatService.createNewSession();
-      this.router.navigate(['/']);
+  async onDeleteSession(sessionId: string): Promise<void> {
+    try {
+      await this.chatService.deleteSession(sessionId);
+      this.notificationService.success('Conversation deleted');
+      // If we delete the active session, return to "new chat" state (no id).
+      if (this.chatService.activeSessionId() === sessionId) {
+        this.chatService.createNewSession();
+        this.router.navigate(['/']);
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      this.notificationService.error('Failed to delete conversation');
     }
   }
 
@@ -219,8 +232,8 @@ export class ChatPageComponent implements OnInit {
         this.speakText(result.text);
       }
     } else if (result) {
-      // Erreur (ex: pas de sessionId résolu) : le message d'erreur
-      // est déjà affiché dans le thread, on ne navigue pas.
+      // Error (e.g. no sessionId resolved): the error message is already
+      // displayed in the thread, no navigation needed.
       if (this.isLiveMode()) {
         this.speakText(result.text);
       }
@@ -261,6 +274,18 @@ export class ChatPageComponent implements OnInit {
     this.showVoiceControl.set(false);
   }
 
+  handlePauseAudio(): void {
+    this.ttsService.pause();
+  }
+
+  handleResumeAudio(): void {
+    this.ttsService.resume();
+  }
+
+  handleSeekAudio(seconds: number): void {
+    this.ttsService.seekTo(seconds);
+  }
+
   handleRecordingStateChange(isRecording: boolean): void {
     this.isAudioRecording.set(isRecording);
   }
@@ -292,7 +317,10 @@ export class ChatPageComponent implements OnInit {
 
   private speakText(text: string): void {
     this.vocalEnabled.set(true);
-    this.showVoiceControl.set(true);
+
+    if (!this.isLiveMode()) {
+      this.showVoiceControl.set(true);
+    }
 
     this.ttsService.speak(text, {
       voice: this.languageService.selectedVoice() || undefined,

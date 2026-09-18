@@ -8,6 +8,20 @@
     "lint": {
       "executor": "@nx/eslint:lint"
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --experimental-strip-types --experimental-transform-types --test libs/backend/feature-live/src/lib/**/*.spec.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --experimental-strip-types --experimental-transform-types --test apps/backend/src/**/*.spec.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {

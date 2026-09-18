@@ -9,7 +9,6 @@ import {
   ChangeDetectionStrategy,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import {
   LucideX,
   LucideSettings,
@@ -32,7 +31,6 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     LucideX,
     LucideSettings,
     LucidePalette,
@@ -47,7 +45,7 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
   template: `
     <dialog #dialogEl class="modal">
       <div
-        class="modal-box flex h-[85vh] max-w-3xl overflow-hidden border border-base-300 bg-base-200 p-0 text-base-content"
+        class="modal-box flex h-[65vh] max-w-4xl overflow-hidden border border-base-300 bg-base-200 p-0 text-base-content"
       >
         <!-- Left: Tab Navigation -->
         <div
@@ -74,7 +72,6 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
-              [class.border-l-2]="activeTab() === 'general'"
               [class.border-primary]="activeTab() === 'general'"
               [class.text-primary]="activeTab() === 'general'"
               [class.font-medium]="activeTab() === 'general'"
@@ -88,7 +85,6 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
-              [class.border-l-2]="activeTab() === 'ai_model'"
               [class.border-primary]="activeTab() === 'ai_model'"
               [class.text-primary]="activeTab() === 'ai_model'"
               [class.font-medium]="activeTab() === 'ai_model'"
@@ -102,7 +98,6 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
-              [class.border-l-2]="activeTab() === 'voices'"
               [class.border-primary]="activeTab() === 'voices'"
               [class.text-primary]="activeTab() === 'voices'"
               [class.font-medium]="activeTab() === 'voices'"
@@ -116,7 +111,6 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
-              [class.border-l-2]="activeTab() === 'language'"
               [class.border-primary]="activeTab() === 'language'"
               [class.text-primary]="activeTab() === 'language'"
               [class.font-medium]="activeTab() === 'language'"

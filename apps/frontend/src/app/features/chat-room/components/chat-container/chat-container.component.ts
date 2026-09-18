@@ -11,8 +11,9 @@ import {
   ChangeDetectionStrategy,
   inject,
   Renderer2,
+  effect,
 } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { DOCUMENT } from '@angular/common';
 import { LucideArrowDown } from '@lucide/angular';
 import { MessageItemComponent } from '../message-item/message-item.component';
 import { VoiceControlComponent } from '@core/components/voice-control/voice-control-component';
@@ -24,7 +25,6 @@ import { ChatMessage } from '@models/chat-message.model';
   selector: 'app-chat-container',
   standalone: true,
   imports: [
-    CommonModule,
     LucideArrowDown,
     MessageItemComponent,
     VoiceControlComponent,
@@ -45,6 +45,9 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
 
   readonly playAudio = output<{ text: string; index: number }>();
   readonly stop = output<void>();
+  readonly pauseAudio = output<void>();
+  readonly resumeAudio = output<void>();
+  readonly seekAudio = output<number>();
   readonly retryMessage = output<number>();
   readonly forkSession = output<number>();
 
@@ -52,6 +55,26 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
 
   readonly showScrollButton = signal<boolean>(false);
   readonly hasNewMessages = signal<boolean>(false);
+  readonly autoScroll = signal<boolean>(true);
+
+  private scrollObserver?: IntersectionObserver;
+  private readonly documentRef = inject(DOCUMENT);
+  private readonly renderer = inject(Renderer2);
+
+  constructor() {
+    effect(() => {
+      const msgs = this.messages();
+      const isLoading = this.loading();
+      const el = this.scrollContainer()?.nativeElement as
+        HTMLElement | undefined;
+      if (!el || typeof requestAnimationFrame === 'undefined') return;
+      if (msgs.length === 0 && !isLoading) return;
+      if (!this.autoScroll()) return;
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: 'auto' });
+      });
+    });
+  }
 
   readonly lastAiMessageIndex = computed<number | null>(() => {
     const msgs = this.messages();
@@ -64,10 +87,6 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly hasAiMessage = computed<boolean>(
     () => this.lastAiMessageIndex() !== null,
   );
-
-  private scrollObserver?: IntersectionObserver;
-  private readonly documentRef = inject(DOCUMENT);
-  private readonly renderer = inject(Renderer2);
 
   ngAfterViewInit(): void {
     const el = this.scrollContainer()?.nativeElement;
@@ -96,6 +115,7 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
     if (!el) return;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
     this.showScrollButton.set(!atBottom);
+    this.autoScroll.set(atBottom);
     if (atBottom) {
       this.hasNewMessages.set(false);
     }
@@ -104,6 +124,7 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   scrollToBottom(): void {
     const el = this.scrollContainer()?.nativeElement;
     if (el) {
+      this.autoScroll.set(true);
       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
       this.hasNewMessages.set(false);
     }
@@ -123,7 +144,7 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
     const message = this.messages()[idx];
     if (!message?.text) return;
 
-    // Best practice: Async Clipboard API (secure context). Aucun execCommand (deprecated TS6387).
+    // Best practice: Async Clipboard API (secure context). No deprecated execCommand.
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(message.text);
@@ -131,8 +152,8 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
       }
       throw new Error('Clipboard API unavailable');
     } catch {
-      // Fallback sans API dépréciée : sélectionne le texte pour copie manuelle (Ctrl/Cmd+C),
-      // puis nettoie. Aucun document.execCommand ici.
+    // Fallback without deprecated API: select text for manual copy (Ctrl/Cmd+C),
+    // then clean up. No document.execCommand here.
       const textarea = this.documentRef.createElement(
         'textarea',
       ) as HTMLTextAreaElement;

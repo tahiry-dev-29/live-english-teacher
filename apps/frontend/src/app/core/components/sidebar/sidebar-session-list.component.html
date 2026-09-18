@@ -9,7 +9,7 @@
         <span>Pinned</span>
       </div>
 
-      <ul class="flex w-full flex-col gap-0.5 p-0 list-none m-0">
+      <ul class="m-0 flex w-full list-none flex-col gap-0.5 p-0">
         @for (item of pinnedSessions(); track item.id) {
           <li class="group relative w-full overflow-visible">
             @if (editingSessionId() === item.id) {
@@ -21,7 +21,7 @@
                   (input)="editTitle.set(editInput.value)"
                   (keyup.enter)="saveRename(item.id)"
                   (keyup.escape)="cancelRename()"
-                  class="input min-w-0 flex-1 input-xs bg-base-100 border-base-300"
+                  class="input min-w-0 flex-1 border-base-300 bg-base-100 input-xs"
                   placeholder="Session title"
                 />
                 <button
@@ -43,16 +43,15 @@
               </div>
             } @else {
               <div
-                class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 group-hover:bg-secondary/15 select-none"
+                class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 select-none group-hover:bg-secondary/15"
                 [class.bg-secondary/20]="activeSessionId() === item.id"
-                [class.text-primary]="activeSessionId() === item.id"
                 [class.font-medium]="activeSessionId() === item.id"
               >
                 <!-- Title & click target -->
                 <button
                   type="button"
                   (click)="sessionClick.emit(item.id)"
-                  class="flex min-w-0 flex-1 items-center gap-2 text-left outline-none cursor-pointer"
+                  class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 pr-1 text-left outline-none"
                 >
                   <span
                     class="block truncate text-xs leading-5 font-normal"
@@ -60,79 +59,84 @@
                   ></span>
                 </button>
 
-                <!-- Pinned pin icon (visible when not hovered) -->
-                <svg
-                  lucidePin
-                  class="h-3.5 w-3.5 shrink-0 text-primary opacity-70 group-hover:hidden"
-                ></svg>
+                <!-- Fixed action / pin container (zero layout shift) -->
+                <div
+                  class="relative flex h-6 w-6 shrink-0 items-center justify-center"
+                >
+                  <!-- Pinned pin icon (visible when not hovered) -->
+                  <svg
+                    lucidePin
+                    class="h-3.5 w-3.5 text-primary opacity-70 transition-opacity duration-150 group-hover:opacity-0"
+                  ></svg>
 
-                <!-- Hover 3-dots action menu (appears on hover) -->
-                <div class="dropdown dropdown-end dropdown-bottom hidden group-hover:inline-block">
-                  <button
-                    tabindex="0"
-                    type="button"
-                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 hover:bg-base-300 hover:text-base-content outline-none cursor-pointer"
-                    (click)="$event.stopPropagation()"
-                    aria-label="Chat options"
+                  <!-- Hover 3-dots action menu (fades in on hover) -->
+                  <div
+                    class="dropdown pointer-events-none absolute inset-0 dropdown-end dropdown-bottom flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100"
                   >
-                    <svg lucideEllipsis class="h-3.5 w-3.5" />
-                  </button>
-                  <ul
-                    tabindex="0"
-                    class="menu dropdown-content z-50 mt-1 w-48 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
-                  >
-                    <li>
-                      <button
-                        type="button"
-                        (click)="shareConversation(item, $event)"
-                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
-                      >
-                        <svg lucideShare2 class="h-3.5 w-3.5 text-base-content/70" />
-                        <span>Share conversation</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        (click)="togglePin(item.id, $event)"
-                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
-                      >
-                        <svg lucidePinOff class="h-3.5 w-3.5 text-base-content/70" />
-                        <span>Unpin</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        (click)="startRename(item.id, item.title, $event)"
-                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
-                      >
-                        <svg lucidePencil class="h-3.5 w-3.5 text-base-content/70" />
-                        <span>Rename</span>
-                      </button>
-                    </li>
-                    <li class="border-t border-base-300/60 mt-1 pt-1">
-                      @if (confirmDeleteId() === item.id) {
+                    <button
+                      tabindex="0"
+                      type="button"
+                      class="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 outline-none hover:bg-base-300 hover:text-base-content"
+                      (click)="$event.stopPropagation()"
+                      aria-label="Chat options"
+                    >
+                      <svg lucideEllipsis class="h-3.5 w-3.5" />
+                    </button>
+                    <ul
+                      tabindex="0"
+                      class="menu dropdown-content z-50 mt-1 w-48 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
+                    >
+                      <li>
                         <button
                           type="button"
-                          (click)="confirmDelete(item.id, $event)"
-                          class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error font-semibold animate-pulse"
+                          (click)="shareConversation(item, $event)"
+                          class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
                         >
-                          <svg lucideCheck class="h-3.5 w-3.5" />
-                          <span>Confirm Delete</span>
+                          <svg
+                            lucideShare2
+                            class="h-3.5 w-3.5 text-base-content/70"
+                          />
+                          <span>Share conversation</span>
                         </button>
-                      } @else {
+                      </li>
+                      <li>
                         <button
                           type="button"
-                          (click)="initDelete(item.id, $event)"
+                          (click)="togglePin(item.id, $event)"
+                          class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                        >
+                          <svg
+                            lucidePinOff
+                            class="h-3.5 w-3.5 text-base-content/70"
+                          />
+                          <span>Unpin</span>
+                        </button>
+                      </li>
+                      <li>
+                        <button
+                          type="button"
+                          (click)="startRename(item.id, item.title, $event)"
+                          class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
+                        >
+                          <svg
+                            lucidePencil
+                            class="h-3.5 w-3.5 text-base-content/70"
+                          />
+                          <span>Rename</span>
+                        </button>
+                      </li>
+                      <li class="mt-1 border-t border-base-300/60 pt-1">
+                        <button
+                          type="button"
+                          (click)="initDelete(item, $event)"
                           class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error hover:bg-error/10"
                         >
                           <svg lucideTrash2 class="h-3.5 w-3.5" />
                           <span>Delete</span>
                         </button>
-                      }
-                    </li>
-                  </ul>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             }
@@ -156,7 +160,7 @@
           <button
             tabindex="0"
             type="button"
-            class="btn btn-circle btn-ghost btn-xs h-6 w-6 min-h-0 text-base-content/50 hover:text-base-content"
+            class="btn btn-circle h-6 min-h-0 w-6 btn-ghost text-base-content/50 btn-xs hover:text-base-content"
             title="Sort options"
             aria-label="Sort options"
           >
@@ -166,7 +170,11 @@
             tabindex="0"
             class="menu dropdown-content z-50 mt-1 w-44 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
           >
-            <li class="menu-title px-2 py-1 text-[10px] uppercase text-base-content/40">Sort by</li>
+            <li
+              class="menu-title px-2 py-1 text-[10px] text-base-content/40 uppercase"
+            >
+              Sort by
+            </li>
             <li>
               <button
                 type="button"
@@ -216,7 +224,7 @@
         <button
           type="button"
           (click)="reloadHistory.emit(); $event.stopPropagation()"
-          class="btn btn-circle btn-ghost btn-xs h-6 w-6 min-h-0 text-base-content/50 hover:text-base-content"
+          class="btn btn-circle h-6 min-h-0 w-6 btn-ghost text-base-content/50 btn-xs hover:text-base-content"
           title="Reload history"
           aria-label="Reload history"
           [disabled]="isReloading()"
@@ -231,7 +239,7 @@
     </div>
 
     <!-- Sessions list -->
-    <ul class="flex w-full flex-col gap-0.5 p-0 list-none m-0">
+    <ul class="m-0 flex w-full list-none flex-col gap-0.5 p-0">
       @for (item of recentSessions(); track item.id) {
         <li class="group relative w-full overflow-visible">
           @if (editingSessionId() === item.id) {
@@ -243,7 +251,7 @@
                 (input)="editTitle.set(editInput.value)"
                 (keyup.enter)="saveRename(item.id)"
                 (keyup.escape)="cancelRename()"
-                class="input min-w-0 flex-1 input-xs bg-base-100 border-base-300"
+                class="input min-w-0 flex-1 border-base-300 bg-base-100 input-xs"
                 placeholder="Session title"
               />
               <button
@@ -265,16 +273,15 @@
             </div>
           } @else {
             <div
-              class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 group-hover:bg-secondary/15 select-none"
+              class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 select-none group-hover:bg-secondary/15"
               [class.bg-secondary/20]="activeSessionId() === item.id"
-              [class.text-primary]="activeSessionId() === item.id"
               [class.font-medium]="activeSessionId() === item.id"
             >
               <!-- Title & click target -->
               <button
                 type="button"
                 (click)="sessionClick.emit(item.id)"
-                class="flex min-w-0 flex-1 items-center gap-2 text-left outline-none cursor-pointer"
+                class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 pr-1 text-left outline-none"
               >
                 <span
                   class="block truncate text-xs leading-5 font-normal"
@@ -282,12 +289,14 @@
                 ></span>
               </button>
 
-              <!-- Hover 3-dots action menu -->
-              <div class="dropdown dropdown-end dropdown-bottom hidden group-hover:inline-block">
+              <!-- Fixed 3-dots action menu (zero layout shift, pure opacity transition) -->
+              <div
+                class="dropdown pointer-events-none dropdown-end dropdown-bottom flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100"
+              >
                 <button
                   tabindex="0"
                   type="button"
-                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 hover:bg-base-300 hover:text-base-content outline-none cursor-pointer"
+                  class="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 outline-none hover:bg-base-300 hover:text-base-content"
                   (click)="$event.stopPropagation()"
                   aria-label="Chat options"
                 >
@@ -303,7 +312,10 @@
                       (click)="shareConversation(item, $event)"
                       class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
                     >
-                      <svg lucideShare2 class="h-3.5 w-3.5 text-base-content/70" />
+                      <svg
+                        lucideShare2
+                        class="h-3.5 w-3.5 text-base-content/70"
+                      />
                       <span>Share conversation</span>
                     </button>
                   </li>
@@ -323,30 +335,22 @@
                       (click)="startRename(item.id, item.title, $event)"
                       class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-base-content"
                     >
-                      <svg lucidePencil class="h-3.5 w-3.5 text-base-content/70" />
+                      <svg
+                        lucidePencil
+                        class="h-3.5 w-3.5 text-base-content/70"
+                      />
                       <span>Rename</span>
                     </button>
                   </li>
-                  <li class="border-t border-base-300/60 mt-1 pt-1">
-                    @if (confirmDeleteId() === item.id) {
-                      <button
-                        type="button"
-                        (click)="confirmDelete(item.id, $event)"
-                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error font-semibold animate-pulse"
-                      >
-                        <svg lucideCheck class="h-3.5 w-3.5" />
-                        <span>Confirm Delete</span>
-                      </button>
-                    } @else {
-                      <button
-                        type="button"
-                        (click)="initDelete(item.id, $event)"
-                        class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error hover:bg-error/10"
-                      >
-                        <svg lucideTrash2 class="h-3.5 w-3.5" />
-                        <span>Delete</span>
-                      </button>
-                    }
+                  <li class="mt-1 border-t border-base-300/60 pt-1">
+                    <button
+                      type="button"
+                      (click)="initDelete(item, $event)"
+                      class="flex items-center gap-2 rounded-xl py-1.5 text-xs text-error hover:bg-error/10"
+                    >
+                      <svg lucideTrash2 class="h-3.5 w-3.5" />
+                      <span>Delete</span>
+                    </button>
                   </li>
                 </ul>
               </div>
@@ -355,7 +359,9 @@
         </li>
       } @empty {
         @if (pinnedSessions().length === 0) {
-          <li class="flex flex-col items-center gap-2 py-8 text-center italic text-base-content/40">
+          <li
+            class="flex flex-col items-center gap-2 py-8 text-center text-base-content/40 italic"
+          >
             <svg lucideMessageCircle class="h-8 w-8 opacity-50" />
             <span class="text-xs">No conversations yet</span>
           </li>
@@ -370,5 +376,59 @@
     [isOpen]="sharingSession() !== null"
     (closed)="closeShareDialog()"
   />
-</div>
 
+  <!-- ── Delete Confirmation Modal ─────────────────────────────────────────── -->
+  <dialog
+    #deleteConfirmDialog
+    class="modal backdrop-blur-sm"
+    (cancel)="cancelDelete()"
+  >
+    <div
+      class="modal-box max-w-sm rounded-3xl border border-base-300 bg-base-200 p-6 shadow-2xl"
+    >
+      <!-- Icon + Title -->
+      <div class="flex flex-col items-center gap-3 pb-4 text-center">
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-2xl bg-error/10 text-error"
+        >
+          <svg lucideTriangleAlert class="h-6 w-6" />
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-base-content">
+            Delete conversation?
+          </h3>
+          <p
+            class="mx-auto mt-1 max-w-[220px] text-xs leading-relaxed text-base-content/60"
+          >
+            "<span class="font-medium text-base-content/80">{{
+              pendingDeleteTitle()
+            }}</span
+            >" will be permanently deleted. This action cannot be undone.
+          </p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-2 pt-2">
+        <button
+          type="button"
+          class="btn flex-1 rounded-xl btn-ghost text-xs btn-sm"
+          (click)="cancelDelete()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn flex-1 gap-1.5 rounded-xl text-xs btn-error btn-sm"
+          (click)="confirmDelete()"
+        >
+          <svg lucideTrash2 class="h-3.5 w-3.5" />
+          Delete
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit" (click)="cancelDelete()">close</button>
+    </form>
+  </dialog>
+</div>

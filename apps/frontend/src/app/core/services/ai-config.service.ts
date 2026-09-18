@@ -248,13 +248,13 @@ export class AiConfigService {
   }
 
   private loadCookie(key: string, fallback: string): string {
-    // 1. Cookie = source de vérité.
+    // 1. Cookie = source of truth.
     const fromCookie = readPrefCookie(this.cookies, key);
     if (fromCookie) return fromCookie;
 
-    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
-    // Compat JSON.parse : les anciennes valeurs pouvaient être stockées
-    // brutes ("groq") ou via JSON.stringify ('"groq"').
+    // 2. One-shot migration from legacy localStorage, then cleanup.
+    // JSON.parse compat: legacy values could be stored
+    // raw ("groq") or via JSON.stringify ('"groq"').
     const migrated = migrateLocalStorageToCookie(key);
     if (migrated) {
       writePrefCookie(this.cookies, key, migrated);

@@ -301,18 +301,44 @@ export class TtsService {
   }
 
   pause(): void {
-    if (this.currentAudio) {
+    if (this.currentAudio && !this.currentAudio.paused) {
       this.currentAudio.pause();
-    } else if (this.isPlaying()) {
+      this.isPlaying.set(false);
+      this.stopProgressTracking();
+    } else if (this.currentUtterance && this.isPlaying()) {
       window.speechSynthesis.pause();
+      this.isPlaying.set(false);
+      this.stopProgressTracking();
     }
   }
 
   resume(): void {
-    if (this.currentAudio) {
-      this.currentAudio.play();
-    } else if (this.isPlaying()) {
+    if (this.currentAudio && this.currentAudio.paused) {
+      this.currentAudio
+        .play()
+        .then(() => {
+          this.isPlaying.set(true);
+          this.startProgressTracking();
+        })
+        .catch((error) => {
+          console.error(MESSAGES.log.audioPlayFailed, error);
+        });
+    } else if (this.currentUtterance && !this.isPlaying()) {
       window.speechSynthesis.resume();
+      this.isPlaying.set(true);
+      this.startProgressTracking();
+    }
+  }
+
+  seekTo(seconds: number): void {
+    if (!Number.isFinite(seconds) || seconds < 0) return;
+    if (this.currentAudio && Number.isFinite(this.currentAudio.duration)) {
+      const clamped = Math.max(
+        0,
+        Math.min(this.currentAudio.duration || 0, seconds),
+      );
+      this.currentAudio.currentTime = clamped;
+      this.currentAudioTime.set(clamped);
     }
   }
 }

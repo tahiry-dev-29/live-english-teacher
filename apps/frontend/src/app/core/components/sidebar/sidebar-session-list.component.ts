@@ -6,8 +6,10 @@ import {
   computed,
   ChangeDetectionStrategy,
   inject,
+  viewChild,
+  ElementRef,
+  effect,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Session } from '@models/session.model';
 import { NotificationService } from '@core/services/notification.service';
 import {
@@ -22,8 +24,9 @@ import {
   LucideShare2,
   LucideEllipsis,
   LucideSlidersHorizontal,
+  LucideTriangleAlert,
 } from '@lucide/angular';
-import { ShareDialogComponent } from '@core/components/share-dialog/share-dialog.component';
+import { ShareDialogComponent } from '../share-dialog/share-dialog.component';
 
 export type SessionSortBy = 'activity' | 'created' | 'name';
 
@@ -32,7 +35,6 @@ export type SessionSortBy = 'activity' | 'created' | 'name';
   selector: 'app-sidebar-session-list',
   standalone: true,
   imports: [
-    CommonModule,
     ShareDialogComponent,
     LucideMessageCircle,
     LucidePencil,
@@ -45,6 +47,7 @@ export type SessionSortBy = 'activity' | 'created' | 'name';
     LucideShare2,
     LucideEllipsis,
     LucideSlidersHorizontal,
+    LucideTriangleAlert,
   ],
   templateUrl: './sidebar-session-list.component.html',
 })
@@ -54,7 +57,7 @@ export class SidebarSessionListComponent {
   readonly sessions = input<Session[]>([]);
   readonly activeSessionId = input<string | null>(null);
   readonly isReloading = input<boolean>(false);
-  /** Terme à surligner dans les titres (vide = pas de surlignage). */
+  /** Term to highlight in titles (empty = no highlighting). */
   readonly highlightTerm = input<string>('');
 
   readonly sessionClick = output<string>();
@@ -65,13 +68,33 @@ export class SidebarSessionListComponent {
 
   readonly editingSessionId = signal<string | null>(null);
   readonly editTitle = signal<string>('');
-  readonly confirmDeleteId = signal<string | null>(null);
   readonly sortBy = signal<SessionSortBy>('activity');
   readonly sharingSession = signal<Session | null>(null);
 
-  private deleteTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** ID of the session pending deletion (shown in the confirmation modal) */
+  readonly pendingDeleteId = signal<string | null>(null);
+  readonly pendingDeleteTitle = signal<string>('');
 
-  /** Sessions triées selon le critère actif. */
+  /** Reference to the delete confirmation dialog element */
+  readonly deleteConfirmDialog = viewChild<ElementRef<HTMLDialogElement>>(
+    'deleteConfirmDialog',
+  );
+
+  constructor() {
+    // Keep the dialog in sync with pendingDeleteId signal
+    effect(() => {
+      const hasPending = this.pendingDeleteId() !== null;
+      const el = this.deleteConfirmDialog()?.nativeElement;
+      if (!el) return;
+      if (hasPending && !el.open) {
+        el.showModal();
+      } else if (!hasPending && el.open) {
+        el.close();
+      }
+    });
+  }
+
+  /** Sessions sorted by the active criterion. */
   readonly sortedSessions = computed<Session[]>(() => {
     const list = [...this.sessions()];
     const sort = this.sortBy();
@@ -81,7 +104,9 @@ export class SidebarSessionListComponent {
         return a.title.localeCompare(b.title);
       }
       if (sort === 'created') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       }
       // 'activity' (default)
       const dateA = new Date(a.updatedAt || a.createdAt).getTime();
@@ -90,12 +115,12 @@ export class SidebarSessionListComponent {
     });
   });
 
-  /** Sessions épinglées (Pinned). */
+  /** Pinned sessions. */
   readonly pinnedSessions = computed<Session[]>(() => {
     return this.sortedSessions().filter((s) => Boolean(s.isPinned));
   });
 
-  /** Sessions récentes non-épinglées (Recents). */
+  /** Recent non-pinned sessions. */
   readonly recentSessions = computed<Session[]>(() => {
     return this.sortedSessions().filter((s) => !s.isPinned);
   });
@@ -135,7 +160,6 @@ export class SidebarSessionListComponent {
     event?.stopPropagation();
     this.editingSessionId.set(sessionId);
     this.editTitle.set(currentTitle);
-    this.confirmDeleteId.set(null);
   }
 
   saveRename(sessionId: string): void {
@@ -150,24 +174,28 @@ export class SidebarSessionListComponent {
     this.editingSessionId.set(null);
   }
 
-  // ── Deleting ────────────────────────────────────────────────────────────
+  // ── Deleting ─────────────────────────────────────────────────────────────
 
-  initDelete(sessionId: string, event?: Event): void {
+  /** Opens the confirmation modal for the given session. */
+  initDelete(session: Session, event?: Event): void {
     event?.stopPropagation();
-    this.confirmDeleteId.set(sessionId);
     this.editingSessionId.set(null);
-
-    if (this.deleteTimeout) clearTimeout(this.deleteTimeout);
-    this.deleteTimeout = setTimeout(() => {
-      this.confirmDeleteId.set(null);
-    }, 3000);
+    this.pendingDeleteTitle.set(session.title || 'this conversation');
+    this.pendingDeleteId.set(session.id);
   }
 
-  confirmDelete(sessionId: string, event?: Event): void {
-    event?.stopPropagation();
-    this.deleteSession.emit(sessionId);
-    this.confirmDeleteId.set(null);
-    if (this.deleteTimeout) clearTimeout(this.deleteTimeout);
+  /** Called when the user confirms deletion in the modal. */
+  confirmDelete(): void {
+    const id = this.pendingDeleteId();
+    if (id) {
+      this.deleteSession.emit(id);
+    }
+    this.pendingDeleteId.set(null);
+  }
+
+  /** Called when the user cancels deletion in the modal. */
+  cancelDelete(): void {
+    this.pendingDeleteId.set(null);
   }
 
   // ── Highlighting ────────────────────────────────────────────────────────
@@ -196,4 +224,3 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-

@@ -32,6 +32,8 @@ You are a Senior Full-Stack Architect. Adopt a direct, human, action-oriented "c
 - Framework Guidelines:
   - Bun APIs: SSE (Server-Sent Events) preferred for GET streaming. Explicit test targets (`bun:test:controller`, `bun:test:service`).
   - Angular: For GET requests, strictly use `httpResource()`, `resource()`, `rxResource()`, or RxJS async pipe (`.map()`, `.filter()`, `.switchMap()`).
+  - Angular Forms: **STRICTLY FORBIDDEN** — `FormsModule`, `ReactiveFormsModule`, `[(ngModel)]`, `[ngModel]`, `(ngModelChange)`, `FormGroup`, `FormControl`. Use native `[value]` + `(input)` for HTML elements, `model()` for custom component two-way binding. See `.agents/rules/stack.md` for full patterns.
+  - Angular Templates: **STRICTLY FORBIDDEN** — `CommonModule`, `*ngIf`, `*ngFor`, `*ngSwitch`, `| async`, `| json`, `ngClass`, `ngStyle`. Use `@if`/`@for`/`@switch` control flow, `[class]`/`[style]` native bindings. Import pipes directly from `@angular/common` only if needed.
   - React / Next.js: TanStack Query or SWR for fetching, `useMemo` for optimization, Zod, Form Actions, React Hook Form, or TanStack Form.
   - Backend: Nest.js Clean Architecture.
 

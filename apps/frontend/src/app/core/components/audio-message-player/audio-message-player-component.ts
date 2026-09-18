@@ -19,7 +19,7 @@ import { MESSAGES } from '@core/constants/messages';
   imports: [LucidePlay, LucidePause],
   template: `
     <div
-      class="audio-player flex max-w-xs items-center gap-3 rounded-2xl border border-base-300 bg-base-200 px-4 py-3 transition-colors"
+      class="audio-player flex w-full max-w-xs min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-base-300 bg-base-200 px-4 py-3 transition-colors"
     >
       <button
         (click)="togglePlay()"
@@ -33,9 +33,9 @@ import { MESSAGES } from '@core/constants/messages';
         }
       </button>
 
-      <div class="flex flex-1 flex-col gap-1">
+      <div class="flex min-w-0 flex-1 flex-col gap-1">
         <div
-          class="flex h-8 cursor-pointer items-center gap-0.5"
+          class="flex h-8 min-w-0 cursor-pointer items-center gap-0.5 overflow-hidden"
           role="slider"
           tabindex="0"
           [attr.aria-label]="'Seek audio'"
@@ -71,6 +71,9 @@ import { MESSAGES } from '@core/constants/messages';
     `
       :host {
         display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
       }
     `,
   ],

@@ -4,26 +4,33 @@ import {
   input,
   output,
   signal,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import {
   LucideMic,
   LucideMicOff,
   LucidePhoneOff,
   LucideEllipsis,
+  LucideChevronDown,
 } from '@lucide/angular';
+
+export interface LanguageOption {
+  code: string;
+  name: string;
+  flag: string;
+}
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-call-interface',
   standalone: true,
   imports: [
-    CommonModule,
     LucideMic,
     LucideMicOff,
     LucidePhoneOff,
     LucideEllipsis,
+    LucideChevronDown,
   ],
   template: `
     <div
@@ -39,8 +46,42 @@ import {
             >Live Call</span
           >
         </div>
-        <div class="text-sm font-medium text-base-content/40">
-          {{ duration() }}
+
+        <div class="flex items-center gap-4">
+          <div class="dropdown dropdown-end dropdown-bottom">
+            <button
+              tabindex="0"
+              type="button"
+              class="flex items-center gap-1.5 rounded-full border border-base-300/50 bg-base-200/80 px-3 py-1.5 text-xs font-medium text-base-content/70 backdrop-blur-sm transition-colors hover:bg-base-300/50"
+            >
+              <span>{{ currentFlag() }}</span>
+              <span>{{ currentLanguageName() }}</span>
+              <svg lucideChevronDown class="h-3 w-3 opacity-50"></svg>
+            </button>
+            <ul
+              tabindex="0"
+              class="menu dropdown-content z-50 mb-2 w-40 rounded-2xl border border-base-300 bg-base-200 p-1.5 shadow-2xl"
+            >
+              @for (lang of languages(); track lang.code) {
+                <li>
+                  <button
+                    type="button"
+                    (click)="onLanguageSelect(lang.code)"
+                    class="flex items-center gap-2 rounded-xl py-1.5 text-xs"
+                    [class.font-semibold]="lang.code === selectedLanguage()"
+                    [class.text-primary]="lang.code === selectedLanguage()"
+                  >
+                    <span>{{ lang.flag }}</span>
+                    <span>{{ lang.name }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <div class="text-sm font-medium text-base-content/40">
+            {{ duration() }}
+          </div>
         </div>
       </div>
 
@@ -115,12 +156,17 @@ import {
 export class CallInterfaceComponent implements OnDestroy {
   readonly callState = input<string>('idle');
   readonly transcript = input<string>('');
+  readonly languages = input<LanguageOption[]>([]);
+  readonly selectedLanguage = input<string>('en');
 
   readonly endCall = output<void>();
   readonly toggleMute = output<void>();
+  readonly languageChange = output<string>();
 
   readonly isMuted = signal<boolean>(false);
   readonly duration = signal<string>('00:00');
+  readonly currentFlag = signal<string>('🇬🇧');
+  readonly currentLanguageName = signal<string>('English');
 
   readonly loading = input<boolean>(false);
   readonly isThinking = input<boolean>(false);
@@ -133,6 +179,15 @@ export class CallInterfaceComponent implements OnDestroy {
   constructor() {
     this.startVisualizer();
     this.startTimer();
+
+    effect(() => {
+      const code = this.selectedLanguage();
+      const lang = this.languages().find((l) => l.code === code);
+      if (lang) {
+        this.currentFlag.set(lang.flag);
+        this.currentLanguageName.set(lang.name);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -147,6 +202,16 @@ export class CallInterfaceComponent implements OnDestroy {
 
   onEndCall(): void {
     this.endCall.emit();
+  }
+
+  onLanguageSelect(code: string): void {
+    this.languageChange.emit(code);
+    const lang = this.languages().find((l) => l.code === code);
+    if (lang) {
+      this.currentFlag.set(lang.flag);
+      this.currentLanguageName.set(lang.name);
+    }
+    (document.activeElement as HTMLElement | null)?.blur();
   }
 
   private startTimer(): void {

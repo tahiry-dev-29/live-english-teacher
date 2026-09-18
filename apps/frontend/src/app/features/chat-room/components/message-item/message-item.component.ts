@@ -4,9 +4,10 @@ import {
   output,
   computed,
   signal,
+  viewChild,
+  ElementRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MarkdownModule } from 'ngx-markdown';
 import {
   LucideSquare,
@@ -27,7 +28,6 @@ import { ChatMessage } from '@models/chat-message.model';
   selector: 'app-message-item',
   standalone: true,
   imports: [
-    CommonModule,
     MarkdownModule,
     LucideSquare,
     LucideVolume2,
@@ -42,38 +42,38 @@ import { ChatMessage } from '@models/chat-message.model';
   ],
   template: `
     <div
-      class="group mb-4 flex w-full flex-col"
+      class="group flex w-full min-w-0 flex-col"
       [class.items-end]="message().role === 'user'"
       [class.items-start]="message().role === 'ai'"
     >
-      <!-- Message body -->
-      <div
-        class="relative max-w-[88%] sm:max-w-[78%]"
-        [class.self-end]="message().role === 'user'"
-        [class.self-start]="message().role === 'ai'"
-      >
-        <!-- User Message: Sleek rounded pill container -->
+      <div class="w-full max-w-full min-w-0">
         @if (message().role === 'user') {
-          <div
-            class="rounded-3xl bg-base-300 px-4 py-2.5 text-sm leading-relaxed text-base-content shadow-xs"
-          >
-            <div class="prose-sm prose max-w-none text-base-content break-words">
-              <markdown [data]="message().text"></markdown>
+          <div class="flex w-full min-w-0 justify-end">
+            <div
+              class="ml-auto max-w-[80%] min-w-0 rounded-3xl bg-base-200 px-5 py-2.5 text-[15px] leading-relaxed [overflow-wrap:anywhere] break-words text-base-content"
+            >
+              <div
+                class="prose-sm prose max-w-none min-w-0 [overflow-wrap:anywhere] break-words text-base-content"
+              >
+                <markdown [data]="message().text" />
+              </div>
             </div>
           </div>
         }
 
-        <!-- AI Message: Clean typography with optional error styling -->
         @if (message().role === 'ai') {
           <div
-            class="rounded-2xl px-1 py-1 text-sm leading-relaxed text-base-content"
+            class="w-full max-w-full min-w-0 text-[15px] leading-7 [overflow-wrap:anywhere] break-words text-base-content"
             [class.border]="isError()"
             [class.border-error/40]="isError()"
             [class.bg-error/10]="isError()"
             [class.p-3]="isError()"
+            [class.rounded-2xl]="isError()"
           >
-            <div class="prose-sm prose max-w-none text-base-content break-words">
-              <markdown [data]="message().text"></markdown>
+            <div
+              class="prose-chat max-w-none min-w-0 [overflow-wrap:anywhere] break-words"
+            >
+              <markdown [data]="message().text" />
             </div>
           </div>
 
@@ -83,7 +83,7 @@ import { ChatMessage } from '@models/chat-message.model';
               <button
                 type="button"
                 (click)="retry.emit()"
-                class="btn gap-1.5 btn-error btn-xs rounded-lg"
+                class="btn gap-1.5 rounded-lg btn-error btn-xs"
               >
                 <svg lucideRefreshCw class="h-3 w-3"></svg>
                 <span>Retry</span>
@@ -94,13 +94,15 @@ import { ChatMessage } from '@models/chat-message.model';
 
           <!-- AI Action Bar (ThumbsUp, ThumbsDown, Retry, Copy, Ellipsis dropdown) -->
           @if (!isError()) {
-            <div class="mt-2 flex items-center gap-0.5 text-base-content/60">
+            <div
+              class="mt-2 flex min-w-0 flex-wrap items-center gap-0.5 text-base-content/60"
+            >
               <!-- Thumbs up -->
               <div class="tooltip tooltip-bottom" data-tip="Good response">
                 <button
                   type="button"
                   (click)="toggleLike()"
-                  class="btn btn-circle btn-ghost btn-xs text-base-content/60 hover:text-base-content transition-colors"
+                  class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
                   [class.text-primary]="feedbackState() === 'liked'"
                   aria-label="Good response"
                 >
@@ -113,7 +115,7 @@ import { ChatMessage } from '@models/chat-message.model';
                 <button
                   type="button"
                   (click)="toggleDislike()"
-                  class="btn btn-circle btn-ghost btn-xs text-base-content/60 hover:text-base-content transition-colors"
+                  class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
                   [class.text-error]="feedbackState() === 'disliked'"
                   aria-label="Bad response"
                 >
@@ -126,7 +128,7 @@ import { ChatMessage } from '@models/chat-message.model';
                 <button
                   type="button"
                   (click)="retry.emit()"
-                  class="btn btn-circle btn-ghost btn-xs text-base-content/60 hover:text-base-content transition-colors"
+                  class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
                   aria-label="Regenerate"
                 >
                   <svg lucideRefreshCw class="h-3.5 w-3.5"></svg>
@@ -141,7 +143,7 @@ import { ChatMessage } from '@models/chat-message.model';
                 <button
                   type="button"
                   (click)="onCopyText()"
-                  class="btn btn-circle btn-ghost btn-xs text-base-content/60 hover:text-base-content transition-colors"
+                  class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
                   aria-label="Copy"
                 >
                   @if (isCopied()) {
@@ -153,19 +155,34 @@ import { ChatMessage } from '@models/chat-message.model';
               </div>
 
               <!-- ⋯ Three dots menu dropdown (opens rightwards to avoid clipping) -->
-              <div class="dropdown dropdown-start dropdown-bottom">
-                <div class="tooltip tooltip-bottom" data-tip="More">
+              <div
+                class="dropdown dropdown-end"
+                [class.dropdown-top]="menuUp()"
+                [class.dropdown-bottom]="!menuUp()"
+              >
+                <div
+                  class="tooltip"
+                  [class.tooltip-top]="menuUp()"
+                  [class.tooltip-bottom]="!menuUp()"
+                  data-tip="More"
+                >
                   <button
+                    #menuTrigger
                     tabindex="0"
                     type="button"
-                    class="btn btn-circle btn-ghost btn-xs text-base-content/60 hover:text-base-content transition-colors"
+                    (click)="openMenu()"
+                    class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
                     aria-label="More options"
+                    aria-haspopup="menu"
                   >
                     <svg lucideEllipsis class="h-3.5 w-3.5"></svg>
                   </button>
                 </div>
                 <ul
                   tabindex="0"
+                  role="menu"
+                  (click)="closeMenu()"
+                  (keydown.escape)="closeMenu()"
                   class="menu dropdown-content z-50 mt-1 w-52 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
                 >
                   <!-- Branch in new chat -->
@@ -175,7 +192,10 @@ import { ChatMessage } from '@models/chat-message.model';
                       (click)="fork.emit()"
                       class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
                     >
-                      <svg lucideGitFork class="h-4 w-4 text-base-content/70"></svg>
+                      <svg
+                        lucideGitFork
+                        class="h-4 w-4 text-base-content/70"
+                      ></svg>
                       <span>Branch in new chat</span>
                     </button>
                   </li>
@@ -189,9 +209,12 @@ import { ChatMessage } from '@models/chat-message.model';
                     >
                       @if (isPlaying()) {
                         <svg lucideSquare class="h-4 w-4 text-error"></svg>
-                        <span class="text-error font-semibold">Stop audio</span>
+                        <span class="font-semibold text-error">Stop audio</span>
                       } @else {
-                        <svg lucideVolume2 class="h-4 w-4 text-base-content/70"></svg>
+                        <svg
+                          lucideVolume2
+                          class="h-4 w-4 text-base-content/70"
+                        ></svg>
                         <span>Listen</span>
                       }
                     </button>
@@ -204,8 +227,13 @@ import { ChatMessage } from '@models/chat-message.model';
                       (click)="onCopyText()"
                       class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
                     >
-                      <svg lucideCopy class="h-4 w-4 text-base-content/70"></svg>
-                      <span>{{ isCopied() ? 'Copied!' : 'Copy response' }}</span>
+                      <svg
+                        lucideCopy
+                        class="h-4 w-4 text-base-content/70"
+                      ></svg>
+                      <span>{{
+                        isCopied() ? 'Copied!' : 'Copy response'
+                      }}</span>
                     </button>
                   </li>
 
@@ -216,7 +244,10 @@ import { ChatMessage } from '@models/chat-message.model';
                       (click)="toggleDetails()"
                       class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
                     >
-                      <svg lucideInfo class="h-4 w-4 text-base-content/70"></svg>
+                      <svg
+                        lucideInfo
+                        class="h-4 w-4 text-base-content/70"
+                      ></svg>
                       <span>See response details</span>
                     </button>
                   </li>
@@ -225,8 +256,12 @@ import { ChatMessage } from '@models/chat-message.model';
 
               <!-- Audio playing status indicator -->
               @if (isPlaying()) {
-                <span class="ml-2 flex items-center gap-1.5 text-xs text-secondary font-medium animate-pulse">
-                  <span class="loading loading-spinner loading-xs text-secondary"></span>
+                <span
+                  class="ml-2 flex animate-pulse items-center gap-1.5 text-xs font-medium text-secondary"
+                >
+                  <span
+                    class="loading loading-xs loading-spinner text-secondary"
+                  ></span>
                   Playing audio…
                 </span>
               }
@@ -237,11 +272,15 @@ import { ChatMessage } from '@models/chat-message.model';
               <div
                 class="mt-2 rounded-xl border border-base-300 bg-base-200/60 p-3 text-xs text-base-content/70"
               >
-                <div class="flex items-center justify-between pb-1.5 border-b border-base-300">
-                  <span class="font-semibold text-base-content">Response Details</span>
+                <div
+                  class="flex items-center justify-between border-b border-base-300 pb-1.5"
+                >
+                  <span class="font-semibold text-base-content"
+                    >Response Details</span
+                  >
                   <button
                     type="button"
-                    class="btn btn-ghost btn-xs text-[10px]"
+                    class="btn btn-ghost text-[10px] btn-xs"
                     (click)="showDetails.set(false)"
                   >
                     Close
@@ -263,6 +302,208 @@ import { ChatMessage } from '@models/chat-message.model';
       :host {
         display: block;
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      /* Anti-horizontal-scroll: no content block may exceed the message width
+         (long AI text, unbreakable words/URLs, code). */
+      .prose-chat,
+      .prose-chat *,
+      .prose,
+      .prose * {
+        max-width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .prose-chat img,
+      .prose-chat video,
+      .prose-chat iframe,
+      .prose img,
+      .prose video,
+      .prose iframe {
+        height: auto;
+        border-radius: var(--radius-field);
+      }
+
+      .prose-chat table,
+      .prose table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .prose-chat pre,
+      .prose pre {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .prose-chat {
+        color: inherit;
+        font-size: 15px;
+        line-height: 1.75;
+      }
+
+      .prose-chat p {
+        margin: 0 0 1em;
+      }
+
+      .prose-chat p:last-child {
+        margin-bottom: 0;
+      }
+
+      .prose-chat h1,
+      .prose-chat h2,
+      .prose-chat h3,
+      .prose-chat h4,
+      .prose-chat h5,
+      .prose-chat h6 {
+        color: inherit;
+        font-weight: 700;
+        margin: 1.25em 0 0.5em;
+        line-height: 1.3;
+      }
+
+      .prose-chat h1 {
+        font-size: 1.35em;
+      }
+      .prose-chat h2 {
+        font-size: 1.2em;
+      }
+      .prose-chat h3 {
+        font-size: 1.1em;
+      }
+      .prose-chat h4 {
+        font-size: 1em;
+      }
+
+      .prose-chat ul {
+        margin: 0.75em 0;
+        padding-left: 1.25rem;
+        list-style: disc;
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+      }
+
+      .prose-chat ol {
+        margin: 0.75em 0;
+        padding-left: 1.25rem;
+        list-style: decimal;
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+      }
+
+      .prose-chat li::marker {
+        color: var(--color-primary);
+        opacity: 0.8;
+      }
+
+      .prose-chat strong {
+        font-weight: 600;
+        color: inherit;
+      }
+
+      .prose-chat em {
+        font-style: italic;
+        color: inherit;
+      }
+
+      .prose-chat a {
+        color: var(--color-primary);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        transition: opacity 0.15s;
+      }
+
+      .prose-chat a:hover {
+        opacity: 0.8;
+      }
+
+      .prose-chat hr {
+        margin: 1.25em 0;
+        border: none;
+        border-top: 1px solid var(--color-base-300);
+      }
+
+      .prose-chat blockquote {
+        margin: 0.85em 0;
+        padding: 0.5rem 0.9rem;
+        border-left: 3px solid var(--color-primary);
+        background: color-mix(in oklch, var(--color-primary) 6%, transparent);
+        border-radius: 0 var(--radius-field) var(--radius-field) 0;
+        color: inherit;
+      }
+
+      .prose-chat code {
+        background: color-mix(
+          in oklch,
+          var(--color-base-content) 8%,
+          transparent
+        );
+        color: var(--color-primary);
+        padding: 0.15rem 0.4rem;
+        border-radius: var(--radius-field);
+        font-size: 0.875em;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .prose-chat pre {
+        background: var(--color-base-200);
+        border: 1px solid var(--color-base-300);
+        padding: 0.9rem 1rem;
+        border-radius: var(--radius-box);
+        overflow-x: auto;
+        margin: 0.85em 0;
+      }
+
+      .prose-chat pre code {
+        background: none;
+        padding: 0;
+        color: inherit;
+        font-size: 0.875em;
+      }
+
+      /* Markdown Tables */
+      .prose-chat table {
+        width: 100%;
+        margin: 1em 0;
+        border-collapse: collapse;
+        font-size: 0.9em;
+        border-radius: var(--radius-box);
+        overflow: hidden;
+        border: 1px solid var(--color-base-300);
+      }
+
+      .prose-chat th {
+        background: var(--color-base-200);
+        font-weight: 600;
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--color-base-300);
+      }
+
+      .prose-chat td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--color-base-300);
+      }
+
+      .prose-chat tr:last-child td {
+        border-bottom: none;
+      }
+
+      .prose-chat tr:hover td {
+        background: color-mix(
+          in oklch,
+          var(--color-base-content) 3%,
+          transparent
+        );
       }
 
       .prose {
@@ -307,6 +548,26 @@ export class MessageItemComponent {
   readonly isCopied = signal<boolean>(false);
   readonly feedbackState = signal<'liked' | 'disliked' | null>(null);
   readonly showDetails = signal<boolean>(false);
+  readonly menuUp = signal<boolean>(true);
+
+  private readonly menuTrigger =
+    viewChild<ElementRef<HTMLButtonElement>>('menuTrigger');
+
+  openMenu(): void {
+    const el = this.menuTrigger()?.nativeElement;
+    if (!el) {
+      this.menuUp.set(true);
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    this.menuUp.set(spaceBelow < 260);
+    requestAnimationFrame(() => el.focus());
+  }
+
+  closeMenu(): void {
+    this.menuTrigger()?.nativeElement?.blur();
+  }
 
   handlePlayStop(): void {
     if (this.isPlaying()) {
@@ -357,5 +618,3 @@ export class MessageItemComponent {
     }
   }
 }
-
-

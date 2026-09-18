@@ -1,12 +1,11 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ThemeService } from '@core/services/theme.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-star-background',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     @if (themeService.resolvedTheme() === 'app-dark') {
       <div class="pointer-events-none absolute inset-0 overflow-hidden">

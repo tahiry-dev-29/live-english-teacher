@@ -12,7 +12,7 @@ export class NotificationService implements OnDestroy {
   private nextId = 1;
   private timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-  /** Durée d'affichage en ms — 0 = aucun auto-dismiss */
+  /** Display duration in ms — 0 = no auto-dismiss */
   private readonly defaultDuration = 4000;
 
   info(message: string, duration = this.defaultDuration): void {

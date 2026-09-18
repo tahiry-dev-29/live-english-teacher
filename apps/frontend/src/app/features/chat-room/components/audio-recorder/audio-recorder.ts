@@ -15,26 +15,27 @@ import { MESSAGES } from '@core/constants/messages';
   standalone: true,
   imports: [LucideMic, LucideSquare],
   template: `
-    <div class="flex items-center">
-      @if (!isRecording()) {
-        <button
-          (click)="startRecording()"
-          class="btn btn-circle btn-error"
-          title="Start Recording"
-        >
-          <svg lucideMic class="h-6 w-6"></svg>
-        </button>
-      }
-      @if (isRecording()) {
-        <button
-          (click)="stopRecording()"
-          class="btn btn-circle animate-pulse border-2 border-error bg-base-300 text-error"
-          title="Stop Recording"
-        >
-          <svg lucideSquare class="h-6 w-6"></svg>
-        </button>
-      }
-    </div>
+    @if (!isRecording()) {
+      <button
+        type="button"
+        (click)="startRecording()"
+        class="btn btn-circle h-9 min-h-0 w-9 btn-ghost text-base-content/60 btn-sm hover:bg-base-300 hover:text-base-content"
+        title="Voice input"
+        aria-label="Start voice input"
+      >
+        <svg lucideMic class="h-[18px] w-[18px]"></svg>
+      </button>
+    } @else {
+      <button
+        type="button"
+        (click)="stopRecording()"
+        class="btn btn-circle h-9 min-h-0 w-9 animate-pulse border border-error/50 bg-error/15 text-error btn-sm"
+        title="Stop recording"
+        aria-label="Stop recording"
+      >
+        <svg lucideSquare class="h-4 w-4"></svg>
+      </button>
+    }
   `,
 })
 export class AudioRecorderComponent {

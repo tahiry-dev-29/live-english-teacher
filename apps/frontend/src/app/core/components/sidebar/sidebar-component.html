@@ -19,7 +19,8 @@
 >
   <!-- Header: Logo/Brand on left, Search & Toggle on right -->
   <div
-    class="flex items-center justify-between border-b border-base-300/70 px-3.5 py-3"
+    class="flex items-center border-b border-base-300/70 px-3.5 py-3"
+    [class.justify-between]="!isCollapsed() || isMobile"
     [class.justify-center]="isCollapsed() && !isMobile"
   >
     @if (!isCollapsed()) {
@@ -27,7 +28,7 @@
       class="flex flex-1 items-center gap-2 text-base font-bold tracking-tight select-none"
     >
       <img [src]="logoSrc()" alt="Live Teacher" class="h-6 w-6 shrink-0" />
-      <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Live Teacher</span>
+      <span class="text-base-content">Live Teacher</span>
     </div>
     }
 
@@ -37,40 +38,53 @@
         <button
           type="button"
           (click)="openSearch()"
-          class="btn btn-circle btn-ghost btn-sm h-8 w-8 min-h-0 text-base-content/70 transition-colors duration-150 hover:bg-secondary/15 hover:text-base-content"
+          class="btn btn-circle h-8 min-h-0 w-8 btn-ghost text-base-content/60 transition-colors duration-150 btn-sm hover:bg-base-300 hover:text-base-content"
           aria-label="Search history"
         >
           <svg lucideSearch class="h-4 w-4"></svg>
         </button>
       </div>
-      }
-
-      @if (isMobile) {
+      } @if (isMobile) {
       <button
         type="button"
         (click)="toggle()"
-        class="btn btn-circle btn-ghost btn-sm h-8 w-8 min-h-0 text-base-content/70 transition-colors duration-150 hover:bg-secondary/15 hover:text-base-content"
+        class="btn btn-circle h-8 min-h-0 w-8 btn-ghost text-base-content/60 transition-colors duration-150 btn-sm hover:bg-base-300 hover:text-base-content"
         title="Close sidebar"
         aria-label="Close sidebar"
       >
         <svg lucidePanelLeftClose class="h-4 w-4"></svg>
       </button>
-      } @else {
+      } @else if (!isCollapsed()) {
       <button
         type="button"
         (click)="toggleCollapse()"
-        class="btn btn-circle btn-ghost btn-sm h-8 w-8 min-h-0 text-base-content/70 transition-colors duration-150 hover:bg-secondary/15 hover:text-base-content"
-        title="Toggle sidebar"
-        aria-label="Toggle sidebar"
+        class="btn btn-circle h-8 min-h-0 w-8 btn-ghost text-base-content/60 transition-colors duration-150 btn-sm hover:bg-base-300 hover:text-base-content"
+        title="Collapse sidebar"
+        aria-label="Collapse sidebar"
       >
-        @if (isCollapsed()) {
-        <svg lucidePanelLeftOpen class="h-4 w-4"></svg>
-        } @else {
         <svg lucidePanelLeftClose class="h-4 w-4"></svg>
-        }
       </button>
       }
     </div>
+
+    @if (isCollapsed() && !isMobile) {
+    <div class="group relative flex h-8 w-8 items-center justify-center">
+      <img
+        [src]="logoSrc()"
+        alt="Live Teacher"
+        class="h-6 w-6 group-hover:hidden"
+      />
+      <button
+        type="button"
+        (click)="toggleCollapse()"
+        class="btn hidden btn-circle h-8 min-h-0 w-8 btn-ghost text-base-content/60 btn-sm group-hover:inline-flex hover:bg-base-300 hover:text-base-content"
+        title="Expand sidebar"
+        aria-label="Expand sidebar"
+      >
+        <svg lucidePanelLeftOpen class="h-4 w-4"></svg>
+      </button>
+    </div>
+    }
   </div>
 
   @if (!isCollapsed()) {
@@ -79,38 +93,13 @@
     <button
       type="button"
       (click)="onNewChat()"
-      class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-base-content/90 transition-colors duration-150 hover:bg-secondary/15 hover:text-base-content active:bg-secondary/25"
+      class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-base-content/60 transition-colors duration-150 hover:bg-base-300 hover:text-base-content"
       title="New chat"
     >
-      <svg lucideSquarePen class="h-4 w-4 text-base-content/80"></svg>
+      <svg lucideSquarePen class="h-4 w-4"></svg>
       <span>New chat</span>
     </button>
   </div>
-  } @else {
-  <!-- Collapsed icon buttons -->
-  <div class="flex flex-col items-center gap-2 py-3">
-    <div class="tooltip tooltip-right" data-tip="New chat">
-      <button
-        type="button"
-        (click)="onNewChat()"
-        class="btn btn-circle btn-ghost btn-sm h-9 w-9 min-h-0 text-base-content/70 transition-colors duration-150 hover:bg-secondary/15 hover:text-base-content"
-        aria-label="New chat"
-      >
-        <svg lucideSquarePen class="h-4 w-4"></svg>
-      </button>
-    </div>
-    <div class="tooltip tooltip-right" data-tip="Search Ctrl+K">
-      <button
-        type="button"
-        (click)="openSearch()"
-        class="btn btn-circle btn-ghost btn-sm h-9 w-9 min-h-0 text-base-content/70 transition-colors duration-150 hover:bg-secondary/15 hover:text-base-content"
-        aria-label="Search"
-      >
-        <svg lucideSearch class="h-4 w-4"></svg>
-      </button>
-    </div>
-  </div>
-  }
 
   <div
     class="scrollbar-thin scrollbar-thumb-base-300 hover:scrollbar-thumb-base-content/30 flex-1 overflow-y-auto px-2"
@@ -133,7 +122,7 @@
       class="btn mt-1 w-full btn-ghost btn-sm"
     >
       <svg lucideChevronDown class="h-3 w-3"></svg>
-      {{ remainingCount() }} more
+      Show more
     </button>
     } @if (showingAll() && sessions().length > initialLimit) {
     <div
@@ -151,18 +140,36 @@
     }
   </div>
   } @else {
-  <div class="flex flex-1 flex-col items-center space-y-2 py-4">
-    <button
-      (click)="openSearch()"
-      class="btn btn-circle btn-ghost"
-      title="Search"
-    >
-      <svg lucideSearch class="h-5 w-5"></svg>
-    </button>
+  <div class="flex flex-1 flex-col items-center gap-1.5 py-3">
+    <div class="tooltip tooltip-right" data-tip="New chat">
+      <button
+        type="button"
+        (click)="onNewChat()"
+        class="btn btn-circle h-9 min-h-0 w-9 btn-ghost text-base-content/60 transition-colors duration-150 btn-sm hover:bg-base-300 hover:text-base-content"
+        aria-label="New chat"
+      >
+        <svg lucideSquarePen class="h-4 w-4"></svg>
+      </button>
+    </div>
+    <div class="tooltip tooltip-right" data-tip="Search Ctrl+K">
+      <button
+        type="button"
+        (click)="openSearch()"
+        class="btn btn-circle h-9 min-h-0 w-9 btn-ghost text-base-content/60 transition-colors duration-150 btn-sm hover:bg-base-300 hover:text-base-content"
+        aria-label="Search"
+      >
+        <svg lucideSearch class="h-4 w-4"></svg>
+      </button>
+    </div>
   </div>
   }
 
-  <div class="border-t border-base-300 bg-base-300/50 p-4">
+  <div
+    class="border-t border-base-300/70 p-2.5"
+    [class.flex]="isCollapsed()"
+    [class.flex-col]="isCollapsed()"
+    [class.items-center]="isCollapsed()"
+  >
     @if (canInstall()) {
     <button
       (click)="onInstall()"
@@ -177,18 +184,21 @@
     } @if (!isCollapsed()) {
     <app-user-menu (openSettings)="openSettings.emit()" />
     } @else {
-    <button
-      (click)="openSettings.emit()"
-      class="btn btn-circle w-full btn-ghost"
-      title="Settings"
-    >
-      <svg lucideSettings class="h-5 w-5"></svg>
-    </button>
+    <div class="tooltip tooltip-right" data-tip="Settings">
+      <button
+        (click)="openSettings.emit()"
+        class="btn btn-circle h-9 min-h-0 w-9 btn-ghost text-base-content/60 transition-colors duration-150 btn-sm hover:bg-base-300 hover:text-base-content"
+        title="Settings"
+        aria-label="Settings"
+      >
+        <svg lucideSettings class="h-4 w-4"></svg>
+      </button>
+    </div>
     }
   </div>
 </aside>
 
-<!-- Search Modal — état et filtre encapsulés dans le composant dédié -->
+<!-- Search Modal — state and filter encapsulated in the dedicated component -->
 @if (showSearchModal()) {
 <app-sidebar-search-modal
   [sessions]="sessions()"

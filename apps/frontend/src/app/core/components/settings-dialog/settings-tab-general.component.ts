@@ -1,11 +1,10 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { LucideSun, LucideMoon, LucideMonitor } from '@lucide/angular';
 import {
   ThemeService,
   FONT_FAMILIES,
   FontSize,
+  FontFamily,
 } from '@core/services/theme.service';
 import { I18nService, AppLanguage } from '@core/services/i18n.service';
 import {
@@ -17,14 +16,7 @@ import {
   selector: 'app-settings-tab-general',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    FormsModule,
-    LucideSun,
-    LucideMoon,
-    LucideMonitor,
-    AppSelectComponent,
-  ],
+  imports: [LucideSun, LucideMoon, LucideMonitor, AppSelectComponent],
   template: `
     <div class="space-y-6">
       <!-- 1. Theme Selection (Mini UI cards) -->
@@ -278,8 +270,7 @@ import {
               selectId="settings-font-family"
               label="Font Family"
               [options]="fontFamilyOptions"
-              [ngModel]="themeService.fontFamily()"
-              (ngModelChange)="themeService.setFontFamily($event)"
+              [(value)]="themeService.fontFamily"
               size="sm"
               color="primary"
             />
@@ -327,17 +318,17 @@ import {
                   min="10"
                   max="28"
                   step="1"
-                  class="range flex-1 range-primary range-xs"
-                  [ngModel]="themeService.customFontSizePx()"
-                  (ngModelChange)="onCustomSizeChange($event)"
+                  class="range flex-1 bg-accent-content range-accent range-sm"
+                  [value]="themeService.customFontSizePx()"
+                  (input)="onCustomSizeChange($any($event.target).value)"
                 />
                 <input
                   type="number"
                   min="10"
                   max="28"
                   class="input w-14 border-base-300 text-center font-mono input-xs"
-                  [ngModel]="themeService.customFontSizePx()"
-                  (ngModelChange)="onCustomSizeChange($event)"
+                  [value]="themeService.customFontSizePx()"
+                  (input)="onCustomSizeChange($any($event.target).value)"
                 />
               </div>
             }
@@ -415,6 +406,10 @@ export class SettingsTabGeneralComponent {
       this.themeService.setCustomFontSizePx(n);
       this.themeService.setFontSize('custom');
     }
+  }
+
+  onFontFamilyChange(val: string): void {
+    this.themeService.setFontFamily(val as FontFamily);
   }
 
   currentFontFamilyLabel(): string {

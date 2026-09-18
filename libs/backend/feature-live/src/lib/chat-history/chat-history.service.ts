@@ -3,7 +3,25 @@ import { PrismaService } from '@live-languages-teacher/data-access-prisma';
 
 @Injectable()
 export class ChatHistoryService {
+  /**
+   * Tracks pinned session IDs in-memory as a fallback when the Prisma client
+   * database schema doesn't yet have the isPinned column.
+   */
+  private readonly pinnedSessionIds = new Set<string>();
+
   constructor(private readonly prisma: PrismaService) {}
+
+  isSessionPinned(sessionId: string): boolean {
+    return this.pinnedSessionIds.has(sessionId);
+  }
+
+  setSessionPinned(sessionId: string, isPinned: boolean): void {
+    if (isPinned) {
+      this.pinnedSessionIds.add(sessionId);
+    } else {
+      this.pinnedSessionIds.delete(sessionId);
+    }
+  }
 
   async createSession(learningLanguage = 'en', userId?: string) {
     return this.prisma.session.create({
@@ -81,18 +99,61 @@ export class ChatHistoryService {
   }
 
   async deleteSession(sessionId: string) {
+    this.pinnedSessionIds.delete(sessionId);
+    // Delete messages first (cascade may not be applied if db doesn't enforce it)
+    await this.prisma.message.deleteMany({ where: { sessionId } });
     return this.prisma.session.delete({
       where: { id: sessionId },
     });
+  }
+
+  /**
+   * Creates a snapshot copy of a session with all its messages.
+   * Returns the new session (new UUID, same content).
+   * Used for "Share conversation" — like Gemini's share link feature.
+   */
+  async forkSession(sourceSessionId: string) {
+    const source = await this.getSession(sourceSessionId);
+    if (!source) throw new Error(`Session ${sourceSessionId} not found`);
+
+    const newSession = await this.prisma.session.create({
+      data: {
+        learningLanguage: source.learningLanguage ?? 'en',
+        title: source.title ?? 'Shared Conversation',
+      },
+    });
+
+    if (source.messages.length > 0) {
+      await this.prisma.message.createMany({
+        data: source.messages.map((msg) => ({
+          sessionId: newSession.id,
+          role: msg.role,
+          content: msg.content,
+          createdAt: msg.createdAt,
+        })),
+      });
+    }
+
+    return newSession;
   }
 
   async updateSession(
     sessionId: string,
     data: { title?: string; learningLanguage?: string; isPinned?: boolean },
   ) {
-    return (this.prisma.session.update as any)({
+    if (data.isPinned !== undefined) {
+      this.setSessionPinned(sessionId, data.isPinned);
+    }
+
+    const { isPinned: _unused, ...prismaData } = data;
+
+    if (Object.keys(prismaData).length === 0) {
+      return this.getSession(sessionId);
+    }
+
+    return this.prisma.session.update({
       where: { id: sessionId },
-      data,
+      data: prismaData,
     });
   }
 }

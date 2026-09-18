@@ -5,6 +5,7 @@ import {
   SessionDetailResponse,
   MessageResponse,
   UpdateSessionInput,
+  ForkSessionResponse,
 } from './live-resolver.types';
 import { GeminiLiveService } from './gemini-live/gemini-live.service';
 import { AiProviderService } from './ai-provider.service';
@@ -31,7 +32,9 @@ export class LiveResolver {
       id: session.id,
       title: session.title || 'New Conversation',
       learningLanguage: session.learningLanguage || undefined,
-      isPinned: Boolean((session as any).isPinned),
+      isPinned:
+        Boolean((session as any).isPinned) ||
+        this.chatHistoryService.isSessionPinned(session.id),
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       lastMessage: session.messages?.[0]?.content,
@@ -49,7 +52,9 @@ export class LiveResolver {
       id: session.id,
       title: session.title || 'New Conversation',
       learningLanguage: session.learningLanguage ?? 'en',
-      isPinned: Boolean((session as any).isPinned),
+      isPinned:
+        Boolean((session as any).isPinned) ||
+        this.chatHistoryService.isSessionPinned(session.id),
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       messages: session.messages.map((msg) => ({
@@ -199,7 +204,11 @@ export class LiveResolver {
       ...session,
       title: session.title || 'New Conversation',
       learningLanguage: session.learningLanguage ?? undefined,
-      isPinned: Boolean((session as any).isPinned),
+      isPinned:
+        data.isPinned !== undefined
+          ? data.isPinned
+          : Boolean((session as any).isPinned) ||
+            this.chatHistoryService.isSessionPinned(session.id),
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
     };
@@ -210,8 +219,24 @@ export class LiveResolver {
     try {
       await this.chatHistoryService.deleteSession(sessionId);
       return true;
-    } catch {
+    } catch (err) {
+      console.error(
+        `[deleteSession] Failed to delete session ${sessionId}:`,
+        err,
+      );
       return false;
     }
+  }
+
+  @Mutation(() => ForkSessionResponse)
+  async forkSession(
+    @Args('sessionId') sessionId: string,
+  ): Promise<ForkSessionResponse> {
+    const newSession = await this.chatHistoryService.forkSession(sessionId);
+    return {
+      id: newSession.id,
+      title: newSession.title ?? 'Shared Conversation',
+      createdAt: newSession.createdAt.toISOString(),
+    };
   }
 }

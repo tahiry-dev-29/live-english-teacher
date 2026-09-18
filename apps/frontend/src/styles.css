@@ -1,16 +1,30 @@
 @import 'tailwindcss';
 
 @plugin 'daisyui' {
-  themes: forest --default;
+  themes:
+    app-dark --default,
+    app-light;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Live English Teacher — Design System
-   Palette: Violet primary (intelligence) · Cyan secondary (voice AI) · Rose accent
-   Both dark & light share identical hue angles → fully consistent brand identity
+   ─────────────────────────────────────────────────────────────────────────
+   - Les 2 blocs `@plugin 'daisyui/theme'` definissent les themes.
+     Le bloc `@plugin 'daisyui'` ci-dessus les enregistre + defaut.
+   - Theme actif = attribut `data-theme` sur `<html>`
+     pose par `ThemeService` (cookie : dark / light / system).
+   - N'utiliser QUE les tokens semantiques du design system.
+   - Palette : violet = IA (primary, hue 285),
+     cyan = voix/audio (secondary, hue 195),
+     rose = encouragement (accent, hue 340).
+     Dark & light partagent les memes hues, seule la lightness change.
+   HIERARCHIE DES SURFACES :
+   - `base-100` = fond de page.
+   - `base-200` = cartes / inputs / bubbles.
+   - `base-300` = bordures / dividers.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── app-dark : deep slate background, violet/cyan brand ───────────────── */
+/* ── app-dark (defaut) : fond slate profond, marque violet/cyan ────────── */
 @plugin 'daisyui/theme' {
   name: 'app-dark';
   default: true;
@@ -63,7 +77,7 @@
   --noise: 0;
 }
 
-/* ── app-light : fresh white background, same violet/cyan brand ─────────── */
+/* ── app-light : fond blanc lavande, meme marque violet/cyan ───────────── */
 @plugin 'daisyui/theme' {
   name: 'app-light';
   default: false;
@@ -149,11 +163,19 @@
   background: transparent;
 }
 
-/* ── Prevent any scale / transform / font-size jump on sidebar & menu hover ── */
-aside button,
-aside .btn,
-.menu li > * {
-  transform: none !important;
-  scale: 1 !important;
+/* ── Anti-scroll horizontal global ──────────────────────────────────────
+   Aucune page ne doit pouvoir défiler horizontalement : les conteneurs
+   de chat, markdown et waves audio se contentent de wrapper/shrinker. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
+img,
+video,
+iframe,
+table,
+pre {
+  max-width: 100%;
+}

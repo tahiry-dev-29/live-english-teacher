@@ -5,7 +5,6 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { LanguageService, Language } from '@core/services/language.service';
 import { I18nService } from '@core/services/i18n.service';
 
@@ -13,7 +12,7 @@ import { I18nService } from '@core/services/i18n.service';
   selector: 'app-settings-tab-language',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="space-y-4">
       <div class="space-y-1">

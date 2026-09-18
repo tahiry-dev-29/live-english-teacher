@@ -4,7 +4,6 @@ import {
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { LucideMessageSquare } from '@lucide/angular';
 import { WELCOME_MESSAGES } from './chat-welcome.util';
 
@@ -12,7 +11,7 @@ import { WELCOME_MESSAGES } from './chat-welcome.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-welcome',
   standalone: true,
-  imports: [CommonModule, LucideMessageSquare],
+  imports: [LucideMessageSquare],
   template: `
     <div class="hero min-h-[60vh]">
       <div class="hero-content text-center">

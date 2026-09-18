@@ -4,10 +4,9 @@ import {
   inject,
   signal,
   computed,
+  effect,
   DestroyRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import {
   LucideKey,
   LucideRotateCw,
@@ -33,8 +32,6 @@ import {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
-    FormsModule,
     LucideKey,
     LucideRotateCw,
     LucideEye,
@@ -55,8 +52,7 @@ import {
           <app-select
             class="flex-1"
             [options]="providerOptions"
-            [value]="aiConfig.provider()"
-            (valueChange)="onProviderSelect($event)"
+            [(value)]="aiConfig.provider"
             size="sm"
             color="primary"
           />
@@ -134,8 +130,8 @@ import {
                 (selectedProviderInfo()?.label || 'provider') +
                 ' API key to discover & use models...'
               "
-              [ngModel]="currentKeyValue()"
-              (ngModelChange)="onKeyChange($event)"
+              [value]="currentKeyValue()"
+              (input)="onKeyChange($any($event.target).value)"
             />
             <button
               type="button"
@@ -322,6 +318,18 @@ export class SettingsTabAiComponent {
     this.destroyRef.onDestroy(() => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer);
     });
+
+    effect(() => {
+      const provider = this.aiConfig.provider();
+      const models = this.aiConfig.getModelsForProvider(provider);
+      if (
+        models.length > 0 &&
+        !models.some((m) => m.id === this.aiConfig.selectedModelId())
+      ) {
+        this.aiConfig.selectedModelId.set(models[0].id);
+      }
+      void this.aiConfig.fetchModels(provider);
+    });
   }
 
   t(key: string): string {
@@ -330,18 +338,6 @@ export class SettingsTabAiComponent {
 
   async refreshModels(): Promise<void> {
     await this.aiConfig.fetchModels();
-  }
-
-  onProviderSelect(providerId: string): void {
-    this.aiConfig.provider.set(providerId);
-    const models = this.aiConfig.getModelsForProvider(providerId);
-    if (
-      models.length > 0 &&
-      !models.some((m) => m.id === this.aiConfig.selectedModelId())
-    ) {
-      this.aiConfig.selectedModelId.set(models[0].id);
-    }
-    void this.aiConfig.fetchModels(providerId);
   }
 
   onKeyChange(value: string): void {

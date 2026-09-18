@@ -1,11 +1,10 @@
 import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-tts-tester',
   standalone: true,
-  imports: [FormsModule],
+  imports: [],
   template: `
     <div
       class="card mx-auto max-w-2xl border border-base-300 bg-base-200 text-base-content shadow-xl"
@@ -26,8 +25,8 @@ import { FormsModule } from '@angular/forms';
         <div class="relative">
           <select
             id="voice-select"
-            [ngModel]="selectedVoice()?.name"
-            (ngModelChange)="onVoiceChange($event)"
+            [value]="selectedVoice()?.name"
+            (change)="onVoiceChange($any($event.target).value)"
             class="select w-full"
           >
             @for (voice of voices(); track voice.name) {
@@ -49,8 +48,8 @@ import { FormsModule } from '@angular/forms';
         >
         <textarea
           id="tts-input"
-          [ngModel]="text()"
-          (ngModelChange)="text.set($event)"
+          [value]="text()"
+          (input)="text.set($any($event.target).value)"
           rows="4"
           class="textarea w-full resize-none"
           placeholder="Type something here..."

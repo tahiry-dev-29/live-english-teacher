@@ -43,6 +43,16 @@ const DELETE_SESSION_MUTATION = gql`
   }
 `;
 
+const FORK_SESSION_MUTATION = gql`
+  mutation ForkSession($sessionId: String!) {
+    forkSession(sessionId: $sessionId) {
+      id
+      title
+      createdAt
+    }
+  }
+`;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -53,9 +63,9 @@ export class ChatService {
   activeSessionId = signal<string | null>(null);
 
   /**
-   * Liste des sessions (historique) — fetching réactif via `resource()`.
-   * `reload()` / `isLoading()` alimentent le bouton reload du header History.
-   * Les mutations (rename/delete) restent impératives + `reload()`.
+   * Session list (history) — reactive fetching via `resource()`.
+   * `reload()` / `isLoading()` power the reload button in the History header.
+   * Mutations (rename/delete) remain imperative + `reload()`.
    */
   sessionsResource = resource({
     loader: () => {
@@ -91,13 +101,40 @@ export class ChatService {
   }
 
   async deleteSession(id: string) {
-    await firstValueFrom(
-      this.apollo.mutate({
+    const result = await firstValueFrom(
+      this.apollo.mutate<{ deleteSession: boolean }>({
         mutation: DELETE_SESSION_MUTATION,
         variables: { id },
       }),
     );
+    if (!result.data?.deleteSession) {
+      console.error(`[ChatService] deleteSession returned false for id=${id}`);
+    }
     this.sessionsResource.reload();
+  }
+
+  /**
+   * Creates a new session that is a snapshot/copy of the source session.
+   * Returns the new session id (to be used as the share URL).
+   * Mirrors Gemini's "Share conversation" behavior.
+   */
+  async forkSession(
+    sourceSessionId: string,
+  ): Promise<{ id: string; title: string } | null> {
+    try {
+      const result = await firstValueFrom(
+        this.apollo.mutate<{
+          forkSession: { id: string; title: string; createdAt: string };
+        }>({
+          mutation: FORK_SESSION_MUTATION,
+          variables: { sessionId: sourceSessionId },
+        }),
+      );
+      return result.data?.forkSession ?? null;
+    } catch (err) {
+      console.error('[ChatService] forkSession failed:', err);
+      return null;
+    }
   }
 
   async loadSession(sessionId: string): Promise<void> {
@@ -106,9 +143,9 @@ export class ChatService {
   }
 
   /**
-   * État "new chat" : aucun id n'est généré côté frontend.
-   * L'id de session est créé par le backend (Prisma uuid) au premier message,
-   * puis retourné via `result.sessionId`.
+   * "new chat" state: no id generated on the frontend side.
+   * The session id is created by the backend (Prisma uuid) on the first message,
+   * then returned via `result.sessionId`.
    */
   createNewSession(): void {
     this.activeSessionId.set(null);

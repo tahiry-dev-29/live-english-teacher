@@ -70,7 +70,7 @@ export class LanguageService {
   private emptyPolls = 0;
   private warmupDone = false;
 
-  /** Recharge la liste des voix */
+  /** Reload the voice list */
   reloadVoices(): void {
     this.emptyPolls = 0;
     this.loadVoices();

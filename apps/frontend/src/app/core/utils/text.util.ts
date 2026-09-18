@@ -8,7 +8,7 @@ export function formatMessage(text: string): string {
 
 export function base64ToBlob(base64: string, mimeType: string): Blob {
   const byteCharacters = atob(base64);
-  // Note: String.charCodeAt() n'est PAS déprécié (seuls event.keyCode/charCode le sont).
+  // Note: String.charCodeAt() is NOT deprecated (only event.keyCode/charCode are).
   const byteArray = Uint8Array.from(byteCharacters, (c) => c.charCodeAt(0));
   return new Blob([byteArray], { type: mimeType });
 }

@@ -45,14 +45,14 @@ export const FONT_FAMILIES: { id: FontFamily; label: string; css: string }[] = [
 ];
 
 /**
- * Thème applicatif 100% Angular : aucun script inline dans index.html.
+ * Application theme 100% Angular: no inline scripts in index.html.
  *
- * - Instancié au boot via `provideAppInitializer` (cf. app.config.ts) :
- *   `data-theme` est posé avant le premier rendu — pas de flash.
- * - Réactivité signals : `effect()` persiste le cookie + applique le DOM
- *   à chaque changement (zoneless-safe).
- * - Persistance : cookies `app_theme` et `app_font_size` via
- *   `ngx-cookie-service` (Expires 365 j, Path=/, SameSite=Lax).
+ * - Instantiated at boot via `provideAppInitializer` (see app.config.ts):
+ *   `data-theme` is set before the first render — no flash.
+ * - Signal reactivity: `effect()` persists the cookie + applies DOM
+ *   on every change (zoneless-safe).
+ * - Persistence: cookies `app_theme` and `app_font_size` via
+ *   `ngx-cookie-service` (Expires 365 days, Path=/, SameSite=Lax).
  */
 @Injectable({
   providedIn: 'root',
@@ -75,7 +75,7 @@ export class ThemeService {
   readonly customFontSizePx = signal<number>(this.loadCustomFontSizePx());
 
   constructor() {
-    // Pose synchrone dès l'instanciation au boot → avant le 1er paint, anti-flash.
+    // Synchronous set at boot instantiation → before first paint, anti-flash.
     this.applyTheme(this.theme());
     this.applyFontSize(this.fontSize(), this.customFontSizePx());
     this.applyFontFamily(this.fontFamily());
@@ -187,7 +187,7 @@ export class ThemeService {
   }
 
   private loadFontSize(): FontSize {
-    // 1. Cookie = source de vérité.
+    // 1. Cookie = source of truth.
     const fromCookie = readPrefCookie(
       this.cookies,
       ThemeService.FONT_SIZE_COOKIE_NAME,
@@ -200,7 +200,7 @@ export class ThemeService {
       return fromCookie;
     }
 
-    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
+    // 2. One-shot migration from legacy localStorage, then cleanup.
     const migrated = migrateLocalStorageToCookie(
       ThemeService.FONT_SIZE_COOKIE_NAME,
     );
@@ -284,11 +284,11 @@ export class ThemeService {
   }
 
   private load(): Theme {
-    // 1. Cookie = source de vérité.
+    // 1. Cookie = source of truth.
     const fromCookie = this.readCookie();
     if (fromCookie) return fromCookie;
 
-    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
+    // 2. One-shot migration from legacy localStorage, then cleanup.
     const legacy = migrateLocalStorageToCookie(
       ThemeService.LEGACY_STORAGE_KEY,
     ) as Theme | null;

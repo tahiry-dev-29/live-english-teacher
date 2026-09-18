@@ -1,13 +1,13 @@
 import { CookieService } from 'ngx-cookie-service';
 
 /**
- * Adaptateur unique au-dessus de `ngx-cookie-service` pour les 4 préférences
- * persistées en cookies : `app_theme`, `app_font_size`, `app_language`,
+ * Single adapter above `ngx-cookie-service` for the 4 preferences
+ * persisted in cookies: `app_theme`, `app_font_size`, `app_language`,
  * `ai_provider`, `ai_model`.
  *
- * - 365 jours ≈ Max-Age 1 an, `Path=/`, `SameSite=Lax`, `Secure` auto en https.
- * - `CookieService` gère l'encodage, le parsing et le garde SSR
- *   (`isPlatformBrowser`) — pas de `document.cookie` manuel dans les services.
+ * - 365 days ≈ Max-Age 1 year, `Path=/`, `SameSite=Lax`, `Secure` auto on https.
+ * - `CookieService` handles encoding, parsing and SSR guard
+ *   (`isPlatformBrowser`) — no manual `document.cookie` in services.
  */
 export const PREF_COOKIE_EXPIRES_DAYS = 365;
 export const PREF_COOKIE_PATH = '/';
@@ -42,13 +42,13 @@ export function writePrefCookie(
       sameSite: 'Lax',
     });
   } catch {
-    // Cookies bloqués : la préférence reste en mémoire pour la session.
+    // Cookies blocked: preference stays in memory for the session.
   }
 }
 
 /**
- * Migration one-shot depuis l'ancien localStorage vers le cookie,
- * puis nettoyage de la clé legacy. Retourne la valeur migrée ou null.
+ * One-shot migration from legacy localStorage to cookie,
+ * then cleanup of the legacy key. Returns the migrated value or null.
  */
 export function migrateLocalStorageToCookie(
   name: string,
@@ -66,7 +66,7 @@ export function migrateLocalStorageToCookie(
         value = null;
       }
     } else if (raw.startsWith('"') && raw.endsWith('"')) {
-      // Compat : anciennes valeurs stockées via JSON.stringify.
+      // Compat: legacy values stored via JSON.stringify.
       try {
         value = JSON.parse(raw) as string;
       } catch {

@@ -60,6 +60,18 @@ export class SessionDetailResponse {
   messages!: MessageResponse[];
 }
 
+@ObjectType()
+export class ForkSessionResponse {
+  @Field()
+  id!: string;
+
+  @Field()
+  title!: string;
+
+  @Field()
+  createdAt!: string;
+}
+
 @InputType()
 export class UpdateSessionInput {
   @Field()
@@ -71,4 +83,3 @@ export class UpdateSessionInput {
   @Field({ nullable: true })
   isPinned?: boolean;
 }
-

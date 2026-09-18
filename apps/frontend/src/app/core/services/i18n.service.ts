@@ -157,18 +157,18 @@ export class I18nService {
   }
 
   private applyLang(lang: AppLanguage): void {
-    // Best practice Angular SSR-safe : DOCUMENT injecté plutôt que global document.
+    // Angular SSR-safe best practice: inject DOCUMENT instead of global document.
     this.documentRef?.documentElement?.setAttribute('lang', lang);
   }
 
   private load(): AppLanguage {
-    // 1. Cookie = source de vérité.
+    // 1. Cookie = source of truth.
     const fromCookie = readPrefCookie(this.cookies, I18nService.COOKIE_NAME);
     if (fromCookie === 'en' || fromCookie === 'fr' || fromCookie === 'es') {
       return fromCookie;
     }
 
-    // 2. Migration one-shot depuis l'ancien localStorage, puis nettoyage.
+    // 2. One-shot migration from legacy localStorage, then cleanup.
     const migrated = migrateLocalStorageToCookie(I18nService.COOKIE_NAME);
     if (migrated === 'en' || migrated === 'fr' || migrated === 'es') {
       writePrefCookie(this.cookies, I18nService.COOKIE_NAME, migrated);

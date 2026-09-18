@@ -11,11 +11,11 @@
       <input
         type="text"
         placeholder="Search conversations..."
-        [ngModel]="searchTerm()"
-        (ngModelChange)="onSearchInput($event)"
+        [value]="searchTerm()"
+        (input)="onSearchInput($any($event.target).value)"
         (keyup.enter)="openFirstResult()"
         aria-label="Search conversations"
-        class="input min-w-0 flex-1 input-ghost"
+        class="input min-w-0 flex-1 border-0 input-ghost outline-none focus:outline-none"
       />
       @if (searchTerm()) {
         <button

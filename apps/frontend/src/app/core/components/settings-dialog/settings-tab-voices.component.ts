@@ -7,8 +7,6 @@ import {
   output,
   DestroyRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import {
   LucideSquare,
   LucidePlay,
@@ -36,8 +34,6 @@ import {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
-    FormsModule,
     LucideSquare,
     LucidePlay,
     LucideEye,
@@ -53,8 +49,7 @@ import {
           selectId="settings-tts-provider"
           [label]="t('voices.provider')"
           [options]="ttsProviderOptions()"
-          [value]="ttsService.selectedProviderId()"
-          (valueChange)="onSelectProvider($event)"
+          [(value)]="ttsService.selectedProviderId"
           size="sm"
           color="primary"
         />
@@ -93,8 +88,8 @@ import {
                 (selectedProviderMeta()?.label || 'TTS') +
                 ' API key…'
               "
-              [ngModel]="currentKeyValue()"
-              (ngModelChange)="onKeyChange($event)"
+              [value]="currentKeyValue()"
+              (input)="onKeyChange($any($event.target).value)"
             />
             <button
               type="button"
@@ -141,8 +136,7 @@ import {
             selectId="settings-tts-model"
             [label]="t('voices.model')"
             [options]="ttsModelOptions()"
-            [value]="ttsService.selectedModelId()"
-            (valueChange)="ttsService.setModelId($event)"
+            [(value)]="ttsService.selectedModelId"
             size="sm"
             color="primary"
           />
@@ -184,7 +178,7 @@ import {
                 !ttsService.selectedVoiceId() ? '— Choose a voice —' : ''
               "
               [options]="voiceOptions()"
-              [value]="ttsService.selectedVoiceId()"
+              [(value)]="ttsService.selectedVoiceId"
               (valueChange)="onSelectVoice($event)"
               size="sm"
               color="primary"
@@ -235,8 +229,7 @@ import {
           selectId="settings-stt-model"
           [label]="t('voices.stt_model')"
           [options]="sttModelOptions"
-          [value]="ttsService.selectedSttModel()"
-          (valueChange)="ttsService.setSttModel($event)"
+          [(value)]="ttsService.selectedSttModel"
           size="sm"
           color="primary"
         />
@@ -355,9 +348,11 @@ export class SettingsTabVoicesComponent {
     void this.ttsService.loadVoicesForProvider(provider);
   }
 
-  onSelectVoice(voiceId: string): void {
-    this.ttsService.setVoiceId(voiceId);
-    this.voiceChange.emit(voiceId);
+  onSelectVoice(voiceId: string | null): void {
+    if (voiceId) {
+      this.ttsService.setVoiceId(voiceId);
+      this.voiceChange.emit(voiceId);
+    }
   }
 
   /** Preview the currently selected voice (used by the single play button). */

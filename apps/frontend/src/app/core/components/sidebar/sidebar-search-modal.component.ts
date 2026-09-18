@@ -9,24 +9,20 @@ import {
   ElementRef,
   viewChild,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Session } from '@models/session.model';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import { LucideMessageCircle, LucideSearch, LucideX } from '@lucide/angular';
 
 /**
- * Command-palette de recherche dans l'historique des conversations.
- * Possède son propre état (`searchTerm` + filtre) : le composant est créé
- * à chaque ouverture (`@if`), donc l'état est réinitialisé automatiquement.
+ * Command-palette search for conversation history.
+ * Owns its own state (searchTerm + filter): the component is created
+ * on each open (@if), so state is reset automatically.
  */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sidebar-search-modal',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
     SidebarSessionListComponent,
     LucideMessageCircle,
     LucideSearch,

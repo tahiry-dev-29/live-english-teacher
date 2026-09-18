@@ -8,6 +8,79 @@
 - Icônes : `@lucide/angular` uniquement (`<svg lucideXxx>`), aucun SVG inline en dur (`xmlns`/`viewBox`/`<path>` interdits dans `apps/frontend/src`)
 - Services : chat.service.ts, message.service.ts, tts.service.ts, voice-call.service.ts, vad.service.ts
 
+## Angular Modern Patterns (règles strictes)
+
+### Forms — Interdiction de FormsModule / Reactive Forms
+
+- **FormsModule** : **INTERDIT** dans les imports de composants. Plus aucun `[(ngModel)]`, `[ngModel]`, `(ngModelChange)`.
+- **ReactiveFormsModule** : **INTERDIT**. Pas de `FormGroup`, `FormControl`, `FormBuilder`.
+- **Remplacement natif elements** (`<input>`, `<textarea>`, `<select>`) :
+  ```html
+  <!-- AVANT (interdit) -->
+  <input [ngModel]="value()" (ngModelChange)="setValue($event)" />
+
+  <!-- APRÈS (correct) -->
+  <input [value]="value()" (input)="setValue($any($event.target).value)" />
+  ```
+- **Remplacement `<select>`** :
+  ```html
+  <select [value]="selected()" (change)="onSelect($any($event.target).value)">
+  ```
+- **Composants custom** : utiliser `model()` pour le two-way binding :
+  ```typescript
+  // Composant enfant
+  value = model<T | null>(null);
+
+  // Composant parent
+  <app-select [(value)]="mySignal" />
+  ```
+- **Ne JAMAIS** utiliser `ControlValueAccessor` sauf si un library tierce l'exige explicitement.
+
+### CommonModule — Interdit
+
+- **CommonModule** : **INTERDIT** dans les imports. Le projet utilise `@if`/`@for`/`@switch` (Angular control flow) — aucun besoin de `*ngIf`, `*ngFor`, `*ngSwitch`.
+- **Pipes Angular** : importer directement le pipe depuis `@angular/common` si utilisé :
+  ```typescript
+  // AVANT (interdit)
+  imports: [CommonModule]
+
+  // APRÈS (correct)
+  imports: [DatePipe, UpperCasePipe]  // uniquement si besoin réel
+  ```
+- **ngClass** → **`[class]`** binding natif :
+  ```html
+  <!-- AVANT (interdit) -->
+  <div [ngClass]="{active: isActive, primary: isPrimary}"></div>
+
+  <!-- APRÈS (correct) -->
+  <div [class]="{active: isActive, primary: isPrimary}"></div>
+  ```
+- **ngStyle** → **`[style]`** binding natif :
+  ```html
+  <!-- AVANT (interdit) -->
+  <div [ngStyle]="{'background-color': 'red'}"></div>
+
+  <!-- APRÈS (correct) -->
+  <div [style]="{'background-color': 'red'}"></div>
+  ```
+- **DOCUMENT** : importer depuis `@angular/common` (pas depuis `CommonModule`) :
+  ```typescript
+  import { DOCUMENT } from '@angular/common';
+  ```
+
+### Signals — Pattern obligatoire
+
+- **state** : `signal()` pour tout état mutable local.
+- **derived** : `computed()` pour les valeurs dérivées (jamais de méthodes dans les templates).
+- **two-way binding** : `model()` pour les composants enfants (pas de `output()` + `input()` pour les props bidirectionnelles).
+- **side effects** : `effect()` pour réagir aux changements de signaux (pas de `ngOnInit` pour watcher).
+
+### Template
+
+- **Control flow** : `@if`, `@for`, `@switch` uniquement (pas de directives structurelles).
+- **track** : obligatoire dans `@for` (`track item.id` ou `track $index`).
+- **Méthodes dans templates** : INTERDIT (utiliser `computed()` ou pipes purs).
+
 ## Backend
 
 - NestJS 11 + Express 5 (`@as-integrations/express5`), global prefix `api`

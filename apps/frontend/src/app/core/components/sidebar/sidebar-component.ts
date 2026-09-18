@@ -7,7 +7,6 @@ import {
   ChangeDetectionStrategy,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Session } from '@models/session.model';
 import { UserMenuComponent } from '../user-menu/user-menu-component';
 import { SidebarSearchModalComponent } from './sidebar-search-modal.component';
@@ -15,7 +14,6 @@ import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import { PwaService } from '@core/services/pwa.service';
 import { ThemeService } from '@core/services/theme.service';
 import {
-  LucideMessageCirclePlus,
   LucideSquarePen,
   LucideSearch,
   LucideSettings,
@@ -31,11 +29,9 @@ import {
   selector: 'app-sidebar',
   standalone: true,
   imports: [
-    CommonModule,
     UserMenuComponent,
     SidebarSearchModalComponent,
     SidebarSessionListComponent,
-    LucideMessageCirclePlus,
     LucideSquarePen,
     LucideSearch,
     LucideSettings,
@@ -67,7 +63,7 @@ export class SidebarComponent {
   readonly activeSessionId = input<string | null>(null);
   readonly isReloading = input<boolean>(false);
 
-  readonly initialLimit = 10;
+  readonly initialLimit = 20;
   readonly visibleLimit = signal<number>(this.initialLimit);
   readonly showingAll = signal<boolean>(false);
 
@@ -79,10 +75,6 @@ export class SidebarComponent {
 
   readonly hasMoreSessions = computed<boolean>(() => {
     return !this.showingAll() && this.sessions().length > this.visibleLimit();
-  });
-
-  readonly remainingCount = computed<number>(() => {
-    return Math.max(0, this.sessions().length - this.visibleLimit());
   });
 
   readonly newChat = output<void>();

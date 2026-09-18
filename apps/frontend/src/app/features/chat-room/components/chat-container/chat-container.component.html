@@ -1,61 +1,66 @@
-<div class="relative flex h-full flex-col">
+<div
+  class="relative flex h-full min-w-0 flex-col overflow-x-hidden bg-base-100"
+>
   @if (showVoiceControl()) {
     <div
-      class="absolute top-4 left-1/2 z-20 w-full max-w-md -translate-x-1/2 transform px-4 transition-all duration-300 ease-in-out"
+      class="absolute top-2 left-1/2 z-20 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 transition-all duration-300 ease-in-out"
     >
       <app-voice-control
         [currentTime]="currentAudioTime()"
         [totalDuration]="totalAudioDuration()"
+        [playing]="isPlaying()"
+        (paused)="pauseAudio.emit()"
+        (resumed)="resumeAudio.emit()"
+        (audioSeeked)="seekAudio.emit($event)"
         (stopped)="onStopAudio()"
       />
     </div>
   }
 
   <div
-    class="flex flex-1 flex-col space-y-4 px-10 overflow-y-auto scroll-smooth p-4"
+    class="min-w-0 flex-1 overflow-x-hidden overflow-y-auto scroll-smooth"
     #scrollContainer
     (scroll)="onScroll()"
   >
-    @if (showVoiceControl()) {
-      <div class="h-16"></div>
-    }
-    @if (messages().length === 0 && !loading()) {
-      <app-chat-welcome
-        [learningLanguage]="learningLanguage()"
-        class="flex-1"
-      />
-    }
-    <!-- $index volontaire : flux de messages séquentiels sans identifiant UUID individuel côté client -->
-    @for (message of messages(); track $index) {
-      <app-message-item
-        [message]="message"
-        [isPlaying]="isPlaying() && playingMessageIndex() === $index"
-        (playRequested)="onPlayMessage($index, message.text)"
-        (stop)="onStopAudio()"
-        (retry)="retryMessage.emit($index)"
-        (fork)="forkSession.emit($index)"
-      />
-    }
-    @if (loading()) {
-      <div class="chat-start chat">
-        <div class="avatar chat-image avatar-placeholder">
-          <div class="w-10 rounded-full bg-secondary text-secondary-content">
-            <span class="text-xs font-bold">AI</span>
+    <div
+      class="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-6 px-4 py-6 sm:px-6"
+    >
+      @if (showVoiceControl()) {
+        <div class="h-10"></div>
+      }
+      @if (messages().length === 0 && !loading()) {
+        <app-chat-welcome
+          [learningLanguage]="learningLanguage()"
+          class="min-w-0 flex-1"
+        />
+      }
+      @for (message of messages(); track $index) {
+        <app-message-item
+          class="min-w-0"
+          [message]="message"
+          [isPlaying]="isPlaying() && playingMessageIndex() === $index"
+          (playRequested)="onPlayMessage($index, message.text)"
+          (stop)="onStopAudio()"
+          (retry)="retryMessage.emit($index)"
+          (fork)="forkSession.emit($index)"
+        />
+      }
+      @if (loading()) {
+        <div class="flex min-w-0 items-center gap-3">
+          <div class="avatar avatar-placeholder shrink-0">
+            <div class="w-8 rounded-full bg-secondary text-secondary-content">
+              <span class="text-xs font-bold">AI</span>
+            </div>
           </div>
+          <span class="loading loading-sm loading-dots"></span>
+          <span class="text-xs text-base-content/50">Thinking…</span>
         </div>
-        <div class="chat-header mb-1 text-xs opacity-60">AI Tutor</div>
-        <div class="chat-bubble">
-          <span class="loading loading-md loading-dots"></span>
-        </div>
-        <div class="chat-footer mt-1 text-xs opacity-50">Thinking…</div>
-      </div>
-    }
-
-    <div class="h-4 shrink-0"></div>
+      }
+    </div>
   </div>
 
   @if (showScrollButton()) {
-    <div class="absolute right-4 bottom-4 z-10">
+    <div class="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
       <div class="tooltip tooltip-left" data-tip="Scroll to bottom">
         <div class="indicator">
           @if (hasNewMessages()) {
@@ -63,7 +68,7 @@
           }
           <button
             (click)="scrollToBottom()"
-            class="btn btn-circle btn-primary btn-sm shadow-md"
+            class="btn btn-circle border border-base-300 bg-base-200 shadow-lg btn-md"
             aria-label="Scroll to bottom"
           >
             <svg lucideArrowDown class="h-4 w-4"></svg>

@@ -30,25 +30,21 @@ import {
   templateUrl: './toast.component.html',
   styles: [
     `
+      :host {
+        display: block;
+      }
       .toast {
-        animation: toast-in 0.3s ease-out;
+        animation: toast-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       }
       @keyframes toast-in {
         from {
           opacity: 0;
-          transform: translateY(-10px) scale(0.95);
+          transform: translateY(-12px) scale(0.96);
         }
         to {
           opacity: 1;
           transform: translateY(0) scale(1);
         }
-      }
-      .toast .alert button {
-        opacity: 0;
-        transition: opacity 0.15s ease;
-      }
-      .toast .alert:hover button {
-        opacity: 1;
       }
     `,
   ],

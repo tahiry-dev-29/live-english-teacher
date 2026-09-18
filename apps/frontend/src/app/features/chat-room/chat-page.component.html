@@ -3,8 +3,11 @@
     <app-call-interface
       [callState]="voiceCallService.callState()"
       [transcript]="voiceCallService.currentTranscript()"
+      [languages]="languageService.languages"
+      [selectedLanguage]="languageService.selectedLanguageCode()"
       (endCall)="toggleLiveMode()"
       (toggleMute)="toggleVocal()"
+      (languageChange)="onLanguageChange($event)"
     />
   }
 
@@ -31,7 +34,7 @@
   />
 
   <main
-    class="relative flex h-full w-full flex-1 flex-col transition-all duration-300"
+    class="relative flex h-full w-full min-w-0 flex-1 flex-col overflow-x-hidden transition-all duration-300"
   >
     <!-- Quota exhausted banner -->
     @if (messageService.quotaExceeded()) {
@@ -66,7 +69,8 @@
     <!-- Toast notifications -->
     <app-toast
       [notifications]="notificationService.notifications()"
-    ></app-toast>
+      (dismiss)="notificationService.dismiss($event)"
+    />
 
     <div class="navbar border-b border-base-300 bg-base-200 md:hidden">
       <div class="navbar-start">
@@ -77,10 +81,7 @@
         >
           <svg lucidePanelLeftOpen class="h-5 w-5"></svg>
         </button>
-        <span
-          class="bg-gradient-to-r from-primary to-secondary bg-clip-text font-bold text-transparent"
-          >Live Teacher</span
-        >
+        <span class="font-bold text-base-content">Live Teacher</span>
       </div>
       <div class="navbar-end">
         <div class="tooltip tooltip-bottom" data-tip="New Chat">
@@ -109,33 +110,54 @@
       "
       (playAudio)="handlePlayAudio($event)"
       (stop)="handleStopAudio()"
+      (pauseAudio)="handlePauseAudio()"
+      (resumeAudio)="handleResumeAudio()"
+      (seekAudio)="handleSeekAudio($event)"
       (retryMessage)="onRetryMessage($event)"
       (forkSession)="onForkSession($event)"
     />
 
-    <div class="p-4">
-      <app-chat-input
-        [value]="userInput()"
-        [disabled]="loading()"
-        [isLoading]="loading()"
-        [isPlaying]="ttsService.isPlaying()"
-        [isRecording]="isAudioRecording()"
-        [isLiveActive]="isLiveMode()"
-        (valueChange)="userInput.set($event)"
-        (messageSent)="sendMessage()"
-        (audioRecorded)="handleAudioRecorded($event)"
-        (stop)="handleStopAudio()"
-        (recordingStateChange)="handleRecordingStateChange($event)"
-        (liveToggled)="toggleLiveMode()"
-      />
-
-      <div class="mt-2 text-center">
-        <p class="text-[10px] text-base-content/50">
-          <a href="https://tahiry29.is-a.dev" target="_blank" rel="noopener"
-            >Powered by tahiry29</a
+    @if (isShared()) {
+      <div class="border-t border-base-300 bg-base-200/80 px-4 py-3">
+        <div class="mx-auto flex max-w-2xl items-center justify-between gap-3">
+          <div class="text-xs text-base-content/70">
+            <span class="font-medium text-base-content"
+              >Shared conversation</span
+            >
+            — You are viewing a snapshot of this chat.
+          </div>
+          <button
+            type="button"
+            class="btn shrink-0 gap-1.5 rounded-xl text-xs btn-primary btn-sm"
+            (click)="onNewChat()"
           >
+            <svg lucideMessageCircle class="h-3.5 w-3.5" />
+            <span>Start new chat</span>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="min-w-0 border-t border-base-300/40 px-4 pt-3 pb-4">
+        <app-chat-input
+          class="min-w-0"
+          [value]="userInput()"
+          [disabled]="loading()"
+          [isLoading]="loading()"
+          [isPlaying]="ttsService.isPlaying()"
+          [isRecording]="isAudioRecording()"
+          [isLiveActive]="isLiveMode()"
+          (valueChange)="userInput.set($event)"
+          (messageSent)="sendMessage()"
+          (audioRecorded)="handleAudioRecorded($event)"
+          (stop)="handleStopAudio()"
+          (recordingStateChange)="handleRecordingStateChange($event)"
+          (liveToggled)="toggleLiveMode()"
+        />
+
+        <p class="mt-2.5 text-center text-[11px] text-base-content/40">
+          AI can make mistakes. Check important info.
         </p>
       </div>
-    </div>
+    }
   </main>
 </div>
