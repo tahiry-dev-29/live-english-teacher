@@ -1,49 +1,49 @@
-# Task 28 — Intégration du microservice d'authentification (NestJS Backend & Frontend)
+# Task 28 — Authentication Microservice Integration (NestJS Backend & Frontend)
 
 **Status: TODO**
-**Priorité:** 🔴 Haute — après le chantier design (Tasks 22–27)
+**Priority:** 🔴 High — after design tasks (Tasks 22–27)
 
 ## Goal
 
-Intégrer le système d'authentification utilisateur (Inscription, Connexion, JWT Token, Refresh Token, Guard NestJS, Session utilisateur) entre le backend NestJS et le frontend Angular.
+Integrate the user authentication system (Registration, Login, JWT Token, Refresh Token, NestJS Guard, User Session) between the NestJS backend and Angular frontend.
 
-## Note de périmètre (clean 2026-09-16)
+## Scope note (cleaned 2026-09-16)
 
-- Ancien doublon de numéro 20 résolu : la Task 20 restante est `20_settings-dialog-redesign.md` (DONE) ; l'auth est renumérotée 28.
-- Les pages/modales Login & Register devront suivre le design system (tokens daisyUI, 2 thèmes) issu des Tasks 22–27.
-- Après l'auth : on pourra rouvrir la synchro DB des préférences (thème, langue) supprimée de la Task 21.
+- Previous duplicate task number 20 resolved: remaining Task 20 is `20_settings-dialog-redesign.md` (DONE); auth is renumbered 28.
+- Login & Register pages/modals must follow the design system (daisyUI tokens, 2 themes) from Tasks 22–27.
+- After auth: DB sync for preferences (theme, language) removed in Task 21 can be reopened.
 
 ## Goal
 
-Intégrer le système d'authentification utilisateur (Inscription, Connexion, JWT Token, Refresh Token, Guard NestJS, Session utilisateur) entre le backend NestJS et le frontend Angular.
+Integrate the user authentication system (Registration, Login, JWT Token, Refresh Token, NestJS Guard, User Session) between the NestJS backend and Angular frontend.
 
-## Fichiers à créer/modifier
+## Files to create/modify
 
 ### Backend (`apps/backend` & `libs/backend`)
-- `libs/backend/feature-auth` (ou module auth dédié) :
-  - `auth.service.ts` : Register, Login, validation mot de passe (`bcrypt`), génération JWT.
-  - `auth.controller.ts` / `auth.resolver.ts` : Endpoints `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`.
-  - `jwt.strategy.ts` & `jwt-auth.guard.ts` : Protection des routes sessions et chat par utilisateur.
-  - Mise à jour de Prisma `Session` pour associer automatiquement `userId` à l'utilisateur authentifié.
+- `libs/backend/feature-auth` (or dedicated auth module):
+  - `auth.service.ts`: Register, Login, password validation (`bcrypt`), JWT generation.
+  - `auth.controller.ts` / `auth.resolver.ts`: Endpoints `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`.
+  - `jwt.strategy.ts` & `jwt-auth.guard.ts`: Protect session and chat routes per user.
+  - Update Prisma `Session` to automatically associate `userId` with the authenticated user.
 
 ### Frontend (`apps/frontend`)
-- `apps/frontend/src/app/core/services/auth.service.ts` : Gestion du token JWT, état `currentUser`, `login()`, `register()`, `logout()`, `isAuthenticated` signal.
-- `apps/frontend/src/app/core/interceptors/auth.interceptor.ts` : Ajout automatique du header `Authorization: Bearer <token>` sur toutes les requêtes REST / SSE / Apollo.
-- `apps/frontend/src/app/core/components/user-menu/user-menu-component.ts` : Affichage du nom et email réels de l'utilisateur connecté au lieu de "Guest User", bouton Déconnexion.
-- `apps/frontend/src/app/features/auth/` : Modale ou pages Login & Register stylisées avec daisyUI 5.
+- `apps/frontend/src/app/core/services/auth.service.ts`: JWT token management, `currentUser` state, `login()`, `register()`, `logout()`, `isAuthenticated` signal.
+- `apps/frontend/src/app/core/interceptors/auth.interceptor.ts`: Automatic `Authorization: Bearer <token>` header on all REST / SSE / Apollo requests.
+- `apps/frontend/src/app/core/components/user-menu/user-menu-component.ts`: Display the real name and email of the logged-in user instead of "Guest User", logout button.
+- `apps/frontend/src/app/features/auth/`: Login & Register modal or pages styled with daisyUI 5.
 
-## Étapes
+## Steps
 
-1. Implémenter le module Auth côté backend NestJS avec `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcrypt`.
-2. Lier les sessions et l'historique de chat à l'ID de l'utilisateur authentifié dans Prisma.
-3. Créer l'`AuthService` et l'`AuthInterceptor` côté Angular frontend.
-4. Mettre à jour `UserMenuComponent` pour refléter l'utilisateur connecté et proposer la connexion/déconnexion.
-5. Protéger les routes ou afficher une modale d'authentification si l'utilisateur n'est pas connecté.
+1. Implement Auth module on NestJS backend with `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcrypt`.
+2. Link sessions and chat history to the authenticated user ID in Prisma.
+3. Create `AuthService` and `AuthInterceptor` on Angular frontend.
+4. Update `UserMenuComponent` to reflect the logged-in user and provide login/logout.
+5. Protect routes or display an auth modal if the user is not logged in.
 
-## Critères d'acceptation
+## Acceptance Criteria
 
-- [ ] L'utilisateur peut créer un compte (`/register`) et se connecter (`/login`).
-- [ ] Le token JWT est stocké et envoyé dans les requêtes via l'intercepteur.
-- [ ] Les sessions de chat sont privées et associées au compte utilisateur connecté.
-- [ ] Le menu utilisateur affiche les informations réelles et permet de se déconnecter.
-- [ ] `nx run-many -t build` passe sans erreur.
+- [ ] User can create an account (`/register`) and log in (`/login`).
+- [ ] JWT token is stored and sent in requests via the interceptor.
+- [ ] Chat sessions are private and associated with the logged-in user account.
+- [ ] User menu displays real information and allows logout.
+- [ ] `nx run-many -t build` passes without errors.

@@ -32,11 +32,15 @@ export class MessageService {
   private streamingText = '';
 
   /** Reactive loader for the messages of the active session. */
-  readonly messagesResource = resource<ChatMessage[], unknown>({
-    loader: async () => {
-      const sessionId = this.currentSessionId();
-      if (!sessionId) return [];
+  readonly messagesResource = resource<ChatMessage[], string | null>({
+    request: () => this.currentSessionId(),
+    loader: async ({ request: sessionId }) => {
+      if (!sessionId) {
+        this.messages.set([]);
+        return [];
+      }
 
+      this.loading.set(true);
       try {
         const result = await firstValueFrom(
           this.apollo.query<SessionMessagesQuery>({
@@ -59,13 +63,40 @@ export class MessageService {
         console.error(MESSAGES.log.messagesResourceFailed, error);
         this.messages.set([]);
         return [];
+      } finally {
+        this.loading.set(false);
       }
     },
   });
 
-  async loadSessionMessages(sessionId: string): Promise<void> {
+  async loadSessionMessages(sessionId: string): Promise<ChatMessage[]> {
     this.currentSessionId.set(sessionId);
-    await this.messagesResource.reload();
+    this.loading.set(true);
+    try {
+      const result = await firstValueFrom(
+        this.apollo.query<SessionMessagesQuery>({
+          query: GET_SESSION_MESSAGES,
+          variables: { sessionId },
+          fetchPolicy: 'network-only',
+        }),
+      );
+
+      const sessionMessages = result?.data?.sessionMessages ?? [];
+      const formatted: ChatMessage[] = sessionMessages.map(
+        (msg): ChatMessage => ({
+          role: toChatRole(msg.role),
+          text: msg.content,
+        }),
+      );
+      this.messages.set(formatted);
+      return formatted;
+    } catch (error) {
+      console.error(MESSAGES.log.messagesResourceFailed, error);
+      this.messages.set([]);
+      return [];
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   /**

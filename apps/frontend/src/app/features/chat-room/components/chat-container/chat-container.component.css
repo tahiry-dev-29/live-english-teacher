@@ -4,8 +4,10 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
+  /* Dropdowns use the Popover API (top-layer) so overflow:hidden here is safe.
+     overflow-x: clip prevents horizontal scrollbar from appearing. */
   overflow: hidden;
+  overflow-x: clip;
 }
 
 /* Conteneur de scroll : jamais de scroll horizontal, même si un enfant

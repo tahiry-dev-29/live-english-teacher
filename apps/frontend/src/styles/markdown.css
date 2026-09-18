@@ -1,0 +1,248 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Markdown content typography — `.md-body`
+   ─────────────────────────────────────────────────────────────────────────
+   WHY THIS FILE IS GLOBAL (and not inside the chat component styles):
+   `ngx-markdown` injects the parsed HTML at runtime via `innerHTML`
+   (`markdown` host component). Angular's emulated encapsulation only stamps
+   `_ngcontent-*` attributes on elements authored in a template, so any
+   component-scoped rule such as `.md-body table[_ngcontent-x]` NEVER matches
+   the generated nodes (tables, headings, lists, code…). Markdown styling must
+   therefore live in the global stylesheet.
+   Only semantic daisyUI tokens are used (see scripts/check-theme-tokens.mjs).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.md-body {
+  font-size: 15px;
+  line-height: 1.75;
+  color: inherit;
+  overflow-wrap: break-word;
+}
+
+/* The <markdown> custom element is inline by default: force block so that
+   block-level margins behave like normal flow content. */
+.md-body > markdown {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.md-body > :first-child {
+  margin-top: 0;
+}
+
+.md-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* ── Paragraphs ─────────────────────────────────────────────────────────── */
+.md-body p {
+  margin: 0 0 0.85em;
+}
+
+/* ── Headings ───────────────────────────────────────────────────────────── */
+.md-body h1,
+.md-body h2,
+.md-body h3,
+.md-body h4,
+.md-body h5,
+.md-body h6 {
+  color: inherit;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 1.5em 0 0.6em;
+}
+
+.md-body h1 {
+  font-size: 1.5em;
+  padding-bottom: 0.35em;
+  /* Obsidian-style faint hairline under H1 — neutral, no accent color */
+  border-bottom: 1px solid
+    color-mix(in oklch, var(--color-base-content) 15%, transparent);
+}
+
+.md-body h2 {
+  font-size: 1.28em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid
+    color-mix(in oklch, var(--color-base-content) 12%, transparent);
+}
+
+.md-body h3 {
+  font-size: 1.12em;
+}
+
+.md-body h4 {
+  font-size: 1em;
+}
+
+.md-body h5,
+.md-body h6 {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: color-mix(in oklch, var(--color-base-content) 70%, transparent);
+}
+
+/* ── Inline emphasis & links ────────────────────────────────────────────── */
+.md-body strong {
+  font-weight: 700;
+  color: inherit;
+}
+
+.md-body em {
+  font-style: italic;
+  color: inherit;
+}
+
+.md-body del {
+  opacity: 0.6;
+}
+
+.md-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.15s;
+}
+
+.md-body a:hover {
+  opacity: 0.8;
+}
+
+/* ── Lists ──────────────────────────────────────────────────────────────── */
+.md-body ul,
+.md-body ol {
+  margin: 0.6em 0 0.95em;
+  padding-left: 1.4rem;
+  list-style-position: outside;
+}
+
+.md-body ul {
+  list-style-type: disc;
+}
+
+.md-body ol {
+  list-style-type: decimal;
+}
+
+.md-body li {
+  margin: 0.3em 0;
+}
+
+.md-body li::marker {
+  /* Obsidian: bullet/number markers inherit the text color */
+  color: inherit;
+}
+
+.md-body li > p {
+  margin: 0.25em 0;
+}
+
+.md-body li > ul,
+.md-body li > ol,
+.md-body ul ul,
+.md-body ul ol,
+.md-body ol ul,
+.md-body ol ol {
+  margin: 0.3em 0;
+}
+
+/* ─ Tables (the grammar/conjugation killer feature) ────────────────────── */
+/* Real table box (NOT display:block + scroll): cells wrap instead of forcing a
+   hidden horizontal scrollbar inside the chat bubble. `overflow-wrap: anywhere`
+   keeps the min-content width tiny so a wide table can never overflow. */
+.md-body table {
+  width: 100%;
+  max-width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.md-body thead {
+  /* Obsidian: headers are plain text, separated by a subtle line */
+  background: none;
+}
+
+.md-body th,
+.md-body td {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid
+    color-mix(in oklch, var(--color-base-content) 14%, transparent);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.md-body th {
+  font-weight: 700;
+  color: var(--color-base-content);
+  /* Keep header words intact: no mid-word break, the column widens instead. */
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* No zebra striping (Obsidian default) — rows stay on the bubble background. */
+
+/* ── Code ───────────────────────────────────────────────────────────────── */
+.md-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-field);
+  background: color-mix(in oklch, var(--color-base-content) 10%, transparent);
+  /* Obsidian: inline code stays neutral, no accent tint */
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+.md-body pre {
+  margin: 0.9em 0;
+  padding: 0.9rem 1rem;
+  background: color-mix(in oklch, var(--color-base-content) 6%, transparent);
+  border: none;
+  border-radius: var(--radius-box);
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.md-body pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: 0.85em;
+  overflow-wrap: normal;
+}
+
+/* ── Quotes, rules, media ───────────────────────────────────────────────── */
+.md-body blockquote {
+  margin: 0.9em 0;
+  padding: 0.1rem 0 0.1rem 1rem;
+  /* Obsidian: single neutral left rule, no tinted background */
+  border-left: 3px solid
+    color-mix(in oklch, var(--color-base-content) 25%, transparent);
+  color: inherit;
+}
+
+.md-body blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.md-body hr {
+  margin: 1.5em 0;
+  border: 0;
+  /* Neutral hairline, consistent with H1/H2 rules */
+  border-top: 1px solid
+    color-mix(in oklch, var(--color-base-content) 15%, transparent);
+}
+
+.md-body img,
+.md-body video,
+.md-body iframe {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-field);
+}

@@ -81,6 +81,17 @@ export class ChatPageComponent implements OnInit {
   readonly isAudioRecording = signal<boolean>(false);
   readonly isShared = signal<boolean>(false);
 
+  /**
+   * True while the session's messages are being fetched from the server.
+   * Uses the resource's own isLoading() so it stays true for the full
+   * duration of the network round-trip (resource.reload() is not async).
+   */
+  readonly isSessionLoading = computed(
+    () =>
+      this.messageService.messagesResource.isLoading() ||
+      this.messageService.loading(),
+  );
+
   readonly quotaBannerTitle = computed<string>(() => {
     const provider = this.messageService.quotaExceeded();
     return provider ? MESSAGE_TEMPLATES.quotaBannerTitle(provider) : '';
@@ -96,19 +107,21 @@ export class ChatPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const isShareRoute = this.router.url.startsWith('/share/');
-    this.isShared.set(isShareRoute);
-
     this.route.params
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         const sessionId = params['sessionId'] as string | undefined;
         this.isShared.set(this.router.url.startsWith('/share/'));
+
         if (sessionId) {
-          this.loadSession(sessionId);
+          // Route is the single source of truth — always load from params.
+          // This handles both direct URL navigation AND sidebar clicks
+          // (sidebar click → router.navigate → params fires here).
+          this.chatService.activeSessionId.set(sessionId);
+          void this.messageService.loadSessionMessages(sessionId);
+          this.userInput.set('');
         } else {
-        // "new chat" state: no id on frontend side, backend generates the uuid
-        // on the first message (Prisma @default(uuid())).
+          // "new chat" state: no id yet — backend generates it on first message.
           this.chatService.createNewSession();
           this.userInput.set('');
         }
@@ -180,12 +193,20 @@ export class ChatPageComponent implements OnInit {
     this.showSettings.set(true);
   }
 
+  /**
+   * Called when a session is selected from the sidebar.
+   * Just navigates — the route params subscription handles the actual load.
+   * This avoids double-loading (params fires once, data is fetched once).
+   */
   loadSession(sessionId: string): void {
-    this.chatService.loadSession(sessionId);
-    if (!this.isShared()) {
-      this.router.navigate(['/chat', sessionId]);
+    if (this.isShared()) {
+      // In shared-view mode, no navigation — load directly.
+      this.chatService.activeSessionId.set(sessionId);
+      void this.messageService.loadSessionMessages(sessionId);
+      this.userInput.set('');
+      return;
     }
-    this.userInput.set('');
+    this.router.navigate(['/chat', sessionId]);
   }
 
   onRenameSession(event: { id: string; title: string }): void {

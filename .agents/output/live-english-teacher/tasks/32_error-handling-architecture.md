@@ -1,122 +1,122 @@
-# Task 32 — Enterprise error handling & user notification architecture
+# Task 32 — Enterprise Error Handling & User Notification Architecture
 
 **Status: TODO**
-**Priorité:** 🔴 Haute — dépend de Task 31 (constantes `MESSAGES` déjà mergées)
+**Priority:** 🔴 High — depends on Task 31 (`MESSAGES` constants already merged)
 
 ## Goal
 
 Replace every hardcoded `console.*`/`alert()` and inline error UI with a single, typed, centralized layer — **user-facing Toast notifications** (DaisyUI 5, @lucide/angular) decoupled from **internal debug/security logs**, plus **automatic HTTP + SSE + global-exception interception**.
 
-## Contexte (état actuel — Task 31 déjà fait)
+## Context (current state — Task 31 already done)
 
-| Élément | Emplacement | Usage |
+| Element | Location | Usage |
 |---|---|---|
-| `MESSAGES` | `core/constants/messages.ts` | texte utilisateur + libellés logs |
-| `MESSAGE_TEMPLATES` | `core/constants/messages.ts` | messages interpolated (quota, SSE) |
-| `ERROR_CODES` | `core/constants/messages.ts` | codes SSE (`QUOTA_EXCEEDED`) |
-| `formatApiError()` | `core/utils/api-error.util.ts` | fonction pure → `ErrorCode` |
-| `ChatMessage.kind = 'error'` | `models/chat-message.model.ts` | flag error dans le thread |
-| `appendErrorMessage` | `message.service.ts` | crée un message `kind:'error'` |
-| `console.error/warn/log` | 24 call-sites (`rg -c`) | logs internes **non centralisés** |
-| `alert()` | `chat-page.component.ts:151` | micro permission — **à remplacer** |
+| `MESSAGES` | `core/constants/messages.ts` | User text + log labels |
+| `MESSAGE_TEMPLATES` | `core/constants/messages.ts` | Interpolated messages (quota, SSE) |
+| `ERROR_CODES` | `core/constants/messages.ts` | SSE codes (`QUOTA_EXCEEDED`) |
+| `formatApiError()` | `core/utils/api-error.util.ts` | Pure function → `ErrorCode` |
+| `ChatMessage.kind = 'error'` | `models/chat-message.model.ts` | Error flag in thread |
+| `appendErrorMessage` | `message.service.ts` | Creates `kind:'error'` message |
+| `console.error/warn/log` | 24 call-sites (`rg -c`) | **Non-centralized** internal logs |
+| `alert()` | `chat-page.component.ts:151` | Micro permission — **to replace** |
 
-### Gap actuel
+### Current Gap
 
 ```
-rg -n 'console\.\(error\|warn\|log\)' apps/frontend/src  → 24 occurrences non centralisées
+rg -n 'console\.\(error\|warn\|log\)' apps/frontend/src  → 24 non-centralized occurrences
 rg -n 'alert(' apps/frontend/src                      → 1 occurrence (micro access)
-rg -n 'startsWith..Error.' apps/frontend/src          → 0 (déjà fixé en Task 31 ✅)
+rg -n 'startsWith..Error.' apps/frontend/src          → 0 (already fixed in Task 31 ✅)
 ```
 
-Aucun `HttpInterceptor` ou `ErrorHandler` n'existe → chaque call-site ré-implémente le fallback.
+No `HttpInterceptor` or `ErrorHandler` exists → each call-site re-implements the fallback.
 
-## Architecture cible
+## Target Architecture
 
 ```
 core/
-├── constants/messages.ts          [EXISTE] MESSAGES, MESSAGE_TEMPLATES, ERROR_CODES
-├── utils/api-error.util.ts        [EXISTE] formatApiError(), resolveApiErrorCode()
-├── models/notification.model.ts   [CREER]  ToastNotification interface
+├── constants/messages.ts          [EXISTS] MESSAGES, MESSAGE_TEMPLATES, ERROR_CODES
+├── utils/api-error.util.ts        [EXISTS] formatApiError(), resolveApiErrorCode()
+├── models/notification.model.ts   [CREATE]  ToastNotification interface
 ├── services/
-│   ├── notification.service.ts    [CREER]  push error/success/info, queue, auto-dismiss
-│   └── logging.service.ts         [CREER]  console + devtools, filtre securite
+│   ├── notification.service.ts    [CREATE]  push error/success/info, queue, auto-dismiss
+│   └── logging.service.ts         [CREATE]  console + devtools, security filter
 ├── interceptors/
-│   ├── error-interceptor.ts       [CREER]  intercepte Apollo HTTP + fetch non-SSE
-│   └── network-interceptor.ts     [CREER]  detecte offline/online, navigation guards
+│   ├── error-interceptor.ts       [CREATE]  intercepts Apollo HTTP + non-SSE fetch
+│   └── network-interceptor.ts     [CREATE]  detects offline/online, navigation guards
 └── components/
     └── toast/
-        ├── toast.component.ts     [CREER]  <app-toast-container>, DaisyUI 5 toast
-        └── toast.component.html   [CREER]  @for sur signal, icones lucide
+        ├── toast.component.ts     [CREATE]  <app-toast-container>, DaisyUI 5 toast
+        └── toast.component.html   [CREATE]  @for on signal, lucide icons
 ```
 
-### Separations des responsabilites
+### Separation of Responsibilities
 
-| Couche | Responsabilite | Où loggue ? |
+| Layer | Responsibility | Where it logs? |
 |---|---|---|
-| NotificationService | UI visible : toasts error/warning/success | DOM (DaisyUI toast) |
-| LoggingService | Debug interne + telemetry dev : console.error/warn | DevTools console |
-| HttpInterceptor | Capture Apollo + window.fetch | NotificationService + LoggingService |
-| ErrorHandler | window.onerror + unhandledrejection | LoggingService (jamais user-visible) |
-| NetworkInterceptor | evenements online/offline | NotificationService |
+| NotificationService | Visible UI: toasts error/warning/success | DOM (DaisyUI toast) |
+| LoggingService | Internal debug + dev telemetry: console.error/warn | DevTools console |
+| HttpInterceptor | Captures Apollo + window.fetch | NotificationService + LoggingService |
+| ErrorHandler | window.onerror + unhandledrejection | LoggingService (never user-visible) |
+| NetworkInterceptor | online/offline events | NotificationService |
 
-## Étapes
+## Steps
 
-### 32.1 — Modèle `ToastNotification` + enum `NotificationType`
-- **Fichier** : `core/models/notification.model.ts`
+### 32.1 — `ToastNotification` model + `NotificationType` enum
+- **File**: `core/models/notification.model.ts`
 - `type NotificationType = 'error' | 'warning' | 'success' | 'info'`
-- Interface : `{ id: string; type: NotificationType; message: string; action?: { label: string; handler: () => void }; duration: number }`
+- Interface: `{ id: string; type: NotificationType; message: string; action?: { label: string; handler: () => void }; duration: number }`
 - Export type guard `isNotificationOfType(notification, type)`.
 
-### 32.2 — `LoggingService` (console dédié, filtrage dev/prod)
-- **Fichier** : `core/services/logging.service.ts`
-- Méthodes : `error(message, context?)`, `warn(message, context?)`, `info(message, context?)`
-- Production : `console.warn`/`console.error` seulement pour `warning`/`error`
-- Dév : logging coloré avec préfixe `[live-teacher]`
-- Sanitisation : masque les champs `key`/`token`/`password` dans `context`
+### 32.2 — `LoggingService` (dedicated console, dev/prod filtering)
+- **File**: `core/services/logging.service.ts`
+- Methods: `error(message, context?)`, `warn(message, context?)`, `info(message, context?)`
+- Production: `console.warn`/`console.error` only for `warning`/`error`
+- Dev: colored logging with `[live-teacher]` prefix
+- Sanitization: masks `key`/`token`/`password` fields in `context`
 
 ### 32.3 — `NotificationService` (queue + auto-dismiss)
-- **Fichier** : `core/services/notification.service.ts`
+- **File**: `core/services/notification.service.ts`
 - Signal `notifications: Signal<ToastNotification[]>`
-- Méthodes : `error(message, options?)`, `warning(message, options?)`, `success(message, options?)`, `info(message, options?)`
-- `options` : `{ duration?, action? }` — durée défaut 5s (error) / 3s (autres)
-- Méthode `dismiss(id)` — retire de la queue
-- Utilise `MESSAGES.*` pour les libellés (pas de hardcoding ici)
+- Methods: `error(message, options?)`, `warning(message, options?)`, `success(message, options?)`, `info(message, options?)`
+- `options`: `{ duration?, action? }` — default 5s (error) / 3s (others)
+- `dismiss(id)` method — removes from queue
+- Uses `MESSAGES.*` for labels (no hardcoding here)
 
-### 32.4 — Composant `app-toast` (DaisyUI 5 + lucide)
-- **Fichiers** : `core/components/toast/toast.component.{ts,html,css}`
+### 32.4 — `app-toast` component (DaisyUI 5 + lucide)
+- **Files**: `core/components/toast/toast.component.{ts,html,css}`
 - Standalone, `ChangeDetectionStrategy.OnPush`
-- `notifications` input depuis `NotificationService.notifications`
+- `notifications` input from `NotificationService.notifications`
 - `@for (n of notifications(); track n.id)` — DaisyUI `div.toast.toast-end`
-- Icones lucide par type : error→`LucideTriangleAlert`, warning→`LucideAlertTriangle`, success→`LucideCheckCircle2`, info→`LucideInfo`
-- Bouton `LucideX` dismiss
-- Animation `transition-opacity duration-300` (CSS native, pas `@angular/animations`)
+- Lucide icons by type: error→`LucideTriangleAlert`, warning→`LucideAlertTriangle`, success→`LucideCheckCircle2`, info→`LucideInfo`
+- `LucideX` dismiss button
+- `transition-opacity duration-300` animation (native CSS, not `@angular/animations`)
 
 ### 32.5 — `HttpInterceptor` (Apollo + fetch wrapper)
-- **Fichier** : `core/interceptors/error-interceptor.ts`
-- Intercepte Apollo `error` links → `formatApiError()` → `NotificationService.error()` + `LoggingService.error()`
-- **Wrapper `fetchWithErrors`** pour le SSE non couvert par Apollo (`chat-audio.service.ts:93` fetch transcription)
-  → retry 1x sur 5xx, sinon → notification error
-- **Ne touche pas** `chat-stream.service.ts` — SSE token-stream garde son propre error path
+- **File**: `core/interceptors/error-interceptor.ts`
+- Intercepts Apollo `error` links → `formatApiError()` → `NotificationService.error()` + `LoggingService.error()`
+- **`fetchWithErrors` wrapper** for SSE not covered by Apollo (`chat-audio.service.ts:93` fetch transcription)
+  → retry 1x on 5xx, otherwise → error notification
+- **Does not touch** `chat-stream.service.ts` — SSE token-stream keeps its own error path
 
 ### 32.6 — `NetworkInterceptor` + `GlobalErrorHandler`
-- **Fichiers** : `core/interceptors/network-interceptor.ts`, `core/handlers/global-error-handler.ts`
-- `NetworkInterceptor` : écoute `window.addEventListener('online/offline')` → toast info
-- `GlobalErrorHandler` : implémente `ErrorHandler`, loggue `window.onerror`/`unhandledrejection` → `LoggingService`
-- Enregistrements : `provideHttpClient(withInterceptorsFromDi)` + `provideErrorHandler(GlobalErrorHandler)` dans `main.ts`
+- **Files**: `core/interceptors/network-interceptor.ts`, `core/handlers/global-error-handler.ts`
+- `NetworkInterceptor`: listens `window.addEventListener('online/offline')` → info toast
+- `GlobalErrorHandler`: implements `ErrorHandler`, logs `window.onerror`/`unhandledrejection` → `LoggingService`
+- Registrations: `provideHttpClient(withInterceptorsFromDi)` + `provideErrorHandler(GlobalErrorHandler)` in `main.ts`
 
-### 32.7 — Migration des call-sites existants
-- `message.service.ts:58,102` → `LoggingService.error()` (conservé pour le thread chat)
+### 32.7 — Migrate existing call-sites
+- `message.service.ts:58,102` → `LoggingService.error()` (kept for chat thread)
 - `chat-page.component.ts:151` `alert(...)` → `NotificationService.warning(MESSAGES.error.microphoneAccessDenied)`
-- Les 24 `console.*` call-sites → remplacés par `LoggingService` (pas de duplication)
-- Register `<app-toast>` dans `chat-page.component.html`
+- All 24 `console.*` call-sites → replaced by `LoggingService` (no duplication)
+- Register `<app-toast>` in `chat-page.component.html`
 
-## Critères d'acceptation
+## Acceptance Criteria
 
-1. **Aucun hardcoding console** : `rg -n "console\.\(error\|warn\|log\)" apps/frontend/src` → 0 résultat
-2. **Aucun `alert()`** : `rg -n 'alert\(' apps/frontend/src` → 0 résultat
-3. **Centralisation** : tous les toasts passent par `NotificationService` (un seul consommateur `<app-toast>`)
-4. **Sécurité** : `LoggingService` masque `password`/`token`/`api[_-]?key` via regex
-5. **Build** : `npx nx build frontend` → 0 erreur TypeScript (strict)
-6. **Lint** : `nx run frontend:lint` → 0 error (eslint-disable ciblé pour `LoggingService`)
-7. **Prettier** : `pnpm format:check` → clean
-8. **Test manuel** : 1 erreur SSE + 1 erreur HTTP → 1 toast error DaisyUI + 1 log console filtré
+1. **No console hardcoding**: `rg -n "console\.\(error\|warn\|log\)" apps/frontend/src` → 0 result
+2. **No `alert()`**: `rg -n 'alert\(' apps/frontend/src` → 0 result
+3. **Centralization**: all toasts go through `NotificationService` (single consumer `<app-toast>`)
+4. **Security**: `LoggingService` masks `password`/`token`/`api[_-]?key` via regex
+5. **Build**: `npx nx build frontend` → 0 TypeScript errors (strict)
+6. **Lint**: `nx run frontend:lint` → 0 errors (targeted eslint-disable for `LoggingService`)
+7. **Prettier**: `pnpm format:check` → clean
+8. **Manual test**: 1 SSE error + 1 HTTP error → 1 DaisyUI error toast + 1 filtered console log

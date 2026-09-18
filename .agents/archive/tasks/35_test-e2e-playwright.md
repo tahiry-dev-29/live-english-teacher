@@ -1,7 +1,7 @@
 # Task 35 — E2E Testing with Playwright & Nx
 
 **Status: DONE**
-**Priorité:** 🔴 Haute
+**Priority:** 🔴 High
 
 ## Goal
 

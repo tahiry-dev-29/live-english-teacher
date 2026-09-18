@@ -1,11 +1,11 @@
 # Task 20 — Redesign Settings Dialog (Tabbed Layout + General Theme/i18n + Auto-save)
 
 **Status: DONE**
-**Priorité:** 🔴 Haute
+**Priority:** 🔴 High
 
 ## Goal
 
-Redesign the settings dialog into a large tabbed layout with vertical navigation tabs on the left. Each tab groups related settings: General (theme, font, app language), AI Model Configuration, AI Tutor Voices, Learning Language. Add Angular i18n for app language switching. Learning Language must also be selectable from the chat input bar. **Pas de bouton Save/Submit : chaque changement est persisté immédiatement (auto-save via les services).**
+Redesign the settings dialog into a large tabbed layout with vertical navigation tabs on the left. Each tab groups related settings: General (theme, font, app language), AI Model Configuration, AI Tutor Voices, Learning Language. Add Angular i18n for app language switching. Learning Language must also be selectable from the chat input bar. **No Save/Submit button: each change is persisted immediately (auto-save via services).**
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 │ Language │                                            │
 │          │                                            │
 ├──────────┴───────────────────────────────────────────┤
-│  (pas de footer Save/Cancel — auto-save)             │
+│  (no Save/Cancel footer — auto-save)                 │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -32,7 +32,7 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 | **Voices** | ElevenLabs voice list with preview play/stop |
 | **Language** | Learning language grid (same as current, but also exposed in chat input bar) |
 
-## Fichiers à créer/modifier
+## Files to create/modify
 
 - `apps/frontend/src/app/core/components/settings-dialog/settings-dialog-component.ts` — Full rewrite with tabbed layout
 - `apps/frontend/src/app/core/services/theme.service.ts` — **New** — Theme management (dark/light/system) via daisyUI `data-theme`
@@ -42,16 +42,16 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 - `apps/frontend/src/index.html` — Add `lang` attribute binding
 - `apps/frontend/src/app/app.config.ts` — Provide `I18nService` if needed
 
-## Auto-save (pas de bouton Save/Submit)
+## Auto-save (no Save/Submit button)
 
-- **Principe :** chaque contrôle écrit directement dans le service source de vérité (`ThemeService`, `I18nService`, `AiConfigService`, `ApiKeyService`, `ElevenLabsVoiceService`) + émet `languageChange`/`voiceChange` quand pertinent. Pas de signaux `temp*`, pas de `handleSave()`.
-- Le footer `modal-action` avec `[Cancel] [Save]` est **supprimé**. Seule la croix `[X]` (fermeture) subsiste.
-- **Clés API** : l'input écrit via `(ngModelChange)` avec debounce (~500 ms) pour ne pas persister à chaque frappe ; le bouton Clear efface immédiatement.
-- **Voix** : la sélection émet `voiceChange` immédiatement (l'aperçu play/stop reste local au composant).
-- **Langue d'apprentissage** : émet `languageChange` immédiatement.
-- **Provider/modèle** : écriture directe + `fetchModels()` si la clé a changé.
+- **Principle:** each control writes directly to the source-of-truth service (`ThemeService`, `I18nService`, `AiConfigService`, `ApiKeyService`, `ElevenLabsVoiceService`) + emits `languageChange`/`voiceChange` when relevant. No `temp*` signals, no `handleSave()`.
+- The `modal-action` footer with `[Cancel] [Save]` is **removed**. Only the `[X]` close button remains.
+- **API Keys**: the input writes via `(ngModelChange)` with debounce (~500 ms) to avoid persisting on every keystroke; the Clear button clears immediately.
+- **Voice**: selection emits `voiceChange` immediately (the play/stop preview remains local to the component).
+- **Learning Language**: emits `languageChange` immediately.
+- **Provider/Model**: direct write + `fetchModels()` if the key has changed.
 
-## Étapes
+## Steps
 
 1. Create `ThemeService` with `theme` signal ('dark'|'light'|'system'), persisted in localStorage, applies `data-theme` on `<html>`
 2. Create `I18nService` with `lang` signal ('en'|'fr'|'es'), persisted in localStorage, updates `document.documentElement.lang`
@@ -60,10 +60,10 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 5. Move existing AI Model, Voices, Language sections into their respective tabs
 6. Add language quick-select button in chat input bar (opens settings on Language tab)
 7. Wire ThemeService into app root to apply theme on startup
-8. Supprimer `temp*`, `handleSave()`, footer Save/Cancel → auto-save direct
+8. Remove `temp*`, `handleSave()`, Save/Cancel footer → direct auto-save
 9. Build + lint verify
 
-## Critères d'acceptation
+## Acceptance Criteria
 
 - [x] Settings dialog opens as a large modal with vertical tabs on the left
 - [x] General tab: theme switches between dark/light/system instantly
@@ -73,7 +73,7 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 - [x] Language tab: learning language selection works (existing)
 - [x] Chat input bar has a language quick-select button
 - [x] All settings persist in localStorage
-- [x] **Aucun bouton Save/Submit dans le dialogue ; chaque changement est appliqué + persisté immédiatement (auto-save)**
+- [x] **No Save/Submit button in the dialog; each change is applied + persisted immediately (auto-save)**
 - [x] `nx build frontend` passes without errors
 - [x] daisyUI components used throughout (tabs, btn, badge, fieldset, collapse)
 
@@ -102,7 +102,7 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 | **Voices** | ElevenLabs voice list with preview play/stop |
 | **Language** | Learning language grid (same as current, but also exposed in chat input bar) |
 
-## Fichiers à créer/modifier
+## Files to create/modify
 
 - `apps/frontend/src/app/core/components/settings-dialog/settings-dialog-component.ts` — Full rewrite with tabbed layout
 - `apps/frontend/src/app/core/services/theme.service.ts` — **New** — Theme management (dark/light/system) via daisyUI `data-theme`
@@ -112,7 +112,7 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 - `apps/frontend/src/index.html` — Add `lang` attribute binding
 - `apps/frontend/src/app/app.config.ts` — Provide `I18nService` if needed
 
-## Étapes
+## Steps
 
 1. Create `ThemeService` with `theme` signal ('dark'|'light'|'system'), persisted in localStorage, applies `data-theme` on `<html>`
 2. Create `I18nService` with `lang` signal ('en'|'fr'|'es'), persisted in localStorage, updates `document.documentElement.lang`
@@ -123,7 +123,7 @@ Redesign the settings dialog into a large tabbed layout with vertical navigation
 7. Wire ThemeService into app root to apply theme on startup
 8. Build + lint verify
 
-## Critères d'acceptation
+## Acceptance Criteria
 
 - [ ] Settings dialog opens as a large modal with vertical tabs on the left
 - [ ] General tab: theme switches between dark/light/system instantly

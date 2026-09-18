@@ -1,7 +1,7 @@
 # Task 34 — Frontend Unit Tests with Vitest & Testing Library
 
 **Status: DONE**
-**Priorité:** 🔴 Haute
+**Priority:** 🔴 High
 
 ## Goal
 

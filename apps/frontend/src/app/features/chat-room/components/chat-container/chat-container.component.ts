@@ -42,6 +42,8 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly totalAudioDuration = input<number>(0);
   readonly playingMessageIndex = input<number | null>(null);
   readonly learningLanguage = input<string>('en');
+  /** Shows a centered spinner when the session messages are being fetched. */
+  readonly isSessionLoading = input<boolean>(false);
 
   readonly playAudio = output<{ text: string; index: number }>();
   readonly stop = output<void>();
@@ -57,9 +59,9 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly hasNewMessages = signal<boolean>(false);
   readonly autoScroll = signal<boolean>(true);
 
-  private scrollObserver?: IntersectionObserver;
   private readonly documentRef = inject(DOCUMENT);
   private readonly renderer = inject(Renderer2);
+  private prevMessageCount = 0;
 
   constructor() {
     effect(() => {
@@ -69,6 +71,15 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
         HTMLElement | undefined;
       if (!el || typeof requestAnimationFrame === 'undefined') return;
       if (msgs.length === 0 && !isLoading) return;
+
+      // Detect new messages arriving while user is scrolled away from bottom
+      const atBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      if (msgs.length > this.prevMessageCount && !atBottom) {
+        this.hasNewMessages.set(true);
+      }
+      this.prevMessageCount = msgs.length;
+
       if (!this.autoScroll()) return;
       requestAnimationFrame(() => {
         el.scrollTo({ top: el.scrollHeight, behavior: 'auto' });
@@ -88,27 +99,9 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
     () => this.lastAiMessageIndex() !== null,
   );
 
-  ngAfterViewInit(): void {
-    const el = this.scrollContainer()?.nativeElement;
-    if (!el) return;
+  ngAfterViewInit(): void {}
 
-    const sentinel = this.documentRef.createElement('div');
-    this.renderer.addClass(sentinel, 'scroll-sentinel');
-    this.renderer.setStyle(sentinel, 'height', '1px');
-    this.renderer.appendChild(el, sentinel);
-
-    this.scrollObserver = new IntersectionObserver(
-      ([entry]) => {
-        this.hasNewMessages.set(!entry.isIntersecting);
-      },
-      { root: el, threshold: 0.1 },
-    );
-    this.scrollObserver.observe(sentinel);
-  }
-
-  ngOnDestroy(): void {
-    this.scrollObserver?.disconnect();
-  }
+  ngOnDestroy(): void {}
 
   onScroll(): void {
     const el = this.scrollContainer()?.nativeElement;

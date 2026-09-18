@@ -7,6 +7,7 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   ChangeDetectionStrategy,
   inject,
 } from '@angular/core';
@@ -53,7 +54,7 @@ const INPUT_EXPANDED_HEIGHT_PX = 320;
   template: `
     <div class="mx-auto w-full max-w-3xl min-w-0">
       <div
-        class="min-w-0 overflow-hidden rounded-[20px] border border-base-300/60 bg-base-200 px-4 pt-3 pb-2.5 shadow-lg transition-colors focus-within:border-base-content/25"
+        class="min-w-0 rounded-[20px] border border-base-300/60 bg-base-200 px-4 pt-3 pb-2.5 shadow-lg transition-colors focus-within:border-base-content/25"
       >
         @if (attachments().length > 0) {
           <div
@@ -152,52 +153,54 @@ const INPUT_EXPANDED_HEIGHT_PX = 320;
           </div>
 
           <div class="flex shrink-0 items-center gap-1.5">
-            <div class="dropdown dropdown-end dropdown-top">
-              <button
-                tabindex="0"
-                type="button"
-                class="btn h-9 min-h-0 gap-0.5 rounded-full btn-ghost px-2.5 text-xs font-medium text-base-content/60 btn-sm hover:bg-base-300 hover:text-base-content"
-                aria-label="Select learning language"
-                aria-haspopup="listbox"
-              >
-                <span class="text-sm leading-none">{{ currentFlag() }}</span>
-                <span class="max-w-24 truncate">{{ currentLangName() }}</span>
-                <svg
-                  lucideChevronDown
-                  class="h-3.5 w-3.5 shrink-0 opacity-60"
-                ></svg>
-              </button>
-              <ul
-                tabindex="0"
-                role="listbox"
-                class="menu dropdown-content z-50 mb-2 max-h-64 w-60 overflow-y-auto rounded-2xl border border-base-300 bg-base-200 p-1.5 shadow-2xl"
-              >
-                @for (lang of languages; track lang.code) {
-                  <li
-                    role="option"
-                    [attr.aria-selected]="lang.code === selectedLangCode()"
+            <!-- Language selector – Popover API (top-layer, never clipped) -->
+            <button
+              type="button"
+              popovertarget="lang-picker"
+              style="anchor-name: --lang-picker"
+              class="btn h-9 min-h-0 gap-0.5 rounded-full btn-ghost px-2.5 text-xs font-medium text-base-content/60 btn-sm hover:bg-base-300 hover:text-base-content"
+              aria-label="Select learning language"
+              aria-haspopup="listbox"
+            >
+              <span class="text-sm leading-none">{{ currentFlag() }}</span>
+              <span class="max-w-24 truncate">{{ currentLangName() }}</span>
+              <svg
+                lucideChevronDown
+                class="h-3.5 w-3.5 shrink-0 opacity-60"
+              ></svg>
+            </button>
+            <ul
+              id="lang-picker"
+              popover
+              role="listbox"
+              style="position-anchor: --lang-picker"
+              class="dropdown dropdown-top dropdown-end menu max-h-64 w-60 overflow-y-auto rounded-2xl border border-base-300 bg-base-200 p-1.5 shadow-2xl"
+            >
+              @for (lang of languages; track lang.code) {
+                <li
+                  role="option"
+                  [attr.aria-selected]="lang.code === selectedLangCode()"
+                >
+                  <button
+                    type="button"
+                    (click)="onLanguageChange(lang.code)"
+                    class="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left"
                   >
-                    <button
-                      type="button"
-                      (click)="onLanguageChange(lang.code)"
-                      class="flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left"
-                    >
-                      <span class="flex min-w-0 items-center gap-2">
-                        <span class="shrink-0">{{ lang.flag }}</span>
-                        <span class="truncate text-xs font-semibold">{{
-                          lang.name
-                        }}</span>
-                      </span>
-                      @if (lang.code === selectedLangCode()) {
-                        <span class="badge shrink-0 badge-xs badge-primary"
-                          >Active</span
-                        >
-                      }
-                    </button>
-                  </li>
-                }
-              </ul>
-            </div>
+                    <span class="flex min-w-0 items-center gap-2">
+                      <span class="shrink-0">{{ lang.flag }}</span>
+                      <span class="truncate text-xs font-semibold">{{
+                        lang.name
+                      }}</span>
+                    </span>
+                    @if (lang.code === selectedLangCode()) {
+                      <span class="badge shrink-0 badge-xs badge-primary"
+                        >Active</span
+                      >
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
             <app-audio-recorder
               (audioRecorded)="onAudioRecorded($event)"
               (recordingStateChange)="recordingStateChange.emit($event)"
@@ -309,9 +312,14 @@ export class ChatInputComponent {
       if (lang) this.currentFlag.set(lang.flag);
     });
     effect(() => {
+      // Track reactive deps (value + expanded) but run autosize outside
+      // the reactive context to avoid canExpand.set() triggering a new cycle.
       this.value();
       this.expanded();
-      this.autosize();
+      untracked(() => {
+        // rAF ensures DOM height is settled after Angular updates the template
+        requestAnimationFrame(() => this.autosize());
+      });
     });
   }
 
@@ -319,6 +327,8 @@ export class ChatInputComponent {
     this.languageService.setLanguage(code);
     const lang = this.languages.find((l) => l.code === code);
     if (lang) this.currentFlag.set(lang.flag);
+    // Ferme le popover après sélection
+    (document.getElementById('lang-picker') as HTMLElement | null)?.hidePopover?.();
   }
 
   onInputChange(text: string): void {
@@ -388,7 +398,8 @@ export class ChatInputComponent {
     if (!el) return;
     el.style.height = 'auto';
     const contentHeight = el.scrollHeight;
-    this.canExpand.set(contentHeight > INPUT_LONG_TEXT_THRESHOLD_PX);
+    // Use untracked so this signal write doesn't re-trigger the effect
+    untracked(() => this.canExpand.set(contentHeight > INPUT_LONG_TEXT_THRESHOLD_PX));
     if (this.expanded()) {
       el.style.height = `${Math.min(
         Math.max(contentHeight, 96),

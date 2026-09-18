@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Markdown typography for AI/user messages — must stay global because
+   ngx-markdown injects HTML via innerHTML (no Angular style encapsulation). */
+@import './styles/markdown.css';
+
 @plugin 'daisyui' {
   themes:
     app-dark --default,

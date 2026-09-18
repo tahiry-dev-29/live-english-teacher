@@ -53,7 +53,7 @@ import { ChatMessage } from '@models/chat-message.model';
               class="ml-auto max-w-[80%] min-w-0 rounded-3xl bg-base-200 px-5 py-2.5 text-[15px] leading-relaxed [overflow-wrap:anywhere] break-words text-base-content"
             >
               <div
-                class="prose-sm prose max-w-none min-w-0 [overflow-wrap:anywhere] break-words text-base-content"
+                class="md-body max-w-none min-w-0 break-words text-base-content"
               >
                 <markdown [data]="message().text" />
               </div>
@@ -70,9 +70,7 @@ import { ChatMessage } from '@models/chat-message.model';
             [class.p-3]="isError()"
             [class.rounded-2xl]="isError()"
           >
-            <div
-              class="prose-chat max-w-none min-w-0 [overflow-wrap:anywhere] break-words"
-            >
+            <div class="md-body max-w-none min-w-0 break-words">
               <markdown [data]="message().text" />
             </div>
           </div>
@@ -138,13 +136,13 @@ import { ChatMessage } from '@models/chat-message.model';
               <!-- Copy -->
               <div
                 class="tooltip tooltip-bottom"
-                [attr.data-tip]="isCopied() ? 'Copied!' : 'Copy'"
+                [attr.data-tip]="isCopied() ? 'Copied!' : 'Copy as Markdown'"
               >
                 <button
                   type="button"
                   (click)="onCopyText()"
                   class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
-                  aria-label="Copy"
+                  aria-label="Copy as Markdown"
                 >
                   @if (isCopied()) {
                     <svg lucideCheck class="h-3.5 w-3.5 text-success"></svg>
@@ -154,12 +152,8 @@ import { ChatMessage } from '@models/chat-message.model';
                 </button>
               </div>
 
-              <!-- ⋯ Three dots menu dropdown (opens rightwards to avoid clipping) -->
-              <div
-                class="dropdown dropdown-end"
-                [class.dropdown-top]="menuUp()"
-                [class.dropdown-bottom]="!menuUp()"
-              >
+              <!-- ⋯ Three dots menu – Popover API (top-layer, never clipped by overflow) -->
+              <div class="relative">
                 <div
                   class="tooltip"
                   [class.tooltip-top]="menuUp()"
@@ -168,8 +162,9 @@ import { ChatMessage } from '@models/chat-message.model';
                 >
                   <button
                     #menuTrigger
-                    tabindex="0"
                     type="button"
+                    [attr.popovertarget]="menuId"
+                    [style.anchor-name]="'--msg-menu-' + menuId"
                     (click)="openMenu()"
                     class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
                     aria-label="More options"
@@ -179,11 +174,16 @@ import { ChatMessage } from '@models/chat-message.model';
                   </button>
                 </div>
                 <ul
-                  tabindex="0"
+                  [id]="menuId"
+                  popover
                   role="menu"
                   (click)="closeMenu()"
                   (keydown.escape)="closeMenu()"
-                  class="menu dropdown-content z-50 mt-1 w-52 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
+                  [style.position-anchor]="'--msg-menu-' + menuId"
+                  class="menu dropdown w-52 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
+                  [class.dropdown-top]="menuUp()"
+                  [class.dropdown-bottom]="!menuUp()"
+                  [class.dropdown-end]="true"
                 >
                   <!-- Branch in new chat -->
                   <li>
@@ -232,7 +232,7 @@ import { ChatMessage } from '@models/chat-message.model';
                         class="h-4 w-4 text-base-content/70"
                       ></svg>
                       <span>{{
-                        isCopied() ? 'Copied!' : 'Copy response'
+                        isCopied() ? 'Copied!' : 'Copy as Markdown'
                       }}</span>
                     </button>
                   </li>
@@ -307,235 +307,22 @@ import { ChatMessage } from '@models/chat-message.model';
         overflow-x: hidden;
       }
 
-      /* Anti-horizontal-scroll: no content block may exceed the message width
-         (long AI text, unbreakable words/URLs, code). */
-      .prose-chat,
-      .prose-chat *,
-      .prose,
-      .prose * {
-        max-width: 100%;
+      /* Generated markdown nodes (<markdown>, table, headings, code…) are NOT
+         reachable from this scoped stylesheet: Angular only stamps
+         _ngcontent-* on elements authored in this template. Every markdown
+         typography rule lives in the global stylesheet
+         apps/frontend/src/styles/markdown.css (class .md-body). */
+      .md-body {
         min-width: 0;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-      }
-
-      .prose-chat img,
-      .prose-chat video,
-      .prose-chat iframe,
-      .prose img,
-      .prose video,
-      .prose iframe {
-        height: auto;
-        border-radius: var(--radius-field);
-      }
-
-      .prose-chat table,
-      .prose table {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-      }
-
-      .prose-chat pre,
-      .prose pre {
-        max-width: 100%;
-        overflow-x: auto;
-      }
-
-      .prose-chat {
-        color: inherit;
-        font-size: 15px;
-        line-height: 1.75;
-      }
-
-      .prose-chat p {
-        margin: 0 0 1em;
-      }
-
-      .prose-chat p:last-child {
-        margin-bottom: 0;
-      }
-
-      .prose-chat h1,
-      .prose-chat h2,
-      .prose-chat h3,
-      .prose-chat h4,
-      .prose-chat h5,
-      .prose-chat h6 {
-        color: inherit;
-        font-weight: 700;
-        margin: 1.25em 0 0.5em;
-        line-height: 1.3;
-      }
-
-      .prose-chat h1 {
-        font-size: 1.35em;
-      }
-      .prose-chat h2 {
-        font-size: 1.2em;
-      }
-      .prose-chat h3 {
-        font-size: 1.1em;
-      }
-      .prose-chat h4 {
-        font-size: 1em;
-      }
-
-      .prose-chat ul {
-        margin: 0.75em 0;
-        padding-left: 1.25rem;
-        list-style: disc;
-        display: flex;
-        flex-direction: column;
-        gap: 0.375rem;
-      }
-
-      .prose-chat ol {
-        margin: 0.75em 0;
-        padding-left: 1.25rem;
-        list-style: decimal;
-        display: flex;
-        flex-direction: column;
-        gap: 0.375rem;
-      }
-
-      .prose-chat li::marker {
-        color: var(--color-primary);
-        opacity: 0.8;
-      }
-
-      .prose-chat strong {
-        font-weight: 600;
-        color: inherit;
-      }
-
-      .prose-chat em {
-        font-style: italic;
-        color: inherit;
-      }
-
-      .prose-chat a {
-        color: var(--color-primary);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-        transition: opacity 0.15s;
-      }
-
-      .prose-chat a:hover {
-        opacity: 0.8;
-      }
-
-      .prose-chat hr {
-        margin: 1.25em 0;
-        border: none;
-        border-top: 1px solid var(--color-base-300);
-      }
-
-      .prose-chat blockquote {
-        margin: 0.85em 0;
-        padding: 0.5rem 0.9rem;
-        border-left: 3px solid var(--color-primary);
-        background: color-mix(in oklch, var(--color-primary) 6%, transparent);
-        border-radius: 0 var(--radius-field) var(--radius-field) 0;
-        color: inherit;
-      }
-
-      .prose-chat code {
-        background: color-mix(
-          in oklch,
-          var(--color-base-content) 8%,
-          transparent
-        );
-        color: var(--color-primary);
-        padding: 0.15rem 0.4rem;
-        border-radius: var(--radius-field);
-        font-size: 0.875em;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      }
-
-      .prose-chat pre {
-        background: var(--color-base-200);
-        border: 1px solid var(--color-base-300);
-        padding: 0.9rem 1rem;
-        border-radius: var(--radius-box);
-        overflow-x: auto;
-        margin: 0.85em 0;
-      }
-
-      .prose-chat pre code {
-        background: none;
-        padding: 0;
-        color: inherit;
-        font-size: 0.875em;
-      }
-
-      /* Markdown Tables */
-      .prose-chat table {
-        width: 100%;
-        margin: 1em 0;
-        border-collapse: collapse;
-        font-size: 0.9em;
-        border-radius: var(--radius-box);
-        overflow: hidden;
-        border: 1px solid var(--color-base-300);
-      }
-
-      .prose-chat th {
-        background: var(--color-base-200);
-        font-weight: 600;
-        text-align: left;
-        padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid var(--color-base-300);
-      }
-
-      .prose-chat td {
-        padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid var(--color-base-300);
-      }
-
-      .prose-chat tr:last-child td {
-        border-bottom: none;
-      }
-
-      .prose-chat tr:hover td {
-        background: color-mix(
-          in oklch,
-          var(--color-base-content) 3%,
-          transparent
-        );
-      }
-
-      .prose {
-        color: inherit;
-      }
-
-      .prose p {
-        margin: 0;
-      }
-
-      .prose pre {
-        background: var(--color-base-300);
-        padding: 0.75rem;
-        border-radius: var(--radius-box);
-        overflow-x: auto;
-      }
-
-      .prose code {
-        background: var(--color-base-300);
-        padding: 0.125rem 0.25rem;
-        border-radius: var(--radius-field);
-        font-size: 0.875em;
-      }
-
-      .prose pre code {
-        background: none;
-        padding: 0;
       }
     `,
   ],
 })
 export class MessageItemComponent {
+  /** Unique ID per instance – needed for the Popover API anchor pairing */
+  private static _counter = 0;
+  readonly menuId = `msg-menu-${++MessageItemComponent._counter}`;
+
   readonly message = input.required<ChatMessage>();
   readonly isPlaying = input<boolean>(false);
 
@@ -553,6 +340,10 @@ export class MessageItemComponent {
   private readonly menuTrigger =
     viewChild<ElementRef<HTMLButtonElement>>('menuTrigger');
 
+  private get menuPopover(): HTMLElement | null {
+    return document.getElementById(this.menuId);
+  }
+
   openMenu(): void {
     const el = this.menuTrigger()?.nativeElement;
     if (!el) {
@@ -562,11 +353,14 @@ export class MessageItemComponent {
     const rect = el.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     this.menuUp.set(spaceBelow < 260);
-    requestAnimationFrame(() => el.focus());
+    // showPopover() is called by the browser via popovertarget — just position
+    requestAnimationFrame(() => {
+      this.menuPopover?.showPopover?.();
+    });
   }
 
   closeMenu(): void {
-    this.menuTrigger()?.nativeElement?.blur();
+    this.menuPopover?.hidePopover?.();
   }
 
   handlePlayStop(): void {

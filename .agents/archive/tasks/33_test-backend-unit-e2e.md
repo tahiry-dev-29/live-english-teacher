@@ -1,7 +1,7 @@
 # Task 33 — Backend Unit & Integration/E2E Test Architecture
 
 **Status: DONE**
-**Priorité:** 🔴 Haute
+**Priority:** 🔴 High
 
 ## Goal
 
