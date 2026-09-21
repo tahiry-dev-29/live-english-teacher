@@ -52,5 +52,6 @@ Thumbs.db
 
 /generated/prisma
 .agent/
-.prettiercachetest-results/
+.prettiercache
+test-results/
 playwright-report/
