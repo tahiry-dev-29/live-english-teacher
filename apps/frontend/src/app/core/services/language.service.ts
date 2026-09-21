@@ -1,4 +1,4 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, signal, effect, inject, DestroyRef } from '@angular/core';
 
 export interface Language {
   code: string;
@@ -28,8 +28,10 @@ export class LanguageService {
   constructor() {
     this.loadVoices();
     if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.addEventListener('voiceschanged', () =>
-        this.loadVoices(),
+      const handler = (): void => this.loadVoices();
+      window.speechSynthesis.addEventListener('voiceschanged', handler);
+      inject(DestroyRef).onDestroy(() =>
+        window.speechSynthesis.removeEventListener('voiceschanged', handler),
       );
     }
 

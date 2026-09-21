@@ -1,4 +1,11 @@
-import { Injectable, signal, effect, inject, DOCUMENT } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  effect,
+  inject,
+  DestroyRef,
+  DOCUMENT,
+} from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import {
   migrateLocalStorageToCookie,
@@ -100,13 +107,16 @@ export class ThemeService {
     });
 
     if (typeof window !== 'undefined') {
-      window
-        .matchMedia('(prefers-color-scheme: dark)')
-        .addEventListener('change', () => {
-          if (this.theme() === 'system') {
-            this.applyTheme('system');
-          }
-        });
+      const schemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const onSchemeChange = (): void => {
+        if (this.theme() === 'system') {
+          this.applyTheme('system');
+        }
+      };
+      schemeQuery.addEventListener('change', onSchemeChange);
+      inject(DestroyRef).onDestroy(() =>
+        schemeQuery.removeEventListener('change', onSchemeChange),
+      );
     }
   }
 

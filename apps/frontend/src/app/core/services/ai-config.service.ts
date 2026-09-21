@@ -1,4 +1,10 @@
-import { Injectable, signal, effect, inject } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  effect,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { environment } from '@environment';
 import { CookieService } from 'ngx-cookie-service';
 import {
@@ -146,11 +152,15 @@ export class AiConfigService {
   /** Offline (task 81): single refetch when the browser comes back online. */
   private resubscribeOnReconnect(): void {
     if (typeof window === 'undefined') return;
-    window.addEventListener('online', () => {
+    const onOnline = (): void => {
       this.fetchFailed.set(false);
       this.liveError.set(null);
       void this.fetchModels(this.provider(), true);
-    });
+    };
+    window.addEventListener('online', onOnline);
+    inject(DestroyRef).onDestroy(() =>
+      window.removeEventListener('online', onOnline),
+    );
   }
 
   async fetchModels(providerId?: string, force = false): Promise<void> {

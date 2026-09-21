@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject, DestroyRef } from '@angular/core';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -33,16 +33,22 @@ export class PwaService {
   private listenForInstallPrompt(): void {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('beforeinstallprompt', (e: Event) => {
+    const onBeforeInstallPrompt = (e: Event): void => {
       e.preventDefault();
       this.installPrompt.set(e as BeforeInstallPromptEvent);
       this.canInstall.set(true);
-    });
-
-    window.addEventListener('appinstalled', () => {
+    };
+    const onInstalled = (): void => {
       this.isInstalled.set(true);
       this.canInstall.set(false);
       this.installPrompt.set(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onInstalled);
+    inject(DestroyRef).onDestroy(() => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onInstalled);
     });
   }
 
