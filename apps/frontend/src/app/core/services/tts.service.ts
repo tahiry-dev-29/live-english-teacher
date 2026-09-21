@@ -1,5 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ElevenLabsVoiceService } from './elevenlabs-voice.service';
+import { TtsAudioCacheService } from './tts-audio-cache.service';
+import { BrowserSpeechService } from './browser-speech.service';
 import { base64ToBlob } from '@core/utils/text.util';
 import { MESSAGES } from '@core/constants/messages';
 
@@ -16,6 +18,8 @@ interface TtsSpeechOptions {
 })
 export class TtsService {
   private readonly elevenLabs = inject(ElevenLabsVoiceService);
+  private readonly browserSpeech = inject(BrowserSpeechService);
+  private readonly audioCache = inject(TtsAudioCacheService);
 
   readonly isPlaying = signal<boolean>(false);
   readonly currentAudioTime = signal<number>(0);
@@ -30,16 +34,12 @@ export class TtsService {
   readonly lastText = signal<string>('');
   private lastOptions: TtsSpeechOptions | undefined;
 
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudio: HTMLAudioElement | null = null;
   private audioUrl: string | null = null;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private analyserRaf: number | null = null;
   private webSpeechRaf: number | null = null;
-  private readonly MAX_RETRIES = 2;
-  private synthesisFailures = 0;
-  private voicesChangedHandler: (() => void) | null = null;
   private progressInterval: ReturnType<typeof setInterval> | null = null;
 
   private cleanMarkdown(text: string): string {
@@ -78,27 +78,30 @@ export class TtsService {
     const selectedVoiceId =
       options?.voiceId || this.elevenLabs.selectedVoiceId();
 
-    // 1. Try TTS API (with loading state for the play-button spinner)
+    // 1. Try TTS API (with loading state for the play-button spinner).
+    //    Cached audio (L1 memory / L2 IndexedDB) skips re-synthesis entirely.
     this.isLoading.set(true);
     try {
-      const elevenAudio = await this.elevenLabs.generateSpeechAudio(
+      const cacheKey = await this.audioCache.buildKey([
         cleanText,
         selectedVoiceId,
+        this.elevenLabs.selectedModelId(),
+        this.elevenLabs.selectedProviderId(),
         options?.lang,
+      ]);
+      const audioBlob = await this.audioCache.getOrFetch(cacheKey, () =>
+        this.elevenLabs
+          .generateSpeechAudio(cleanText, selectedVoiceId, options?.lang)
+          .then((res) => {
+            if (!res) throw new Error('tts-unavailable');
+            return base64ToBlob(res.audioData, res.mimeType);
+          }),
       );
 
-      if (elevenAudio) {
-        this.lastTtsFailed.set(false);
-        this.isLoading.set(false);
-        this.playElevenLabsAudio(
-          elevenAudio.audioData,
-          elevenAudio.mimeType,
-          cleanText,
-          options,
-        );
-        return;
-      }
-      this.lastTtsFailed.set(true);
+      this.lastTtsFailed.set(false);
+      this.isLoading.set(false);
+      this.playAudioBlob(audioBlob, cleanText, options);
+      return;
     } catch (err) {
       this.lastTtsFailed.set(true);
       console.warn(MESSAGES.log.ttsFallback, err);
@@ -117,15 +120,12 @@ export class TtsService {
     await this.speak(text, this.lastOptions);
   }
 
-  private playElevenLabsAudio(
-    base64Data: string,
-    mimeType: string,
+  private playAudioBlob(
+    blob: Blob,
     fallbackText: string,
     options?: TtsSpeechOptions,
   ): void {
     try {
-      const blob = base64ToBlob(base64Data, mimeType);
-
       this.audioUrl = URL.createObjectURL(blob);
       this.currentAudio = new Audio(this.audioUrl);
 
@@ -171,83 +171,36 @@ export class TtsService {
     }
   }
 
+  /** Browser fallback — owned by BrowserSpeechService (chunked, voices). */
   private speakWebSpeech(cleanText: string, options?: TtsSpeechOptions): void {
-    // Voices may load async — wait for them instead of speaking voiceless.
-    if (
-      typeof window !== 'undefined' &&
-      window.speechSynthesis.getVoices().length === 0
-    ) {
-      this.waitForVoices(cleanText, options);
-      return;
-    }
-    this.clearSpeech();
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    const voice = this.resolveVoice(options?.voice, options?.lang);
-    if (voice) {
-      utterance.voice = voice;
-      utterance.lang = voice.lang;
-    } else if (options?.lang) {
-      utterance.lang = options.lang;
-    }
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    this.currentUtterance = utterance;
-
-    this.isPlaying.set(true);
-    this.currentAudioTime.set(0);
-
     const wordCount = cleanText.split(' ').length;
     const estimatedDuration = (wordCount / 150) * 60;
-    this.totalAudioDuration.set(estimatedDuration);
-
     const startTime = Date.now();
-    this.startProgressTracking(startTime, estimatedDuration);
-
-    utterance.onend = () => {
-      this.stopWebSpeechViz();
-      this.stopProgressTracking();
-      this.isPlaying.set(false);
-      this.currentAudioTime.set(0);
-      this.currentUtterance = null;
-      this.synthesisFailures = 0;
-      options?.onEnd?.();
-    };
-
-    utterance.onerror = (e) => {
-      this.stopWebSpeechViz();
-      this.stopProgressTracking();
-      this.isPlaying.set(false);
-      this.currentAudioTime.set(0);
-      this.currentUtterance = null;
-
-      if (
-        e.error === 'synthesis-failed' &&
-        this.synthesisFailures < this.MAX_RETRIES
-      ) {
-        this.synthesisFailures += 1;
-        setTimeout(() => this.speakWebSpeech(cleanText, options), 300);
-        return;
-      }
-
-      this.synthesisFailures = 0;
-      options?.onError?.(e);
-    };
-
-    try {
-      window.speechSynthesis.speak(utterance);
-      this.startWebSpeechViz();
-    } catch (error) {
-      this.stopWebSpeechViz();
-      this.stopProgressTracking();
-      this.isPlaying.set(false);
-      this.currentAudioTime.set(0);
-      this.currentUtterance = null;
-      this.synthesisFailures = 0;
-      console.error(MESSAGES.log.ttsSpeakFailed, error);
-      options?.onError?.(error);
-    }
+    this.browserSpeech.speak(cleanText, {
+      voice: options?.voice,
+      lang: options?.lang,
+      onStart: () => {
+        this.isPlaying.set(true);
+        this.currentAudioTime.set(0);
+        this.totalAudioDuration.set(estimatedDuration);
+        this.startProgressTracking(startTime, estimatedDuration);
+        this.startWebSpeechViz();
+      },
+      onEnd: () => {
+        this.stopWebSpeechViz();
+        this.stopProgressTracking();
+        this.isPlaying.set(false);
+        this.currentAudioTime.set(0);
+        options?.onEnd?.();
+      },
+      onError: (error) => {
+        this.stopWebSpeechViz();
+        this.stopProgressTracking();
+        this.isPlaying.set(false);
+        this.currentAudioTime.set(0);
+        options?.onError?.(error);
+      },
+    });
   }
 
   /**
@@ -301,7 +254,7 @@ export class TtsService {
     this.stopWebSpeechViz();
     const start = Date.now();
     const tick = (): void => {
-      if (!this.isPlaying() || !this.currentUtterance) return;
+      if (!this.isPlaying() || !this.browserSpeech.active()) return;
       const t = (Date.now() - start) / 1000;
       const levels: number[] = [];
       for (let i = 0; i < 48; i++) {
@@ -367,86 +320,15 @@ export class TtsService {
     }
   }
 
-  private resolveVoice(
-    preferred: SpeechSynthesisVoice | undefined,
-    lang: string | undefined,
-  ): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis.getVoices();
-    if (preferred && voices.some((v) => v.name === preferred.name)) {
-      return preferred;
-    }
-
-    const langCode = (lang || 'en-US').split('-')[0].toLowerCase();
-    const matching = voices.find((v) =>
-      v.lang.toLowerCase().startsWith(langCode),
-    );
-    if (matching) return matching;
-
-    return voices.find((v) => v.default) || voices[0] || null;
-  }
-
-  private waitForVoices(cleanText: string, options?: TtsSpeechOptions): void {
-    const synthesis = window.speechSynthesis;
-    let settled = false;
-    const cleanup = (): void => {
-      if (this.voicesChangedHandler) {
-        synthesis.removeEventListener(
-          'voiceschanged',
-          this.voicesChangedHandler,
-        );
-        this.voicesChangedHandler = null;
-      }
-    };
-
-    const handler = (): void => {
-      if (settled) return;
-      settled = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      cleanup();
-      this.speakWebSpeech(cleanText, options);
-    };
-
-    this.voicesChangedHandler = handler;
-    synthesis.addEventListener('voiceschanged', handler);
-    const timeoutId = setTimeout(handler, 1200);
-  }
-
-  private clearSpeech(): void {
-    const synthesis = window.speechSynthesis;
-    try {
-      if (synthesis.speaking || synthesis.pending) {
-        synthesis.cancel();
-      }
-      if (synthesis.paused) {
-        synthesis.resume();
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  private cleanupAudio(): void {
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio = null;
-    }
-    if (this.audioUrl) {
-      URL.revokeObjectURL(this.audioUrl);
-      this.audioUrl = null;
-    }
-  }
-
   stop(): void {
     this.stopAnalyser();
     this.stopWebSpeechViz();
     this.stopProgressTracking();
     this.cleanupAudio();
-    this.clearSpeech();
-    this.synthesisFailures = 0;
+    this.browserSpeech.stop();
     this.isPlaying.set(false);
     this.isLoading.set(false);
     this.currentAudioTime.set(0);
-    this.currentUtterance = null;
   }
 
   pause(): void {
@@ -454,8 +336,8 @@ export class TtsService {
       this.currentAudio.pause();
       this.isPlaying.set(false);
       this.stopProgressTracking();
-    } else if (this.currentUtterance && this.isPlaying()) {
-      window.speechSynthesis.pause();
+    } else if (this.browserSpeech.active() && this.isPlaying()) {
+      this.browserSpeech.pause();
       this.isPlaying.set(false);
       this.stopProgressTracking();
     }
@@ -472,10 +354,21 @@ export class TtsService {
         .catch((error) => {
           console.error(MESSAGES.log.audioPlayFailed, error);
         });
-    } else if (this.currentUtterance && !this.isPlaying()) {
-      window.speechSynthesis.resume();
+    } else if (this.browserSpeech.active() && !this.isPlaying()) {
+      this.browserSpeech.resume();
       this.isPlaying.set(true);
       this.startProgressTracking();
+    }
+  }
+
+  private cleanupAudio(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    if (this.audioUrl) {
+      URL.revokeObjectURL(this.audioUrl);
+      this.audioUrl = null;
     }
   }
 
