@@ -20,7 +20,11 @@ describe('UserProfileService (server-backed)', () => {
         UserProfileService,
         {
           provide: CookieService,
-          useValue: { check: vi.fn().mockReturnValue(true), get: vi.fn().mockReturnValue('dev-test'), set: vi.fn() },
+          useValue: {
+            check: vi.fn().mockReturnValue(true),
+            get: vi.fn().mockReturnValue('dev-test'),
+            set: vi.fn(),
+          },
         },
       ],
     });
@@ -33,9 +37,15 @@ describe('UserProfileService (server-backed)', () => {
   });
 
   it('loads the profile once and exposes signals', async () => {
-    const fetchMock = vi.mocked(fetch).mockResolvedValue(
-      jsonResponse({ displayName: 'Tahiry', profession: 'Teacher', specialization: 'kids' }),
-    );
+    const fetchMock = vi
+      .mocked(fetch)
+      .mockResolvedValue(
+        jsonResponse({
+          displayName: 'Tahiry',
+          profession: 'Teacher',
+          specialization: 'kids',
+        }),
+      );
     await service.ensureLoaded();
     await service.ensureLoaded();
     expect(service.displayName()).toBe('Tahiry');

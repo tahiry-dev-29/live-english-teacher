@@ -114,8 +114,7 @@ export class MockPrismaService {
 
   private matchesScope(row: any, where: any): boolean {
     if (where.userId !== undefined) return row.userId === where.userId;
-    if (where.deviceKey !== undefined)
-      return row.deviceKey === where.deviceKey;
+    if (where.deviceKey !== undefined) return row.deviceKey === where.deviceKey;
     return true;
   }
 
@@ -124,9 +123,7 @@ export class MockPrismaService {
       const list = this.memories.filter((m) =>
         this.matchesScope(m, opts?.where ?? {}),
       );
-      list.sort(
-        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
-      );
+      list.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
       return list;
     },
 

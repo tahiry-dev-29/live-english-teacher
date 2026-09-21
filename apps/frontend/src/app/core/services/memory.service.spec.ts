@@ -20,7 +20,11 @@ describe('MemoryService (server-backed)', () => {
         MemoryService,
         {
           provide: CookieService,
-          useValue: { check: vi.fn().mockReturnValue(true), get: vi.fn().mockReturnValue('dev-test'), set: vi.fn() },
+          useValue: {
+            check: vi.fn().mockReturnValue(true),
+            get: vi.fn().mockReturnValue('dev-test'),
+            set: vi.fn(),
+          },
         },
       ],
     });
@@ -33,9 +37,13 @@ describe('MemoryService (server-backed)', () => {
   });
 
   it('loads memories from the API once', async () => {
-    const fetchMock = vi.mocked(fetch).mockResolvedValue(
-      jsonResponse([{ id: '1', text: 'likes tea', createdAt: '', updatedAt: '' }]),
-    );
+    const fetchMock = vi
+      .mocked(fetch)
+      .mockResolvedValue(
+        jsonResponse([
+          { id: '1', text: 'likes tea', createdAt: '', updatedAt: '' },
+        ]),
+      );
     await service.ensureLoaded();
     await service.ensureLoaded();
     expect(service.memories().length).toBe(1);

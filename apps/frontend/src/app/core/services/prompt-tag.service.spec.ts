@@ -25,7 +25,11 @@ describe('PromptTagService (server-backed)', () => {
         PromptTagService,
         {
           provide: CookieService,
-          useValue: { check: vi.fn().mockReturnValue(true), get: vi.fn().mockReturnValue('dev-test'), set: vi.fn() },
+          useValue: {
+            check: vi.fn().mockReturnValue(true),
+            get: vi.fn().mockReturnValue('dev-test'),
+            set: vi.fn(),
+          },
         },
       ],
     });
