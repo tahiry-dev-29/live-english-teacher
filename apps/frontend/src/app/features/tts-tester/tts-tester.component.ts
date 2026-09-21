@@ -1,4 +1,10 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  signal,
+  ChangeDetectionStrategy,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -87,11 +93,25 @@ export class TtsTesterComponent {
   readonly selectedVoice = signal<SpeechSynthesisVoice | null>(null);
   readonly isSpeaking = signal<boolean>(false);
 
+  private readonly destroyRef = inject(DestroyRef);
+  private voicesHandler: (() => void) | null = null;
+
   constructor() {
     this.loadVoices();
-    window.speechSynthesis.addEventListener('voiceschanged', () => {
-      this.loadVoices();
-    });
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const handler = (): void => this.loadVoices();
+      this.voicesHandler = handler;
+      window.speechSynthesis.addEventListener('voiceschanged', handler);
+      this.destroyRef.onDestroy(() => {
+        if (this.voicesHandler) {
+          window.speechSynthesis.removeEventListener(
+            'voiceschanged',
+            this.voicesHandler,
+          );
+          this.voicesHandler = null;
+        }
+      });
+    }
   }
 
   private loadVoices(): void {

@@ -28,6 +28,10 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sidebar',
   standalone: true,
+  host: {
+    '(window:resize)': 'checkScreenSize()',
+    '(document:keydown)': 'onGlobalKeydown($event)',
+  },
   imports: [
     UserMenuComponent,
     SidebarSearchModalComponent,
@@ -91,22 +95,23 @@ export class SidebarComponent {
 
   constructor() {
     this.checkScreenSize();
-    window.addEventListener('resize', () => this.checkScreenSize());
-    window.addEventListener('keydown', (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        const t = e.target as HTMLElement | null;
-        if (
-          t &&
-          (t.tagName === 'INPUT' ||
-            t.tagName === 'TEXTAREA' ||
-            t.isContentEditable)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        this.openSearch();
+  }
+
+  /** Global Ctrl/Cmd+K shortcut → open session search (host-bound, auto-cleaned). */
+  protected onGlobalKeydown(e: KeyboardEvent): void {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.isContentEditable)
+      ) {
+        return;
       }
-    });
+      e.preventDefault();
+      this.openSearch();
+    }
   }
 
   toggle(): void {
