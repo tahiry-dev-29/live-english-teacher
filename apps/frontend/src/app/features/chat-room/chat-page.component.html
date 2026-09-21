@@ -87,7 +87,9 @@
       </div>
       <div class="navbar-end">
         @if (isShared()) {
-          <span class="badge badge-outline badge-sm mr-2 border-primary/40 text-primary">
+          <span
+            class="mr-2 badge badge-outline border-primary/40 badge-sm text-primary"
+          >
             Shared
           </span>
         }
@@ -104,7 +106,7 @@
     </div>
 
     <app-chat-container
-      class="flex-1 min-h-0"
+      class="min-h-0 flex-1"
       [messages]="messages()"
       [loading]="loading()"
       [isPlaying]="ttsService.isPlaying()"
@@ -117,10 +119,14 @@
         languageService.selectedLanguageCode()
       "
       [isSessionLoading]="isSessionLoading()"
+      [ttsLoading]="ttsService.isLoading()"
+      [ttsFailed]="ttsService.lastTtsFailed()"
+      [ttsLevels]="ttsService.analyserLevels()"
       (playAudio)="handlePlayAudio($event)"
       (stop)="handleStopAudio()"
       (pauseAudio)="handlePauseAudio()"
       (resumeAudio)="handleResumeAudio()"
+      (retryAudio)="handleRetryAudio()"
       (seekAudio)="handleSeekAudio($event)"
       (retryMessage)="onRetryMessage($event)"
       (forkSession)="onForkSession($event)"
@@ -146,7 +152,7 @@
         </div>
       </div>
     } @else {
-      <div class="relative z-10 min-w-0 border-t border-base-300/40 px-4 pt-3 pb-4">
+      <div class="relative z-10 min-w-0 px-4 pt-3 pb-4">
         <app-chat-input
           class="min-w-0"
           [value]="userInput()"

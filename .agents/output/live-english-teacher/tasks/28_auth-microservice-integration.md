@@ -5,7 +5,7 @@
 
 ## Goal
 
-Integrate the user authentication system (Registration, Login, JWT Token, Refresh Token, NestJS Guard, User Session) between the NestJS backend and Angular frontend.
+Integrate the user authentication system (Registration, Login, Auth0, Reset-password, 2AF, JWT Token, Refresh Token, NestJS Guard, User Sessionm etcs) between the NestJS backend and Angular frontend.
 
 ## Scope note (cleaned 2026-09-16)
 

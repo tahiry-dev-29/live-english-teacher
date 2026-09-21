@@ -8,10 +8,7 @@
  */
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  AI_PROVIDERS_REGISTRY,
-  FALLBACK_MODELS_BY_PROVIDER,
-} from './ai-providers.registry.ts';
+import { AI_PROVIDERS_REGISTRY } from './ai-providers.registry.ts';
 
 // ── Inline AiModelsService (without NestJS/Logger) ───────────────────────────
 
@@ -45,17 +42,18 @@ class AiModelsService {
       targetProviders.map(async (providerId) => {
         const config = AI_PROVIDERS_REGISTRY[providerId];
         if (!config) return [];
-        // No API key → return fallback models only (no network calls)
-        const fallbacks = (FALLBACK_MODELS_BY_PROVIDER[config.id] || []).map(
-          (m) => ({
-            ...m,
-            provider: config.id,
-          }),
-        );
+        // Live-only: no API key → empty (no network, no mocks)
         const effectiveKey = keys[providerId] || '';
-        if (!effectiveKey) return fallbacks;
-        // When key is present, simulate returning fallbacks (no real network)
-        return fallbacks;
+        if (!effectiveKey) return [];
+        // With key, live fetch would happen; simulate 1 live model
+        return [
+          {
+            id: `${providerId}-live-model`,
+            name: `${config.label} Live`,
+            provider: config.id,
+            description: `Live from ${config.label}`,
+          },
+        ];
       }),
     );
     return results.flat();
@@ -108,106 +106,59 @@ describe('AiModelsService', () => {
     });
   });
 
-  // ── FALLBACK_MODELS_BY_PROVIDER ───────────────────────────────────────────
+  // ── Live-only (no fallbacks) ────────────────────────────────────────────
 
-  describe('FALLBACK_MODELS_BY_PROVIDER', () => {
-    it('provides fallbacks for all 7 providers', () => {
-      const ids = Object.keys(AI_PROVIDERS_REGISTRY);
-      for (const id of ids) {
-        const fallbacks = FALLBACK_MODELS_BY_PROVIDER[id];
-        assert.ok(fallbacks, `Fallbacks must exist for provider: ${id}`);
-        assert.ok(
-          fallbacks.length >= 1,
-          `Provider ${id} must have at least 1 fallback model`,
-        );
-      }
-    });
-
-    it('each fallback model has required fields', () => {
-      for (const [provider, models] of Object.entries(
-        FALLBACK_MODELS_BY_PROVIDER,
-      )) {
-        for (const m of models) {
-          assert.ok(m.id, `Fallback model in ${provider} must have id`);
-          assert.ok(m.name, `Fallback model in ${provider} must have name`);
-          assert.ok(
-            m.description,
-            `Fallback model in ${provider} must have description`,
-          );
-        }
-      }
-    });
-
-    it('each provider has exactly one isDefault model', () => {
-      for (const [provider, models] of Object.entries(
-        FALLBACK_MODELS_BY_PROVIDER,
-      )) {
-        const defaults = models.filter((m) => m.isDefault);
-        assert.equal(
-          defaults.length,
-          1,
-          `Provider ${provider} should have exactly 1 default model`,
-        );
-      }
+  describe('live-only behavior', () => {
+    it('has no FALLBACK_MODELS export (live API only)', async () => {
+      const mod = await import('./ai-providers.registry.ts');
+      assert.equal(
+        (mod as Record<string, unknown>)['FALLBACK_MODELS_BY_PROVIDER'],
+        undefined,
+      );
     });
   });
 
-  // ── getModels — no keys (fallback) ────────────────────────────────────────
+  // ── getModels — no keys (empty, live-only) ─────────────────────────────────
 
   describe('getModels() — no API keys', () => {
-    it('returns fallback models for all providers', async () => {
+    it('returns empty (live-only, no mocks)', async () => {
       const models = await service.getModels();
-      assert.ok(
-        models.length >= 7 * 1,
-        'Should have at least one model per provider',
-      );
+      assert.deepEqual(models, []);
     });
 
-    it('returns models with required fields', async () => {
-      const models = await service.getModels();
-      for (const m of models) {
-        assert.ok(m.id);
-        assert.ok(m.name);
-        assert.ok(m.provider);
-        assert.ok(m.description);
-      }
-    });
-
-    it('returns gemini fallback models', async () => {
+    it('returns empty for gemini without key', async () => {
       const models = await service.getModels({ provider: 'gemini' });
-      assert.ok(models.length >= 1);
-      assert.ok(models.every((m) => m.provider === 'gemini'));
+      assert.deepEqual(models, []);
     });
 
-    it('returns groq fallback models', async () => {
+    it('returns empty for groq without key', async () => {
       const models = await service.getModels({ provider: 'groq' });
-      assert.ok(models.length >= 1);
-      assert.ok(models.every((m) => m.provider === 'groq'));
+      assert.deepEqual(models, []);
     });
 
-    it('returns openai fallback models', async () => {
+    it('returns empty for openai without key', async () => {
       const models = await service.getModels({ provider: 'openai' });
-      assert.ok(models.every((m) => m.provider === 'openai'));
+      assert.deepEqual(models, []);
     });
 
-    it('returns anthropic fallback models', async () => {
+    it('returns empty for anthropic without key', async () => {
       const models = await service.getModels({ provider: 'anthropic' });
-      assert.ok(models.every((m) => m.provider === 'anthropic'));
+      assert.deepEqual(models, []);
     });
 
-    it('returns mistral fallback models', async () => {
+    it('returns empty for mistral without key', async () => {
       const models = await service.getModels({ provider: 'mistral' });
-      assert.ok(models.every((m) => m.provider === 'mistral'));
+      assert.deepEqual(models, []);
     });
 
-    it('returns deepseek fallback models', async () => {
+    it('returns empty for deepseek without key', async () => {
       const models = await service.getModels({ provider: 'deepseek' });
-      assert.ok(models.every((m) => m.provider === 'deepseek'));
+      assert.deepEqual(models, []);
     });
 
-    it('returns qwen fallback models', async () => {
+    it('returns empty for qwen without key', async () => {
       const models = await service.getModels({ provider: 'qwen' });
-      assert.ok(models.every((m) => m.provider === 'qwen'));
+      assert.deepEqual(models, []);
     });
 
     it('returns empty array for unknown provider', async () => {

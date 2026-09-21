@@ -63,12 +63,35 @@ export class ChatService {
   activeSessionId = signal<string | null>(null);
 
   /**
+   * Guards the initial session fetch — stays `false` until `loadSessions()` is
+   * called for the first time, so the resource does NOT fire on service creation.
+   * This allows the UI to render before any network request is made.
+   */
+  private readonly _shouldLoadSessions = signal<boolean>(false);
+
+  /**
+   * Triggers the first session fetch (sets the guard to `true`) or reloads the
+   * list if sessions are already loaded (e.g., after a mutation).
+   * Call this from `ngOnInit` after the route subscription is set up.
+   */
+  loadSessions(): void {
+    if (!this._shouldLoadSessions()) {
+      this._shouldLoadSessions.set(true);
+    } else {
+      this.sessionsResource.reload();
+    }
+  }
+
+  /**
    * Session list (history) — reactive fetching via `resource()`.
    * `reload()` / `isLoading()` power the reload button in the History header.
    * Mutations (rename/delete) remain imperative + `reload()`.
+   * The loader is skipped until `_shouldLoadSessions` is true (lazy init).
    */
   sessionsResource = resource({
-    loader: () => {
+    params: () => this._shouldLoadSessions(),
+    loader: ({ params: shouldLoad }) => {
+      if (!shouldLoad) return Promise.resolve([]);
       return firstValueFrom(
         this.apollo.query<{ getSessions: Session[] }>({
           query: GET_SESSIONS_QUERY,

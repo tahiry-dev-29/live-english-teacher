@@ -22,7 +22,11 @@ class ChatHistoryService {
     return this.pinnedSessionIds.has(id);
   }
   setSessionPinned(id: string, v: boolean) {
-    v ? this.pinnedSessionIds.add(id) : this.pinnedSessionIds.delete(id);
+    if (v) {
+      this.pinnedSessionIds.add(id);
+    } else {
+      this.pinnedSessionIds.delete(id);
+    }
   }
 
   async createSession(lang = 'en', userId?: string) {
@@ -106,9 +110,8 @@ class ChatHistoryService {
     sessionId: string,
     data: { title?: string; learningLanguage?: string; isPinned?: boolean },
   ) {
-    if (data.isPinned !== undefined)
-      this.setSessionPinned(sessionId, data.isPinned);
-    const { isPinned: _unused, ...prismaData } = data;
+    const { isPinned, ...prismaData } = data;
+    if (isPinned !== undefined) this.setSessionPinned(sessionId, isPinned);
     if (Object.keys(prismaData).length === 0) return this.getSession(sessionId);
     return this.prisma.session.update({
       where: { id: sessionId },

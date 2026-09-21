@@ -9,6 +9,7 @@ export interface TtsVoice {
   lang: string;
   gender?: 'male' | 'female' | 'neutral';
   description?: string;
+  previewUrl?: string;
 }
 
 export interface TtsModel {
@@ -28,9 +29,9 @@ export interface TtsProviderMeta {
   defaultModel?: string;
   defaultVoiceId: string;
   hasCustomKeys: boolean;
-  models?: TtsModel[];
 }
 
+// Provider metadata only (static config). Voices + models are live-only.
 export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
   {
     id: 'azure',
@@ -80,10 +81,6 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     defaultModel: 'tts-1',
     defaultVoiceId: 'alloy',
     hasCustomKeys: true,
-    models: [
-      { id: 'tts-1', name: 'TTS-1 (Standard, low latency)' },
-      { id: 'tts-1-hd', name: 'TTS-1 HD (High Definition)' },
-    ],
   },
   {
     id: 'minimax',
@@ -130,6 +127,7 @@ export class ElevenLabsVoiceService {
   private static readonly STORAGE_KEY_VOICE = 'tts_selected_voice_id';
   private static readonly STORAGE_KEY_MODEL = 'tts_selected_model_id';
   private static readonly STORAGE_KEY_STT_MODEL = 'stt_selected_model_id';
+  private static readonly IDLE_DEFER_MS = 1500;
 
   private readonly apiKeyService = inject(ApiKeyService);
 
@@ -138,10 +136,7 @@ export class ElevenLabsVoiceService {
     this.loadStorage(ElevenLabsVoiceService.STORAGE_KEY_PROVIDER, 'elevenlabs'),
   );
   readonly selectedVoiceId = signal<string>(
-    this.loadStorage(
-      ElevenLabsVoiceService.STORAGE_KEY_VOICE,
-      'JBFqnCBsd6RMkjVDRZzb',
-    ),
+    this.loadStorage(ElevenLabsVoiceService.STORAGE_KEY_VOICE, ''),
   );
   readonly selectedModelId = signal<string>(
     this.loadStorage(ElevenLabsVoiceService.STORAGE_KEY_MODEL, ''),
@@ -153,56 +148,10 @@ export class ElevenLabsVoiceService {
     ),
   );
 
-  readonly voices = signal<TtsVoice[]>([
-    {
-      id: 'JBFqnCBsd6RMkjVDRZzb',
-      name: 'George (Warm & Engaging)',
-      lang: 'en-US',
-      description: 'Deep, warm male voice',
-    },
-    {
-      id: 'EXAVITQu4vr4xnSDxMaL',
-      name: 'Sarah (Soft & Natural)',
-      lang: 'en-US',
-      description: 'Calm, friendly female voice',
-    },
-    {
-      id: 'ErXwobaYiN019PkySvjV',
-      name: 'Antoni (Dynamic & Clear)',
-      lang: 'en-US',
-      description: 'Energetic male voice',
-    },
-    {
-      id: 'VR6AewLTigWG4xSOukaG',
-      name: 'Arnold (Crisp & Clear)',
-      lang: 'en-US',
-      description: 'Authoritative male voice',
-    },
-    {
-      id: 'pNInz6obpgDQGcFmaJgB',
-      name: 'Adam (Smooth & Natural)',
-      lang: 'en-US',
-      description: 'Conversational male voice',
-    },
-    {
-      id: 'onwK4e9ZLuTAKqWW03F9',
-      name: 'Daniel (Deep British)',
-      lang: 'en-GB',
-      description: 'Professional British male',
-    },
-    {
-      id: 'cgSgspJ2msm6clMCkdW9',
-      name: 'Jessica (Bright & Playful)',
-      lang: 'en-US',
-      description: 'Young friendly female',
-    },
-    {
-      id: 'iP95p4xoKVk53GoZ742B',
-      name: 'Chris (Casual & Friendly)',
-      lang: 'en-US',
-      description: 'Casual conversational voice',
-    },
-  ]);
+  // Live-only: starts empty, filled from /ai/voices. No hardcoded voices.
+  readonly voices = signal<TtsVoice[]>([]);
+  readonly ttsModels = signal<TtsModel[]>([]);
+  readonly liveError = signal<string | null>(null);
 
   readonly loading = signal<boolean>(false);
 
@@ -211,8 +160,31 @@ export class ElevenLabsVoiceService {
   );
 
   constructor() {
-    this.fetchProviders();
-    this.loadVoicesForProvider(this.selectedProviderId());
+    this.scheduleIdleLoad();
+  }
+
+  /** Chunked init (task 88): voices/models/providers are only needed when the
+   * settings dialog or TTS runs — load on browser idle so first paint is free. */
+  private scheduleIdleLoad(): void {
+    if (typeof window === 'undefined') return;
+    const run = (): void => {
+      void this.fetchProviders();
+      void this.loadVoicesForProvider(this.selectedProviderId());
+      void this.loadTtsModelsForProvider(this.selectedProviderId());
+    };
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout: number },
+        ) => void;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === 'function') {
+      ric.call(window, run, { timeout: 2500 });
+    } else {
+      setTimeout(run, ElevenLabsVoiceService.IDLE_DEFER_MS);
+    }
   }
 
   setProviderId(providerId: string): void {
@@ -220,11 +192,9 @@ export class ElevenLabsVoiceService {
     this.saveStorage(ElevenLabsVoiceService.STORAGE_KEY_PROVIDER, providerId);
     const meta = this.providers().find((p) => p.id === providerId);
     if (meta) {
-      this.selectedVoiceId.set(meta.defaultVoiceId);
-      this.saveStorage(
-        ElevenLabsVoiceService.STORAGE_KEY_VOICE,
-        meta.defaultVoiceId,
-      );
+      // Reset selection; live voices/models will repopulate.
+      this.selectedVoiceId.set('');
+      this.saveStorage(ElevenLabsVoiceService.STORAGE_KEY_VOICE, '');
       if (meta.defaultModel) {
         this.selectedModelId.set(meta.defaultModel);
         this.saveStorage(
@@ -234,6 +204,7 @@ export class ElevenLabsVoiceService {
       }
     }
     void this.loadVoicesForProvider(providerId);
+    void this.loadTtsModelsForProvider(providerId);
   }
 
   setVoiceId(id: string): void {
@@ -261,7 +232,7 @@ export class ElevenLabsVoiceService {
         }
       }
     } catch {
-      // keep fallback KNOWN_TTS_PROVIDERS
+      // keep static provider metadata (config, not mock voices)
     }
   }
 
@@ -273,13 +244,15 @@ export class ElevenLabsVoiceService {
           id: 'default',
           name: 'Browser Default Voice',
           lang: 'en-US',
-          description: 'System text-to-speech engine',
+          description: 'System text-to-speech engine (Web Speech API)',
         },
       ]);
+      this.liveError.set(null);
       return;
     }
 
     this.loading.set(true);
+    this.liveError.set(null);
     try {
       const headers = this.apiKeyService.getTtsHeaders(activeProvider);
       const res = await fetch(`${environment.apiBaseUrl}/ai/voices`, {
@@ -291,13 +264,55 @@ export class ElevenLabsVoiceService {
           this.voices.set(data);
           if (!data.some((v) => v.id === this.selectedVoiceId())) {
             this.selectedVoiceId.set(data[0].id);
+            this.saveStorage(
+              ElevenLabsVoiceService.STORAGE_KEY_VOICE,
+              data[0].id,
+            );
           }
+        } else {
+          this.voices.set([]);
+          this.liveError.set(
+            'No live voices. Add an API key for this provider.',
+          );
         }
+      } else {
+        this.voices.set([]);
+        this.liveError.set(
+          `Live voices unavailable (${res.status}). Add an API key.`,
+        );
       }
     } catch {
-      // ignore
+      this.voices.set([]);
+      this.liveError.set('Live voices fetch failed. Check network / API key.');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async loadTtsModelsForProvider(providerId?: string): Promise<void> {
+    const activeProvider = providerId || this.selectedProviderId();
+    if (activeProvider === 'browser') {
+      this.ttsModels.set([]);
+      return;
+    }
+    try {
+      const headers = this.apiKeyService.getTtsHeaders(activeProvider);
+      const res = await fetch(`${environment.apiBaseUrl}/ai/tts-models`, {
+        headers,
+      });
+      if (res.ok) {
+        const data = (await res.json()) as TtsModel[];
+        if (Array.isArray(data) && data.length > 0) {
+          this.ttsModels.set(data);
+          if (!data.some((m) => m.id === this.selectedModelId())) {
+            this.selectedModelId.set(data[0].id);
+          }
+          return;
+        }
+      }
+      this.ttsModels.set([]);
+    } catch {
+      this.ttsModels.set([]);
     }
   }
 
@@ -314,9 +329,6 @@ export class ElevenLabsVoiceService {
     const selectedVoice = voiceId || this.selectedVoiceId();
     const selectedModel = this.selectedModelId() || undefined;
 
-    // "default" means "let the server decide" — omit the provider field entirely
-    // so the backend uses its own configured default (elevenlabs) rather than
-    // failing with "TTS not available for provider 'default'".
     const isServerDefault = activeProvider === 'default';
 
     try {

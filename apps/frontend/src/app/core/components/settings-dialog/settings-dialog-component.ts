@@ -16,6 +16,8 @@ import {
   LucideBot,
   LucideMic,
   LucideLanguages,
+  LucideBrain,
+  LucideHash,
 } from '@lucide/angular';
 import { Language } from '@core/services/language.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -23,8 +25,11 @@ import { SettingsTabGeneralComponent } from './settings-tab-general.component';
 import { SettingsTabAiComponent } from './settings-tab-ai.component';
 import { SettingsTabVoicesComponent } from './settings-tab-voices.component';
 import { SettingsTabLanguageComponent } from './settings-tab-language.component';
+import { SettingsTabMemoryComponent } from './settings-tab-memory.component';
+import { SettingsTabTagsComponent } from './settings-tab-tags.component';
 
-export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
+export type SettingsTab =
+  'general' | 'ai_model' | 'voices' | 'language' | 'memory' | 'tags';
 
 @Component({
   selector: 'app-settings-dialog',
@@ -37,10 +42,14 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
     LucideBot,
     LucideMic,
     LucideLanguages,
+    LucideBrain,
+    LucideHash,
     SettingsTabGeneralComponent,
     SettingsTabAiComponent,
     SettingsTabVoicesComponent,
     SettingsTabLanguageComponent,
+    SettingsTabMemoryComponent,
+    SettingsTabTagsComponent,
   ],
   template: `
     <dialog #dialogEl class="modal">
@@ -121,6 +130,32 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
               <svg lucideLanguages class="h-4 w-4 shrink-0"></svg>
               <span class="truncate">{{ t('settings.language') }}</span>
             </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
+              [class.border-primary]="activeTab() === 'memory'"
+              [class.text-primary]="activeTab() === 'memory'"
+              [class.font-medium]="activeTab() === 'memory'"
+              [class.bg-primary/5]="activeTab() === 'memory'"
+              [class.text-base-content]="activeTab() !== 'memory'"
+              (click)="activeTab.set('memory')"
+            >
+              <svg lucideBrain class="h-4 w-4 shrink-0"></svg>
+              <span class="truncate">Memory</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm normal-case transition-colors"
+              [class.border-primary]="activeTab() === 'tags'"
+              [class.text-primary]="activeTab() === 'tags'"
+              [class.font-medium]="activeTab() === 'tags'"
+              [class.bg-primary/5]="activeTab() === 'tags'"
+              [class.text-base-content]="activeTab() !== 'tags'"
+              (click)="activeTab.set('tags')"
+            >
+              <svg lucideHash class="h-4 w-4 shrink-0"></svg>
+              <span class="truncate">Tags</span>
+            </button>
           </nav>
         </div>
 
@@ -139,6 +174,10 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
                 {{ t('settings.voices') }}
               } @else if (activeTab() === 'language') {
                 {{ t('settings.language') }}
+              } @else if (activeTab() === 'memory') {
+                Memory
+              } @else if (activeTab() === 'tags') {
+                Skill tags
               }
             </h2>
             <button
@@ -158,14 +197,16 @@ export type SettingsTab = 'general' | 'ai_model' | 'voices' | 'language';
             } @else if (activeTab() === 'ai_model') {
               <app-settings-tab-ai />
             } @else if (activeTab() === 'voices') {
-              <app-settings-tab-voices
-                (voiceChange)="voiceChange.emit($event)"
-              />
+              <app-settings-tab-voices />
             } @else if (activeTab() === 'language') {
               <app-settings-tab-language
                 [languages]="languages()"
                 (languageChange)="languageChange.emit($event)"
               />
+            } @else if (activeTab() === 'memory') {
+              <app-settings-tab-memory />
+            } @else if (activeTab() === 'tags') {
+              <app-settings-tab-tags />
             }
           </div>
         </div>
@@ -190,7 +231,6 @@ export class SettingsDialogComponent {
 
   readonly closed = output<void>();
   readonly languageChange = output<string>();
-  readonly voiceChange = output<string>();
 
   readonly activeTab = signal<SettingsTab>('general');
 

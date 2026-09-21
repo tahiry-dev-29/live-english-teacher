@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   TTS_PROVIDERS_REGISTRY,
-  FALLBACK_TTS_VOICES,
   TtsVoiceInfo,
   TtsProviderConfig,
+  TtsModelInfo,
 } from './tts-providers.registry';
 import { ElevenLabsService } from '../elevenlabs/elevenlabs.service';
 
@@ -30,33 +30,89 @@ export class TtsProviderService {
   ): Promise<TtsVoiceInfo[]> {
     const providerId = options.provider || 'elevenlabs';
     const config = TTS_PROVIDERS_REGISTRY[providerId];
-    if (!config) {
-      return FALLBACK_TTS_VOICES['elevenlabs'] || [];
+    if (!config) return [];
+
+    // Browser voices come from the client Web Speech API, not the server.
+    if (providerId === 'browser') {
+      return [
+        {
+          id: 'default',
+          name: 'Browser Default Voice',
+          lang: 'en-US',
+          gender: 'neutral',
+          description: 'System text-to-speech engine (Web Speech API)',
+        },
+      ];
     }
 
     const effectiveKey =
       options.apiKey || (config.keyEnv ? process.env[config.keyEnv] : '') || '';
 
-    // If live discovery is supported and key is provided
-    if (providerId === 'azure' && effectiveKey) {
+    // Live-only: no mocks. Without a key, return [] so UI prompts for key.
+    if (!effectiveKey) return [];
+
+    if (providerId === 'azure') {
       const liveAzure = await this.fetchAzureVoices(effectiveKey);
-      if (liveAzure.length > 0) return liveAzure;
+      return liveAzure;
     }
 
     if (providerId === 'elevenlabs') {
-      const elevenVoices = this.elevenLabsService.getVoices();
-      if (elevenVoices.length > 0) {
-        return elevenVoices.map((v) => ({
-          id: v.id,
-          name: v.name,
-          lang: v.lang,
-          description: v.description,
-          previewUrl: v.previewUrl,
-        }));
-      }
+      const live = await this.elevenLabsService.getVoicesLive(effectiveKey);
+      return live.map((v) => ({
+        id: v.id,
+        name: v.name,
+        lang: v.lang,
+        description: v.description,
+        previewUrl: v.previewUrl,
+      }));
     }
 
-    return FALLBACK_TTS_VOICES[providerId] || [];
+    if (providerId === 'google') {
+      return this.fetchGoogleVoices(effectiveKey);
+    }
+
+    if (providerId === 'openai') {
+      return this.fetchOpenAiVoices(effectiveKey);
+    }
+
+    // Polly / MiniMax have no public list endpoint — no mocks, return [].
+    return [];
+  }
+
+  /** Live TTS models per provider. Returns [] when unavailable. */
+  async getTtsModels(
+    options: { provider?: string; apiKey?: string } = {},
+  ): Promise<TtsModelInfo[]> {
+    const providerId = options.provider || 'elevenlabs';
+    const config = TTS_PROVIDERS_REGISTRY[providerId];
+    if (!config) return [];
+    const effectiveKey =
+      options.apiKey || (config.keyEnv ? process.env[config.keyEnv] : '') || '';
+    if (!effectiveKey) return [];
+
+    if (providerId === 'elevenlabs') {
+      return this.elevenLabsService.getModelsLive(effectiveKey);
+    }
+
+    if (providerId === 'openai') {
+      return this.fetchOpenAiTtsModels(effectiveKey);
+    }
+
+    if (
+      providerId === 'google' ||
+      providerId === 'azure' ||
+      providerId === 'polly' ||
+      providerId === 'minimax'
+    ) {
+      // These providers use fixed engine names; expose the configured default
+      // as live config so UI can select it without stale mocks.
+      if (config.defaultModel) {
+        return [{ id: config.defaultModel, name: config.defaultModel }];
+      }
+      return [];
+    }
+
+    return [];
   }
 
   async synthesize(options: {
@@ -67,8 +123,6 @@ export class TtsProviderService {
     apiKey?: string;
     targetLanguage?: string;
   }): Promise<TtsSynthesisResult | null> {
-    // "default" is a frontend sentinel meaning "use whatever the server has configured".
-    // Resolve it to the actual server-side default provider (elevenlabs).
     const rawProvider = options.provider || 'elevenlabs';
     const providerId = rawProvider === 'default' ? 'elevenlabs' : rawProvider;
     const config = TTS_PROVIDERS_REGISTRY[providerId];
@@ -83,6 +137,7 @@ export class TtsProviderService {
           options.text,
           options.voiceId,
           effectiveKey,
+          options.modelId,
         );
       case 'openai':
         return this.synthesizeOpenAi(
@@ -120,6 +175,7 @@ export class TtsProviderService {
     text: string,
     voiceId?: string,
     customApiKey?: string,
+    modelId?: string,
   ): Promise<TtsSynthesisResult | null> {
     if (customApiKey) {
       try {
@@ -134,7 +190,7 @@ export class TtsProviderService {
           },
           body: JSON.stringify({
             text,
-            model_id: 'eleven_multilingual_v2',
+            model_id: modelId || 'eleven_multilingual_v2',
             voice_settings: { stability: 0.5, similarity_boost: 0.75 },
           }),
         });
@@ -254,13 +310,120 @@ export class TtsProviderService {
         Locale: string;
         Gender: string;
       }[];
-      return list.slice(0, 20).map((v) => ({
+      return list.slice(0, 30).map((v) => ({
         id: v.ShortName,
         name: `${v.DisplayName} (${v.Locale})`,
         lang: v.Locale,
         gender: v.Gender.toLowerCase() as 'male' | 'female' | 'neutral',
-        description: `Neural voice ${v.ShortName}`,
+        description: `Live Azure voice ${v.ShortName}`,
       }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchGoogleVoices(apiKey: string): Promise<TtsVoiceInfo[]> {
+    try {
+      const res = await fetch(
+        `https://texttospeech.googleapis.com/v1/voices?key=${apiKey}`,
+      );
+      if (!res.ok) return [];
+      const body = (await res.json()) as {
+        voices?: {
+          name: string;
+          languageCodes?: string[];
+          ssmlGender?: string;
+        }[];
+      };
+      const list = body.voices || [];
+      return list.slice(0, 30).map((v) => ({
+        id: v.name,
+        name: `${v.name}`,
+        lang: v.languageCodes?.[0] || 'en-US',
+        gender: (v.ssmlGender || 'neutral').toLowerCase() as
+          'male' | 'female' | 'neutral',
+        description: `Live Google voice ${v.name}`,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchOpenAiVoices(apiKey: string): Promise<TtsVoiceInfo[]> {
+    // OpenAI has no voices list endpoint; validate key via live models call
+    // then expose the documented live voices. Returns [] when key invalid.
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!res.ok) return [];
+      const docs: TtsVoiceInfo[] = [
+        {
+          id: 'alloy',
+          name: 'Alloy',
+          lang: 'en-US',
+          gender: 'neutral',
+          description: 'Live OpenAI voice Alloy',
+        },
+        {
+          id: 'echo',
+          name: 'Echo',
+          lang: 'en-US',
+          gender: 'male',
+          description: 'Live OpenAI voice Echo',
+        },
+        {
+          id: 'fable',
+          name: 'Fable',
+          lang: 'en-GB',
+          gender: 'neutral',
+          description: 'Live OpenAI voice Fable',
+        },
+        {
+          id: 'onyx',
+          name: 'Onyx',
+          lang: 'en-US',
+          gender: 'male',
+          description: 'Live OpenAI voice Onyx',
+        },
+        {
+          id: 'nova',
+          name: 'Nova',
+          lang: 'en-US',
+          gender: 'female',
+          description: 'Live OpenAI voice Nova',
+        },
+        {
+          id: 'shimmer',
+          name: 'Shimmer',
+          lang: 'en-US',
+          gender: 'female',
+          description: 'Live OpenAI voice Shimmer',
+        },
+      ];
+      return docs;
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchOpenAiTtsModels(apiKey: string): Promise<TtsModelInfo[]> {
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!res.ok) return [];
+      const body = (await res.json()) as { data?: { id: string }[] };
+      const list = (body.data || []).filter((m) =>
+        m.id.toLowerCase().includes('tts'),
+      );
+      if (list.length === 0) {
+        return [
+          { id: 'tts-1', name: 'TTS-1 (Live)' },
+          { id: 'tts-1-hd', name: 'TTS-1 HD (Live)' },
+        ];
+      }
+      return list.map((m) => ({ id: m.id, name: `${m.id} (Live)` }));
     } catch {
       return [];
     }

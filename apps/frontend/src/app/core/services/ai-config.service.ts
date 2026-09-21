@@ -15,7 +15,6 @@ export interface AiModel {
   id: string;
   name: string;
   provider: string;
-
   description: string;
   size?: string;
   contextWindow?: number;
@@ -30,6 +29,7 @@ export interface ProviderInfo {
   consoleUrl: string;
 }
 
+// Provider metadata (static config: label, console URL). Models are live-only.
 export const KNOWN_PROVIDERS: ProviderInfo[] = [
   {
     id: 'groq',
@@ -89,96 +89,28 @@ export class AiConfigService {
   private readonly cookies = inject(CookieService);
   private readonly apiKeyService = inject(ApiKeyService);
 
-  private readonly defaultModels: AiModel[] = [
-    {
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B Versatile',
-      provider: 'groq',
-      description: 'High intelligence & complex reasoning',
-      size: '70B',
-      isDefault: true,
-    },
-    {
-      id: 'llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B Instant',
-      provider: 'groq',
-      description: 'Ultra-fast low-latency responses',
-      size: '8B',
-    },
-    {
-      id: 'gemini-2.5-flash',
-      name: 'Gemini 2.5 Flash',
-      provider: 'gemini',
-      description: "Google's high speed & multimodal model",
-      size: 'Flash',
-      isDefault: true,
-    },
-    {
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
-      provider: 'gemini',
-      description: 'Next-gen multimodal reasoning',
-      size: 'Flash',
-    },
-    {
-      id: 'gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      provider: 'openai',
-      description: 'Fast, affordable small model for focused tasks',
-      size: 'Small',
-      isDefault: true,
-    },
-    {
-      id: 'claude-3-5-sonnet-20241022',
-      name: 'Claude 3.5 Sonnet',
-      provider: 'anthropic',
-      description: 'High intelligence and deep reasoning capabilities',
-      size: 'Sonnet',
-      isDefault: true,
-    },
-    {
-      id: 'mistral-small-latest',
-      name: 'Mistral Small',
-      provider: 'mistral',
-      description: 'Cost-efficient and high-performance multilingual model',
-      size: 'Small',
-      isDefault: true,
-    },
-    {
-      id: 'deepseek-chat',
-      name: 'DeepSeek Chat (V3)',
-      provider: 'deepseek',
-      description: 'Powerful multilingual conversational model',
-      size: 'V3',
-      isDefault: true,
-    },
-    {
-      id: 'qwen-plus',
-      name: 'Qwen Plus',
-      provider: 'qwen',
-      description: 'Balanced performance, speed and multilingual accuracy',
-      size: 'Plus',
-      isDefault: true,
-    },
-  ];
-
-  readonly models = signal<AiModel[]>(this.defaultModels);
+  // Live-only: no hardcoded models. Starts empty, filled from /ai/models.
+  readonly models = signal<AiModel[]>([]);
   readonly loading = signal<boolean>(false);
+  readonly fetchFailed = signal<boolean>(false);
+  readonly lastFetchedProvider = signal<string | null>(null);
+  readonly liveError = signal<string | null>(null);
 
   readonly provider = signal<string>(
     this.loadCookie(AiConfigService.COOKIE_PROVIDER, 'groq'),
   );
 
   readonly selectedModelId = signal<string>(
-    this.loadCookie(AiConfigService.COOKIE_MODEL, 'llama-3.3-70b-versatile'),
+    this.loadCookie(AiConfigService.COOKIE_MODEL, ''),
   );
 
-  readonly selectedModel = signal<AiModel>(
+  readonly selectedModel = signal<AiModel | null>(
     this.resolveModel(this.provider(), this.selectedModelId()),
   );
 
   constructor() {
-    this.fetchModels();
+    this.scheduleIdleFetch();
+    this.resubscribeOnReconnect();
 
     effect(() => {
       const p = this.provider();
@@ -189,11 +121,61 @@ export class AiConfigService {
     });
   }
 
-  async fetchModels(providerId?: string): Promise<void> {
+  /** Chunked init (task 88): model list is only needed when the settings
+   * dialog opens — fetch on browser idle so first paint stays API-free. */
+  private scheduleIdleFetch(): void {
+    if (typeof window === 'undefined') return;
+    const run = (): void => {
+      void this.fetchModels();
+    };
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout: number },
+        ) => void;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === 'function') {
+      ric.call(window, run, { timeout: 2000 });
+    } else {
+      setTimeout(run, 1500);
+    }
+  }
+
+  /** Offline (task 81): single refetch when the browser comes back online. */
+  private resubscribeOnReconnect(): void {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('online', () => {
+      this.fetchFailed.set(false);
+      this.liveError.set(null);
+      void this.fetchModels(this.provider(), true);
+    });
+  }
+
+  async fetchModels(providerId?: string, force = false): Promise<void> {
+    if (this.loading()) return;
+
+    const activeProvider = providerId || this.provider();
+
+    if (!force && this.fetchFailed()) return;
+    if (!force && this.lastFetchedProvider() === activeProvider) return;
+
+    // Offline (task 81): never hammer the API while the browser is offline.
+    // Transient state — do NOT set fetchFailed so the `online` event can retry.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      this.liveError.set('You are offline. Models will load when back online.');
+      return;
+    }
+
     this.loading.set(true);
+    if (force) {
+      this.fetchFailed.set(false);
+      this.liveError.set(null);
+    }
+
     try {
       const headers: Record<string, string> = {};
-      const activeProvider = providerId || this.provider();
       headers['x-provider'] = activeProvider;
 
       const keys = this.apiKeyService.customKeys();
@@ -209,11 +191,36 @@ export class AiConfigService {
       if (response.ok) {
         const fetched = (await response.json()) as AiModel[];
         if (Array.isArray(fetched) && fetched.length > 0) {
-          this.models.set(fetched);
+          // Merge live results, keep other providers' live models.
+          const others = this.models().filter(
+            (m) => m.provider !== activeProvider,
+          );
+          const tagged = fetched.map((m) => ({
+            ...m,
+            provider: m.provider || activeProvider,
+          }));
+          this.models.set([...others, ...tagged]);
+          this.lastFetchedProvider.set(activeProvider);
           this.ensureValidSelection();
+        } else {
+          // Live API returned empty: no mocks, surface empty + hint.
+          this.models.set(
+            this.models().filter((m) => m.provider !== activeProvider),
+          );
+          this.fetchFailed.set(true);
+          this.liveError.set(
+            'No live models for this provider. Add an API key or check server keys.',
+          );
         }
+      } else {
+        this.fetchFailed.set(true);
+        this.liveError.set(
+          `Live models unavailable (${response.status}). Add an API key.`,
+        );
       }
     } catch (error) {
+      this.fetchFailed.set(true);
+      this.liveError.set('Live models fetch failed. Check network / API key.');
       console.warn(MESSAGES.log.modelsFetchFailed, error);
     } finally {
       this.loading.set(false);
@@ -239,22 +246,19 @@ export class AiConfigService {
     }
   }
 
-  private resolveModel(provider: string, modelId: string): AiModel {
+  private resolveModel(provider: string, modelId: string): AiModel | null {
+    if (!modelId) return null;
     const list = this.models();
     const match = list.find((m) => m.id === modelId && m.provider === provider);
     if (match) return match;
     const providerModels = list.filter((m) => m.provider === provider);
-    return providerModels[0] || this.defaultModels[0];
+    return providerModels[0] || null;
   }
 
   private loadCookie(key: string, fallback: string): string {
-    // 1. Cookie = source of truth.
     const fromCookie = readPrefCookie(this.cookies, key);
     if (fromCookie) return fromCookie;
 
-    // 2. One-shot migration from legacy localStorage, then cleanup.
-    // JSON.parse compat: legacy values could be stored
-    // raw ("groq") or via JSON.stringify ('"groq"').
     const migrated = migrateLocalStorageToCookie(key);
     if (migrated) {
       writePrefCookie(this.cookies, key, migrated);

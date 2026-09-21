@@ -4,17 +4,34 @@ import { MessageService } from './message.service';
 import { Apollo } from 'apollo-angular';
 import { ChatStreamService } from './chat-stream.service';
 import { ChatAudioService } from './chat-audio.service';
+import { PromptTagService } from './prompt-tag.service';
+import { MemoryService } from './memory.service';
+import { UserProfileService } from './user-profile.service';
 import { of } from 'rxjs';
+
+interface MockApollo {
+  query: ReturnType<typeof vi.fn>;
+  mutate: ReturnType<typeof vi.fn>;
+}
+
+interface MockChatStream {
+  streamChat: ReturnType<typeof vi.fn>;
+}
+
+interface MockChatAudio {
+  sendAudio: ReturnType<typeof vi.fn>;
+}
 
 describe('MessageService', () => {
   let service: MessageService;
-  let apolloMock: any;
-  let chatStreamMock: any;
-  let chatAudioMock: any;
+  let apolloMock: MockApollo;
+  let chatStreamMock: MockChatStream;
+  let chatAudioMock: MockChatAudio;
 
   beforeEach(() => {
     apolloMock = {
       query: vi.fn().mockReturnValue(of({ data: { sessionMessages: [] } })),
+      mutate: vi.fn(),
     };
 
     chatStreamMock = {
@@ -25,7 +42,7 @@ describe('MessageService', () => {
     };
 
     chatAudioMock = {
-      sendAudioMessage: vi.fn(),
+      sendAudio: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -34,6 +51,27 @@ describe('MessageService', () => {
         { provide: Apollo, useValue: apolloMock },
         { provide: ChatStreamService, useValue: chatStreamMock },
         { provide: ChatAudioService, useValue: chatAudioMock },
+        {
+          provide: PromptTagService,
+          useValue: {
+            ensureLoaded: vi.fn().mockResolvedValue(undefined),
+            buildSystemPrompt: vi.fn().mockReturnValue(''),
+          },
+        },
+        {
+          provide: MemoryService,
+          useValue: {
+            ensureLoaded: vi.fn().mockResolvedValue(undefined),
+            buildMemoryContext: vi.fn().mockReturnValue(''),
+          },
+        },
+        {
+          provide: UserProfileService,
+          useValue: {
+            ensureLoaded: vi.fn().mockResolvedValue(undefined),
+            buildProfileContext: vi.fn().mockReturnValue(''),
+          },
+        },
       ],
     });
 
@@ -66,6 +104,9 @@ describe('MessageService', () => {
     });
 
     const res = await service.sendTextMessage('Hello', null, 'en');
+    // The formatted API error is surfaced to the caller and pushed as an
+    // error bubble in the thread (kind: 'error').
+    expect(res.text).toBe('Rate limit exceeded');
     expect(
       service.messages().some((m) => m.role === 'ai' && m.kind === 'error'),
     ).toBe(true);

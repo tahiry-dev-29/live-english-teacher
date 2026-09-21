@@ -31,6 +31,18 @@ import { VoiceCallService } from '@core/services/voice-call.service';
 import { LanguageService } from '@core/services/language.service';
 import { ChatContainerComponent } from './components/chat-container/chat-container.component';
 
+function generateChatTitle(text: string): string {
+  if (!text) return 'New Chat';
+  let title = text.replace(/[\r\n]+/g, ' ').trim();
+  if (title.length > 50) {
+    title = title.substring(0, 47) + '...';
+  }
+  if (title.length > 0) {
+    title = title.charAt(0).toUpperCase() + title.slice(1);
+  }
+  return title || 'New Chat';
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-chat-page',
@@ -126,6 +138,12 @@ export class ChatPageComponent implements OnInit {
           this.userInput.set('');
         }
       });
+
+    // Defer the first session-list fetch so the UI renders first.
+    // setTimeout(..., 0) yields to the browser's paint cycle before hitting the API.
+    setTimeout(() => {
+      this.chatService.loadSessions();
+    }, 0);
   }
 
   /** Existing session or null for "new chat" (id managed by the backend). */
@@ -185,7 +203,6 @@ export class ChatPageComponent implements OnInit {
     // No id generated here: the backend creates the session on the first message.
     this.chatService.createNewSession();
     this.router.navigate(['/']);
-    this.userInput.set('');
   }
 
   /** Opens Settings dialog and immediately switches to the AI Model / keys tab. */
@@ -237,6 +254,7 @@ export class ChatPageComponent implements OnInit {
     if (!text) return;
 
     this.userInput.set('');
+    const wasNewChat = this.sessionId === null;
 
     const result = await this.messageService.sendTextMessage(
       text,
@@ -246,7 +264,16 @@ export class ChatPageComponent implements OnInit {
 
     if (result?.sessionId) {
       this.chatService.activeSessionId.set(result.sessionId);
-      this.chatService.sessionsResource.reload();
+
+      // Auto-title (task 82): fire-and-forget — renameSession() already
+      // reloads the history once internally, navigation never waits for it.
+      if (wasNewChat) {
+        void this.chatService.renameSession(
+          result.sessionId,
+          generateChatTitle(text),
+        );
+      }
+
       this.router.navigate(['/chat', result.sessionId]);
 
       if (this.isLiveMode()) {
@@ -262,6 +289,7 @@ export class ChatPageComponent implements OnInit {
   }
 
   async handleAudioRecorded(event: { base64: string }): Promise<void> {
+    const wasNewChat = this.sessionId === null;
     const result = await this.messageService.sendAudioMessage(
       event.base64,
       'audio/webm',
@@ -271,7 +299,14 @@ export class ChatPageComponent implements OnInit {
 
     if (result?.sessionId) {
       this.chatService.activeSessionId.set(result.sessionId);
-      this.chatService.sessionsResource.reload();
+
+      if (wasNewChat) {
+        void this.chatService.renameSession(
+          result.sessionId,
+          generateChatTitle('Voice Message'),
+        );
+      }
+
       this.router.navigate(['/chat', result.sessionId]);
 
       if (this.isLiveMode()) {
@@ -301,6 +336,11 @@ export class ChatPageComponent implements OnInit {
 
   handleResumeAudio(): void {
     this.ttsService.resume();
+  }
+
+  /** Play-button retry after a TTS API failure (task 84). */
+  handleRetryAudio(): void {
+    void this.ttsService.retryLast();
   }
 
   handleSeekAudio(seconds: number): void {

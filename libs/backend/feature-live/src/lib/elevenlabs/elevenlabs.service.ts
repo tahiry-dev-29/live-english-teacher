@@ -9,72 +9,88 @@ export interface VoiceInfo {
   description?: string;
 }
 
-export const ELEVENLABS_VOICES: VoiceInfo[] = [
-  {
-    id: 'JBFqnCBsd6RMkjVDRZzb',
-    name: 'George (Warm & Engaging)',
-    lang: 'en-US',
-    description: 'Deep, warm male voice',
-  },
-  {
-    id: 'EXAVITQu4vr4xnSDxMaL',
-    name: 'Sarah (Soft & Natural)',
-    lang: 'en-US',
-    description: 'Calm, friendly female voice',
-  },
-  {
-    id: 'ErXwobaYiN019PkySvjV',
-    name: 'Antoni (Dynamic & Clear)',
-    lang: 'en-US',
-    description: 'Energetic male voice',
-  },
-  {
-    id: 'VR6AewLTigWG4xSOukaG',
-    name: 'Arnold (Crisp & Crisp)',
-    lang: 'en-US',
-    description: 'Authoritative male voice',
-  },
-  {
-    id: 'pNInz6obpgDQGcFmaJgB',
-    name: 'Adam (Smooth & Conversational)',
-    lang: 'en-US',
-    description: 'Natural conversational male voice',
-  },
-  {
-    id: 'onwK4e9ZLuTAKqWW03F9',
-    name: 'Daniel (Deep & Professional)',
-    lang: 'en-GB',
-    description: 'British accent male voice',
-  },
-  {
-    id: 'cgSgspJ2msm6clMCkdW9',
-    name: 'Jessica (Bright & Clear)',
-    lang: 'en-US',
-    description: 'Young playful female voice',
-  },
-  {
-    id: 'iP95p4xoKVk53GoZ742B',
-    name: 'Chris (Casual & Friendly)',
-    lang: 'en-US',
-    description: 'Casual conversational voice',
-  },
-];
+interface ElevenLabsVoiceRaw {
+  voice_id: string;
+  name: string;
+  labels?: { language?: string; gender?: string; description?: string };
+  preview_url?: string;
+  description?: string;
+}
 
 @Injectable()
 export class ElevenLabsService {
   private readonly logger = new Logger(ElevenLabsService.name);
-  private readonly apiKey = process.env['ELEVENLABS_API_KEY'] || '';
-  private readonly defaultVoiceId = 'JBFqnCBsd6RMkjVDRZzb'; // George (Free default supported)
+  private readonly defaultVoiceId = 'JBFqnCBsd6RMkjVDRZzb';
 
+  private serverKey(): string {
+    return process.env['ELEVENLABS_API_KEY'] || '';
+  }
+
+  /** Live voices from ElevenLabs API. Returns [] when no key or fetch fails. */
+  async getVoicesLive(customApiKey?: string): Promise<VoiceInfo[]> {
+    const key = customApiKey || this.serverKey();
+    if (!key) return [];
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': key },
+      });
+      if (!res.ok) return [];
+      const body = (await res.json()) as { voices?: ElevenLabsVoiceRaw[] };
+      const list = body.voices || [];
+      return list.slice(0, 30).map((v) => ({
+        id: v.voice_id,
+        name: v.name,
+        lang: v.labels?.language || 'en-US',
+        previewUrl: v.preview_url,
+        description:
+          v.description || v.labels?.description || 'Live ElevenLabs voice',
+      }));
+    } catch (e) {
+      this.logger.warn(`Live ElevenLabs voices fetch failed: ${e}`);
+      return [];
+    }
+  }
+
+  /** Sync compat: returns [] — callers must use getVoicesLive(). */
   getVoices(): VoiceInfo[] {
-    return ELEVENLABS_VOICES;
+    return [];
+  }
+
+  /** Live TTS models from ElevenLabs API. Returns [] when unavailable. */
+  async getModelsLive(
+    customApiKey?: string,
+  ): Promise<{ id: string; name: string; description?: string }[]> {
+    const key = customApiKey || this.serverKey();
+    if (!key) return [];
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/models', {
+        headers: { 'xi-api-key': key },
+      });
+      if (!res.ok) return [];
+      const body = (await res.json()) as {
+        id?: string;
+        name?: string;
+        description?: string;
+      }[];
+      const list = Array.isArray(body) ? body : [];
+      return list
+        .map((m) => ({
+          id: m.id || '',
+          name: m.name || m.id || 'ElevenLabs model',
+          description: m.description,
+        }))
+        .filter((m) => m.id);
+    } catch {
+      return [];
+    }
   }
 
   async generateTtsAudio(
     text: string,
     voiceId?: string,
   ): Promise<{ audioData: string; mimeType: string } | null> {
-    if (!this.apiKey) {
+    const apiKey = this.serverKey();
+    if (!apiKey) {
       this.logger.warn(BACKEND_MESSAGES.log.elevenLabsKeyMissing);
       return null;
     }
@@ -87,7 +103,7 @@ export class ElevenLabsService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'xi-api-key': this.apiKey,
+          'xi-api-key': apiKey,
           Accept: 'audio/mpeg',
         },
         body: JSON.stringify({
@@ -105,7 +121,6 @@ export class ElevenLabsService {
         this.logger.error(
           `ElevenLabs API Error: ${response.status} - ${response.statusText}: ${errText}`,
         );
-        // Fallback to George if chosen voice fails
         if (selectedVoice !== this.defaultVoiceId) {
           return this.generateTtsAudio(text, this.defaultVoiceId);
         }

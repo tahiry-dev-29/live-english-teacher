@@ -98,6 +98,9 @@
 
 - Never change dependency versions without explicit validation → prefer `--frozen-lockfile`
 - Prisma client generated in default path (`node_modules/@prisma/client`), schema without custom `output`
+- `prisma.config.ts` at the repo root is **mandatory** (schema path, migrations path, `datasource.url` from `DATABASE_URL`) — Prisma 6.19 refuses to generate/run without it. After a fresh clone: `npx prisma generate` (the client is not committed); check DB with `npx prisma migrate status`.
 - Legacy `@prisma/cli@2.20.1` stays in devDeps (do not remove) but its build scripts are blocked (`allowBuilds: '@prisma/cli': false`)
 - Prisma generation files: do not commit `generated/` (deleted, default output)
+- ESLint root `eslint.config.mjs`: `@typescript-eslint/no-unused-vars` allows `^_` prefixed identifiers (`argsIgnorePattern`, `varsIgnorePattern`, `caughtErrorsIgnorePattern`, `destructuredArrayIgnorePattern`) + `ignoreRestSiblings` — intentional unused mock params must be named `_param`.
+- Startup perf: never fetch on service construction. Defer initial loaders to `requestIdleCallback` (setTimeout fallback) and keep resources lazy (`resource()` behind a `_shouldLoad*` guard) so first paint ships with zero API calls (see tasks 81/88).
 - Themes & colors: daisyUI semantic tokens only (`bg-base-100/200/300`, `text-base-content`, `primary`, etc.). Hardcoded colors (`bg-white`, `bg-black`, `bg-[...]`, `text-gray-*`, `bg-gray-*`, `from-blue`, `text-blue`) and `dark:` are strictly forbidden (incompatible with `data-theme`). Automated guard: `scripts/check-theme-tokens.mjs` in prebuild.

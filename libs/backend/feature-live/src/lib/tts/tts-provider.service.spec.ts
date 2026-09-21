@@ -7,10 +7,7 @@
  */
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  TTS_PROVIDERS_REGISTRY,
-  FALLBACK_TTS_VOICES,
-} from './tts-providers.registry.ts';
+import { TTS_PROVIDERS_REGISTRY } from './tts-providers.registry.ts';
 
 // ── Inline TtsProviderService (without NestJS decorators) ────────────────────
 
@@ -48,14 +45,22 @@ class TtsProviderService {
   ): Promise<TtsVoiceInfo[]> {
     const providerId = options.provider || 'elevenlabs';
     const config = TTS_PROVIDERS_REGISTRY[providerId];
-    if (!config) return FALLBACK_TTS_VOICES['elevenlabs'] || [];
+    if (!config) return [];
+    // Live-only: no mocks. Without key, return [].
+    if (!options.apiKey) {
+      if (providerId === 'elevenlabs') {
+        const voices = this.elevenLabsService.getVoices();
+        if (voices.length > 0) return voices;
+      }
+      return [];
+    }
 
     if (providerId === 'elevenlabs') {
       const voices = this.elevenLabsService.getVoices();
       if (voices.length > 0) return voices;
     }
 
-    return FALLBACK_TTS_VOICES[providerId] || [];
+    return [];
   }
 
   async synthesize(options: {
@@ -381,25 +386,21 @@ describe('TtsProviderService', () => {
       assert.ok(voices.some((v) => v.name === 'Rachel'));
     });
 
-    it('falls back to FALLBACK_TTS_VOICES when elevenlabs returns empty', async () => {
+    it('returns empty when elevenlabs has no live voices and no key', async () => {
       const emptyEleven = mockElevenLabsService([]);
       const svc = new TtsProviderService(emptyEleven);
       const voices = await svc.getVoices({ provider: 'elevenlabs' });
-      // Should fall through to FALLBACK_TTS_VOICES
-      const expected = FALLBACK_TTS_VOICES['elevenlabs'] || [];
-      assert.deepEqual(voices, expected);
+      assert.deepEqual(voices, []);
     });
 
-    it('returns fallback for azure (no live API call without key)', async () => {
+    it('returns empty for azure without key (live-only, no mocks)', async () => {
       const voices = await service.getVoices({ provider: 'azure' });
-      const expected = FALLBACK_TTS_VOICES['azure'] || [];
-      assert.deepEqual(voices, expected);
+      assert.deepEqual(voices, []);
     });
 
-    it('returns elevenlabs fallback for unknown provider', async () => {
+    it('returns empty for unknown provider', async () => {
       const voices = await service.getVoices({ provider: 'unknown-provider' });
-      const expected = FALLBACK_TTS_VOICES['elevenlabs'] || [];
-      assert.deepEqual(voices, expected);
+      assert.deepEqual(voices, []);
     });
 
     it('defaults to elevenlabs when no provider specified', async () => {

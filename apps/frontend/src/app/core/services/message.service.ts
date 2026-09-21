@@ -11,6 +11,9 @@ import {
   ChatAudioService,
 } from '@core/services/chat-audio.service';
 import { ChatStreamService } from '@core/services/chat-stream.service';
+import { PromptTagService } from '@core/services/prompt-tag.service';
+import { MemoryService } from '@core/services/memory.service';
+import { UserProfileService } from '@core/services/user-profile.service';
 import { formatApiError } from '@core/utils/api-error.util';
 import { ChatMessage, toChatRole } from '@models/chat-message.model';
 
@@ -21,6 +24,9 @@ export class MessageService {
   private readonly apollo = inject(Apollo);
   private readonly chatStream = inject(ChatStreamService);
   private readonly chatAudio = inject(ChatAudioService);
+  private readonly promptTags = inject(PromptTagService);
+  private readonly memories = inject(MemoryService);
+  private readonly profile = inject(UserProfileService);
 
   readonly currentSessionId = signal<string | null>(null);
   readonly messages = signal<ChatMessage[]>([]);
@@ -33,8 +39,8 @@ export class MessageService {
 
   /** Reactive loader for the messages of the active session. */
   readonly messagesResource = resource<ChatMessage[], string | null>({
-    request: () => this.currentSessionId(),
-    loader: async ({ request: sessionId }) => {
+    params: () => this.currentSessionId(),
+    loader: async ({ params: sessionId }) => {
       if (!sessionId) {
         this.messages.set([]);
         return [];
@@ -112,9 +118,18 @@ export class MessageService {
     this.loading.set(true);
     this.streamingText = '';
 
+    // Enterprise context (tasks 85/86/87): bubble keeps raw text, the
+    // backend receives profile + memories + #skill tags invisibly.
+    await Promise.all([
+      this.memories.ensureLoaded(),
+      this.profile.ensureLoaded(),
+      this.promptTags.ensureLoaded(),
+    ]);
+    const enriched = this.buildEnrichedMessage(content);
+
     try {
       const result = await this.chatStream.streamChat(
-        { message: content, sessionId, targetLanguage },
+        { message: enriched, sessionId, targetLanguage },
         (token) => this.pushStreamingToken(token),
       );
       this.loading.set(false);
@@ -140,6 +155,20 @@ export class MessageService {
       this.appendErrorMessage(text);
       return { text, sessionId };
     }
+  }
+
+  /** Profile + memories + tags, invisible in the bubble. */
+  private buildEnrichedMessage(content: string): string {
+    const blocks: string[] = [];
+    const profileCtx = this.profile.buildProfileContext();
+    if (profileCtx) blocks.push(profileCtx);
+    const memoryCtx = this.memories.buildMemoryContext();
+    if (memoryCtx)
+      blocks.push(`Things to remember about the user:\n${memoryCtx}`);
+    const tagCtx = this.promptTags.buildSystemPrompt(content);
+    if (tagCtx) blocks.push(`[chat-skills context:]\n${tagCtx}`);
+    if (blocks.length === 0) return content;
+    return `${content}\n\n[user context — apply for this chat only:]\n${blocks.join('\n\n')}`;
   }
 
   async sendAudioMessage(

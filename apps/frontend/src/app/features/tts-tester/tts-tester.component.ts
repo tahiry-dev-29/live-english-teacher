@@ -89,9 +89,9 @@ export class TtsTesterComponent {
 
   constructor() {
     this.loadVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.addEventListener('voiceschanged', () => {
       this.loadVoices();
-    };
+    });
   }
 
   private loadVoices(): void {

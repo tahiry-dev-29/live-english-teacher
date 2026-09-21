@@ -55,6 +55,7 @@ export const AI_PROVIDERS_REGISTRY: Record<string, AiProviderConfig> = {
     id: 'anthropic',
     label: 'Anthropic Claude',
     chatApi: 'anthropic',
+    modelsUrl: 'https://api.anthropic.com/v1/models',
     chatUrl: 'https://api.anthropic.com/v1/messages',
     keyHeader: 'x-anthropic-api-key',
     keyEnv: 'ANTHROPIC_API_KEY',
@@ -103,119 +104,7 @@ export const AI_PROVIDERS_REGISTRY: Record<string, AiProviderConfig> = {
   },
 };
 
-export const FALLBACK_MODELS_BY_PROVIDER: Record<
-  string,
-  {
-    id: string;
-    name: string;
-    description: string;
-    size?: string;
-    isDefault?: boolean;
-  }[]
-> = {
-  groq: [
-    {
-      id: 'llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B Versatile',
-      description: 'High intelligence & complex reasoning',
-      size: '70B',
-      isDefault: true,
-    },
-    {
-      id: 'llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B Instant',
-      description: 'Ultra-fast low-latency responses',
-      size: '8B',
-    },
-  ],
-  gemini: [
-    {
-      id: 'gemini-2.5-flash',
-      name: 'Gemini 2.5 Flash',
-      description: "Google's high speed & multimodal model",
-      size: 'Flash',
-      isDefault: true,
-    },
-    {
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
-      description: 'Next-gen multimodal reasoning',
-      size: 'Flash',
-    },
-  ],
-  openai: [
-    {
-      id: 'gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      description: 'Fast, affordable small model for focused tasks',
-      size: 'Small',
-      isDefault: true,
-    },
-    {
-      id: 'gpt-4o',
-      name: 'GPT-4o',
-      description: 'High-intelligence flagship model for complex tasks',
-      size: 'Large',
-    },
-  ],
-  anthropic: [
-    {
-      id: 'claude-3-5-sonnet-20241022',
-      name: 'Claude 3.5 Sonnet',
-      description: 'High intelligence and deep reasoning capabilities',
-      size: 'Sonnet',
-      isDefault: true,
-    },
-    {
-      id: 'claude-3-5-haiku-20241022',
-      name: 'Claude 3.5 Haiku',
-      description: 'Ultra-fast responses for rapid practice',
-      size: 'Haiku',
-    },
-  ],
-  mistral: [
-    {
-      id: 'mistral-small-latest',
-      name: 'Mistral Small',
-      description: 'Cost-efficient and high-performance multilingual model',
-      size: 'Small',
-      isDefault: true,
-    },
-    {
-      id: 'mistral-large-latest',
-      name: 'Mistral Large',
-      description: 'Top-tier reasoning and language understanding',
-      size: 'Large',
-    },
-  ],
-  deepseek: [
-    {
-      id: 'deepseek-chat',
-      name: 'DeepSeek Chat (V3)',
-      description: 'Powerful multilingual conversational model',
-      size: 'V3',
-      isDefault: true,
-    },
-    {
-      id: 'deepseek-reasoner',
-      name: 'DeepSeek Reasoner (R1)',
-      description: 'Advanced reasoning model with chain-of-thought',
-      size: 'R1',
-    },
-  ],
-  qwen: [
-    {
-      id: 'qwen-plus',
-      name: 'Qwen Plus',
-      description: 'Balanced performance, speed and multilingual accuracy',
-      size: 'Plus',
-      isDefault: true,
-    },
-    {
-      id: 'qwen-turbo',
-      name: 'Qwen Turbo',
-      description: 'Ultra-fast low-cost multilingual inference',
-      size: 'Turbo',
-    },
-  ],
-};
+// NOTE: No FALLBACK_MODELS here by design.
+// All chat models must come from live provider APIs (they change monthly).
+// When no API key is available, AiModelsService returns [] so the UI
+// shows "add key to discover live models" instead of stale mocks.

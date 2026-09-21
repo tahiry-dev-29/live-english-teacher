@@ -108,7 +108,7 @@ class AiProviderService {
     private readonly geminiLiveService: MockGeminiLiveService,
     private readonly groqLiveService: MockGroqLiveService,
     private readonly openAiCompatService: MockOpenAiCompatService,
-    private readonly envProvider: string = 'gemini',
+    private readonly envProvider = 'gemini',
   ) {}
 
   get provider(): string {

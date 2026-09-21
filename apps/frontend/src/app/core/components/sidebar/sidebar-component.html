@@ -1,6 +1,6 @@
 @if (isOpen() && isMobile) {
 <div
-  class="fixed inset-0 z-20 bg-base-content/40 backdrop-blur-sm transition-opacity"
+  class="fixed inset-0 z-20 backdrop-blur-sm transition-opacity"
   (click)="toggle()"
   (keyup.enter)="toggle()"
   tabindex="0"
@@ -102,7 +102,7 @@
   </div>
 
   <div
-    class="scrollbar-thin scrollbar-thumb-base-300 hover:scrollbar-thumb-base-content/30 flex-1 overflow-y-auto px-2"
+    class="scrollbar-thin scrollbar-thumb-base-300 hover:scrollbar-thumb-base-content/30 flex-1 overflow-y-auto px-3.5"
   >
     <app-sidebar-session-list
       [sessions]="displayedSessions()"
@@ -126,7 +126,7 @@
     </button>
     } @if (showingAll() && sessions().length > initialLimit) {
     <div
-      class="sticky bottom-0 bg-gradient-to-t from-base-200 via-base-200 to-transparent pt-2 pb-1"
+      class="sticky bottom-0 bg-linear-to-t from-base-200 via-base-200 to-transparent pt-2 pb-1"
     >
       <button
         type="button"

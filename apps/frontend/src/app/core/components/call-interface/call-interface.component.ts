@@ -11,7 +11,6 @@ import {
   LucideMic,
   LucideMicOff,
   LucidePhoneOff,
-  LucideEllipsis,
   LucideChevronDown,
 } from '@lucide/angular';
 
@@ -25,13 +24,7 @@ export interface LanguageOption {
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-call-interface',
   standalone: true,
-  imports: [
-    LucideMic,
-    LucideMicOff,
-    LucidePhoneOff,
-    LucideEllipsis,
-    LucideChevronDown,
-  ],
+  imports: [LucideMic, LucideMicOff, LucidePhoneOff, LucideChevronDown],
   template: `
     <div
       class="fixed inset-0 z-50 flex flex-col items-center justify-between overflow-hidden bg-base-100 font-sans text-base-content"
@@ -140,14 +133,6 @@ export interface LanguageOption {
 
         <button (click)="onEndCall()" class="btn btn-circle btn-error btn-lg">
           <svg lucidePhoneOff class="h-8 w-8"></svg>
-        </button>
-
-        <button
-          class="btn btn-circle cursor-not-allowed btn-ghost opacity-50"
-          disabled
-          title="Coming soon"
-        >
-          <svg lucideEllipsis class="h-6 w-6"></svg>
         </button>
       </div>
     </div>

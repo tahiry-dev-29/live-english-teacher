@@ -7,6 +7,10 @@ import {
   viewChild,
   ElementRef,
   ChangeDetectionStrategy,
+  afterNextRender,
+  AfterViewChecked,
+  Injector,
+  inject,
 } from '@angular/core';
 import { MarkdownModule } from 'ngx-markdown';
 import {
@@ -18,10 +22,12 @@ import {
   LucideGitFork,
   LucideThumbsUp,
   LucideThumbsDown,
-  LucideEllipsis,
   LucideInfo,
+  LucideChevronDown,
+  LucideChevronUp,
 } from '@lucide/angular';
 import { ChatMessage } from '@models/chat-message.model';
+import { AppDropdownMenuComponent } from '@core/components/ui/dropdown-menu/dropdown-menu.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,8 +43,10 @@ import { ChatMessage } from '@models/chat-message.model';
     LucideGitFork,
     LucideThumbsUp,
     LucideThumbsDown,
-    LucideEllipsis,
     LucideInfo,
+    LucideChevronDown,
+    LucideChevronUp,
+    AppDropdownMenuComponent,
   ],
   template: `
     <div
@@ -53,10 +61,27 @@ import { ChatMessage } from '@models/chat-message.model';
               class="ml-auto max-w-[80%] min-w-0 rounded-3xl bg-base-200 px-5 py-2.5 text-[15px] leading-relaxed [overflow-wrap:anywhere] break-words text-base-content"
             >
               <div
+                #userText
                 class="md-body max-w-none min-w-0 break-words text-base-content"
+                [class.line-clamp-5]="!showFullUserText()"
               >
                 <markdown [data]="message().text" />
               </div>
+              @if (isUserTextOverflowing()) {
+                <button
+                  type="button"
+                  (click)="showFullUserText.set(!showFullUserText())"
+                  class="btn mt-1 gap-1 rounded-lg btn-ghost text-base-content/60 btn-xs hover:text-base-content"
+                >
+                  @if (showFullUserText()) {
+                    <svg lucideChevronUp class="h-3 w-3"></svg>
+                    <span>Show less</span>
+                  } @else {
+                    <svg lucideChevronDown class="h-3 w-3"></svg>
+                    <span>Show more</span>
+                  }
+                </button>
+              }
             </div>
           </div>
         }
@@ -90,11 +115,14 @@ import { ChatMessage } from '@models/chat-message.model';
             </div>
           }
 
-          <!-- AI Action Bar (ThumbsUp, ThumbsDown, Retry, Copy, Ellipsis dropdown) -->
+          <!-- AI Action Bar (ThumbsUp, ThumbsDown, Retry, Copy, Ellipsis dropdown)
+               Hidden by default, revealed on hover/focus — 100% Tailwind
+               utilities built in actionBarClasses(). Opacity-only fade (no
+               translate) so the bar never shifts layout or creates a
+               scrollbar. Always visible on touch (pointer-coarse) and while
+               feedback/audio is active. -->
           @if (!isError()) {
-            <div
-              class="mt-2 flex min-w-0 flex-wrap items-center gap-0.5 text-base-content/60"
-            >
+            <div [class]="actionBarClasses()">
               <!-- Thumbs up -->
               <div class="tooltip tooltip-bottom" data-tip="Good response">
                 <button
@@ -152,107 +180,69 @@ import { ChatMessage } from '@models/chat-message.model';
                 </button>
               </div>
 
-              <!-- ⋯ Three dots menu – Popover API (top-layer, never clipped by overflow) -->
-              <div class="relative">
-                <div
-                  class="tooltip"
-                  [class.tooltip-top]="menuUp()"
-                  [class.tooltip-bottom]="!menuUp()"
-                  data-tip="More"
-                >
+              <!-- ⋯ Three dots menu — canonical reusable dropdown (task 89) -->
+              <app-dropdown-menu triggerLabel="More options">
+                <!-- Branch in new chat -->
+                <li>
                   <button
-                    #menuTrigger
                     type="button"
-                    [attr.popovertarget]="menuId"
-                    [style.anchor-name]="'--msg-menu-' + menuId"
-                    (click)="openMenu()"
-                    class="btn btn-circle btn-ghost text-base-content/60 transition-colors btn-xs hover:text-base-content"
-                    aria-label="More options"
-                    aria-haspopup="menu"
+                    (click)="fork.emit()"
+                    class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
                   >
-                    <svg lucideEllipsis class="h-3.5 w-3.5"></svg>
+                    <svg
+                      lucideGitFork
+                      class="h-4 w-4 text-base-content/70"
+                    ></svg>
+                    <span>Branch in new chat</span>
                   </button>
-                </div>
-                <ul
-                  [id]="menuId"
-                  popover
-                  role="menu"
-                  (click)="closeMenu()"
-                  (keydown.escape)="closeMenu()"
-                  [style.position-anchor]="'--msg-menu-' + menuId"
-                  class="menu dropdown w-52 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
-                  [class.dropdown-top]="menuUp()"
-                  [class.dropdown-bottom]="!menuUp()"
-                  [class.dropdown-end]="true"
-                >
-                  <!-- Branch in new chat -->
-                  <li>
-                    <button
-                      type="button"
-                      (click)="fork.emit()"
-                      class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
-                    >
+                </li>
+
+                <!-- Listen / Stop -->
+                <li>
+                  <button
+                    type="button"
+                    (click)="handlePlayStop()"
+                    class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
+                  >
+                    @if (isPlaying()) {
+                      <svg lucideSquare class="h-4 w-4 text-error"></svg>
+                      <span class="font-semibold text-error">Stop audio</span>
+                    } @else {
                       <svg
-                        lucideGitFork
+                        lucideVolume2
                         class="h-4 w-4 text-base-content/70"
                       ></svg>
-                      <span>Branch in new chat</span>
-                    </button>
-                  </li>
+                      <span>Listen</span>
+                    }
+                  </button>
+                </li>
 
-                  <!-- Listen / Stop -->
-                  <li>
-                    <button
-                      type="button"
-                      (click)="handlePlayStop()"
-                      class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
-                    >
-                      @if (isPlaying()) {
-                        <svg lucideSquare class="h-4 w-4 text-error"></svg>
-                        <span class="font-semibold text-error">Stop audio</span>
-                      } @else {
-                        <svg
-                          lucideVolume2
-                          class="h-4 w-4 text-base-content/70"
-                        ></svg>
-                        <span>Listen</span>
-                      }
-                    </button>
-                  </li>
+                <!-- Copy text in menu -->
+                <li>
+                  <button
+                    type="button"
+                    (click)="onCopyText()"
+                    class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
+                  >
+                    <svg lucideCopy class="h-4 w-4 text-base-content/70"></svg>
+                    <span>{{
+                      isCopied() ? 'Copied!' : 'Copy as Markdown'
+                    }}</span>
+                  </button>
+                </li>
 
-                  <!-- Copy text in menu -->
-                  <li>
-                    <button
-                      type="button"
-                      (click)="onCopyText()"
-                      class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
-                    >
-                      <svg
-                        lucideCopy
-                        class="h-4 w-4 text-base-content/70"
-                      ></svg>
-                      <span>{{
-                        isCopied() ? 'Copied!' : 'Copy as Markdown'
-                      }}</span>
-                    </button>
-                  </li>
-
-                  <!-- Details -->
-                  <li>
-                    <button
-                      type="button"
-                      (click)="toggleDetails()"
-                      class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
-                    >
-                      <svg
-                        lucideInfo
-                        class="h-4 w-4 text-base-content/70"
-                      ></svg>
-                      <span>See response details</span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
+                <!-- Details -->
+                <li>
+                  <button
+                    type="button"
+                    (click)="toggleDetails()"
+                    class="flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium text-base-content hover:bg-base-300"
+                  >
+                    <svg lucideInfo class="h-4 w-4 text-base-content/70"></svg>
+                    <span>See response details</span>
+                  </button>
+                </li>
+              </app-dropdown-menu>
 
               <!-- Audio playing status indicator -->
               @if (isPlaying()) {
@@ -318,10 +308,29 @@ import { ChatMessage } from '@models/chat-message.model';
     `,
   ],
 })
-export class MessageItemComponent {
-  /** Unique ID per instance – needed for the Popover API anchor pairing */
-  private static _counter = 0;
-  readonly menuId = `msg-menu-${++MessageItemComponent._counter}`;
+export class MessageItemComponent implements AfterViewChecked {
+  /**
+   * AI action bar classes — 100% Tailwind utilities.
+   * Hidden by default (opacity-0 + pointer-events-none), revealed when the
+   * pointer hovers the message (`group-hover:` — the root div is the
+   * `group`), when the bar receives keyboard focus (`focus-within:`), or
+   * while feedback/audio is active. Opacity-only fade: no translate, so
+   * nothing shifts and no horizontal scrollbar can appear.
+   * `pointer-coarse:` keeps the bar always visible on touch devices.
+   */
+  readonly actionBarClasses = computed(() => {
+    const isVisible = this.feedbackState() !== null || this.isPlaying();
+    return [
+      'mt-2 flex min-w-0 flex-wrap items-center gap-0.5 text-base-content/60',
+      'opacity-0 pointer-events-none transition-opacity duration-200',
+      'group-hover:opacity-100 group-hover:pointer-events-auto',
+      'focus-within:opacity-100 focus-within:pointer-events-auto',
+      'pointer-coarse:opacity-100 pointer-coarse:pointer-events-auto',
+      isVisible ? 'opacity-100 pointer-events-auto' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  });
 
   readonly message = input.required<ChatMessage>();
   readonly isPlaying = input<boolean>(false);
@@ -335,32 +344,41 @@ export class MessageItemComponent {
   readonly isCopied = signal<boolean>(false);
   readonly feedbackState = signal<'liked' | 'disliked' | null>(null);
   readonly showDetails = signal<boolean>(false);
-  readonly menuUp = signal<boolean>(true);
 
-  private readonly menuTrigger =
-    viewChild<ElementRef<HTMLButtonElement>>('menuTrigger');
+  /** Show more/less (task 83): user bubbles clamp to 5 lines when overflowing. */
+  readonly showFullUserText = signal<boolean>(false);
+  readonly isUserTextOverflowing = signal<boolean>(false);
+  private readonly userTextEl = viewChild<ElementRef<HTMLElement>>('userText');
+  private readonly injector = inject(Injector);
 
-  private get menuPopover(): HTMLElement | null {
-    return document.getElementById(this.menuId);
-  }
-
-  openMenu(): void {
-    const el = this.menuTrigger()?.nativeElement;
-    if (!el) {
-      this.menuUp.set(true);
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    this.menuUp.set(spaceBelow < 260);
-    // showPopover() is called by the browser via popovertarget — just position
-    requestAnimationFrame(() => {
-      this.menuPopover?.showPopover?.();
+  constructor() {
+    afterNextRender(() => this.measureUserTextOverflow(), {
+      injector: this.injector,
     });
   }
 
-  closeMenu(): void {
-    this.menuPopover?.hidePopover?.();
+  /** Re-measure when the text changes (markdown renders async). */
+  ngAfterViewChecked(): void {
+    this.measureUserTextOverflow();
+  }
+
+  private userTextMeasuredHeight = -1;
+
+  private measureUserTextOverflow(): void {
+    const el = this.userTextEl()?.nativeElement;
+    if (!el) return;
+    // Skip re-measure when height is unchanged (avoids signal write loops).
+    if (el.scrollHeight === this.userTextMeasuredHeight) return;
+    this.userTextMeasuredHeight = el.scrollHeight;
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight || '0');
+    const maxLines = 5;
+    const overflowing =
+      lineHeight > 0
+        ? el.scrollHeight > lineHeight * maxLines + 2
+        : el.scrollHeight > el.clientHeight + 2;
+    if (overflowing !== this.isUserTextOverflowing()) {
+      this.isUserTextOverflowing.set(overflowing);
+    }
   }
 
   handlePlayStop(): void {

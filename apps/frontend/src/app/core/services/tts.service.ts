@@ -20,10 +20,23 @@ export class TtsService {
   readonly isPlaying = signal<boolean>(false);
   readonly currentAudioTime = signal<number>(0);
   readonly totalAudioDuration = signal<number>(0);
+  /** True while the TTS HTTP request is in flight (spinner on play button). */
+  readonly isLoading = signal<boolean>(false);
+  /** True when the last TTS API call failed (play press retries the API). */
+  readonly lastTtsFailed = signal<boolean>(false);
+  /** Real analyser levels (0..1, 48 bars) from the playing audio element. */
+  readonly analyserLevels = signal<number[]>([]);
+  /** Last spoken text — used for play-button retry after an API failure. */
+  readonly lastText = signal<string>('');
+  private lastOptions: TtsSpeechOptions | undefined;
 
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private currentAudio: HTMLAudioElement | null = null;
   private audioUrl: string | null = null;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private analyserRaf: number | null = null;
+  private webSpeechRaf: number | null = null;
   private readonly MAX_RETRIES = 2;
   private synthesisFailures = 0;
   private voicesChangedHandler: (() => void) | null = null;
@@ -46,7 +59,9 @@ export class TtsService {
   }
 
   /**
-   * Speak text. Tries ElevenLabs TTS first (high quality); falls back to Web Speech API.
+   * Speak text. Tries TTS API first (high quality); always falls back to
+   * Web Speech API when the API fails. `retryFromFailure=true` when invoked
+   * from the play button after a previous failure.
    */
   async speak(text: string, options?: TtsSpeechOptions): Promise<void> {
     const cleanText = this.cleanMarkdown(text);
@@ -57,10 +72,14 @@ export class TtsService {
 
     this.stop();
 
+    this.lastText.set(cleanText);
+    this.lastOptions = options;
+
     const selectedVoiceId =
       options?.voiceId || this.elevenLabs.selectedVoiceId();
 
-    // 1. Try ElevenLabs TTS
+    // 1. Try TTS API (with loading state for the play-button spinner)
+    this.isLoading.set(true);
     try {
       const elevenAudio = await this.elevenLabs.generateSpeechAudio(
         cleanText,
@@ -69,6 +88,8 @@ export class TtsService {
       );
 
       if (elevenAudio) {
+        this.lastTtsFailed.set(false);
+        this.isLoading.set(false);
         this.playElevenLabsAudio(
           elevenAudio.audioData,
           elevenAudio.mimeType,
@@ -77,17 +98,23 @@ export class TtsService {
         );
         return;
       }
+      this.lastTtsFailed.set(true);
     } catch (err) {
+      this.lastTtsFailed.set(true);
       console.warn(MESSAGES.log.ttsFallback, err);
+    } finally {
+      this.isLoading.set(false);
     }
 
-    // 2. Fallback to Web Speech API
-    if (window.speechSynthesis.getVoices().length === 0) {
-      this.waitForVoices(cleanText, options);
-      return;
-    }
-
+    // 2. Fallback to Web Speech API (always available)
     this.speakWebSpeech(cleanText, options);
+  }
+
+  /** Retry the TTS API for the last spoken text (play button after failure). */
+  async retryLast(): Promise<void> {
+    const text = this.lastText();
+    if (!text) return;
+    await this.speak(text, this.lastOptions);
   }
 
   private playElevenLabsAudio(
@@ -109,6 +136,7 @@ export class TtsService {
       };
 
       this.currentAudio.onended = () => {
+        this.stopAnalyser();
         this.stopProgressTracking();
         this.isPlaying.set(false);
         this.currentAudioTime.set(0);
@@ -117,6 +145,7 @@ export class TtsService {
       };
 
       this.currentAudio.onerror = () => {
+        this.stopAnalyser();
         this.stopProgressTracking();
         this.isPlaying.set(false);
         this.cleanupAudio();
@@ -131,6 +160,7 @@ export class TtsService {
         .play()
         .then(() => {
           this.startProgressTracking();
+          this.startAnalyser();
         })
         .catch((playErr) => {
           console.warn(MESSAGES.log.audioFallbackFailed, playErr);
@@ -142,6 +172,14 @@ export class TtsService {
   }
 
   private speakWebSpeech(cleanText: string, options?: TtsSpeechOptions): void {
+    // Voices may load async — wait for them instead of speaking voiceless.
+    if (
+      typeof window !== 'undefined' &&
+      window.speechSynthesis.getVoices().length === 0
+    ) {
+      this.waitForVoices(cleanText, options);
+      return;
+    }
     this.clearSpeech();
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -152,6 +190,9 @@ export class TtsService {
     } else if (options?.lang) {
       utterance.lang = options.lang;
     }
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
     this.currentUtterance = utterance;
 
     this.isPlaying.set(true);
@@ -165,6 +206,7 @@ export class TtsService {
     this.startProgressTracking(startTime, estimatedDuration);
 
     utterance.onend = () => {
+      this.stopWebSpeechViz();
       this.stopProgressTracking();
       this.isPlaying.set(false);
       this.currentAudioTime.set(0);
@@ -174,6 +216,7 @@ export class TtsService {
     };
 
     utterance.onerror = (e) => {
+      this.stopWebSpeechViz();
       this.stopProgressTracking();
       this.isPlaying.set(false);
       this.currentAudioTime.set(0);
@@ -194,7 +237,9 @@ export class TtsService {
 
     try {
       window.speechSynthesis.speak(utterance);
+      this.startWebSpeechViz();
     } catch (error) {
+      this.stopWebSpeechViz();
       this.stopProgressTracking();
       this.isPlaying.set(false);
       this.currentAudioTime.set(0);
@@ -203,6 +248,95 @@ export class TtsService {
       console.error(MESSAGES.log.ttsSpeakFailed, error);
       options?.onError?.(error);
     }
+  }
+
+  /**
+   * Real visualization (task 84): Web Audio AnalyserNode on the playing
+   * <audio> element. Falls back to flat silence levels when unavailable.
+   */
+  private startAnalyser(): void {
+    try {
+      if (!this.currentAudio || typeof window === 'undefined') return;
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AC) return;
+      if (!this.audioContext) this.audioContext = new AC();
+      const ctx = this.audioContext;
+      if (ctx.state === 'suspended') void ctx.resume();
+      const src = ctx.createMediaElementSource(this.currentAudio);
+      this.analyser = ctx.createAnalyser();
+      this.analyser.fftSize = 128;
+      src.connect(this.analyser);
+      this.analyser.connect(ctx.destination);
+      const bins = new Uint8Array(this.analyser.frequencyBinCount);
+      const tick = (): void => {
+        if (!this.analyser || !this.isPlaying()) return;
+        this.analyser.getByteFrequencyData(bins);
+        this.analyserLevels.set(this.downsampleBins(bins, 48));
+        this.analyserRaf = requestAnimationFrame(tick);
+      };
+      this.analyserRaf = requestAnimationFrame(tick);
+    } catch {
+      // Analyser unavailable — widget keeps last/static levels.
+    }
+  }
+
+  private stopAnalyser(): void {
+    if (this.analyserRaf !== null) {
+      cancelAnimationFrame(this.analyserRaf);
+      this.analyserRaf = null;
+    }
+    try {
+      this.analyser?.disconnect();
+    } catch {
+      // ignore
+    }
+    this.analyser = null;
+  }
+
+  /** Animated state-driven bars for Web Speech utterances (no audio node). */
+  private startWebSpeechViz(): void {
+    this.stopWebSpeechViz();
+    const start = Date.now();
+    const tick = (): void => {
+      if (!this.isPlaying() || !this.currentUtterance) return;
+      const t = (Date.now() - start) / 1000;
+      const levels: number[] = [];
+      for (let i = 0; i < 48; i++) {
+        const v =
+          0.35 +
+          0.3 * Math.sin(t * 6 + i * 0.45) +
+          0.2 * Math.sin(t * 11 + i * 0.9);
+        levels.push(Math.min(1, Math.max(0.12, v)));
+      }
+      this.analyserLevels.set(levels);
+      this.webSpeechRaf = requestAnimationFrame(tick);
+    };
+    this.webSpeechRaf = requestAnimationFrame(tick);
+  }
+
+  private stopWebSpeechViz(): void {
+    if (this.webSpeechRaf !== null) {
+      cancelAnimationFrame(this.webSpeechRaf);
+      this.webSpeechRaf = null;
+    }
+  }
+
+  private downsampleBins(bins: Uint8Array, target: number): number[] {
+    const out: number[] = [];
+    const per = Math.max(1, Math.floor(bins.length / target));
+    for (let i = 0; i < target; i++) {
+      let sum = 0;
+      let n = 0;
+      for (let j = i * per; j < Math.min(bins.length, (i + 1) * per); j++) {
+        sum += (bins[j] ?? 0) / 255;
+        n++;
+      }
+      out.push(n > 0 ? Math.min(1, Math.max(0.08, sum / n)) : 0.08);
+    }
+    return out;
   }
 
   private startProgressTracking(
@@ -253,7 +387,8 @@ export class TtsService {
 
   private waitForVoices(cleanText: string, options?: TtsSpeechOptions): void {
     const synthesis = window.speechSynthesis;
-    const handler = (): void => {
+    let settled = false;
+    const cleanup = (): void => {
       if (this.voicesChangedHandler) {
         synthesis.removeEventListener(
           'voiceschanged',
@@ -261,19 +396,30 @@ export class TtsService {
         );
         this.voicesChangedHandler = null;
       }
+    };
+
+    const handler = (): void => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      cleanup();
       this.speakWebSpeech(cleanText, options);
     };
 
     this.voicesChangedHandler = handler;
     synthesis.addEventListener('voiceschanged', handler);
-    setTimeout(handler, 1200);
+    const timeoutId = setTimeout(handler, 1200);
   }
 
   private clearSpeech(): void {
     const synthesis = window.speechSynthesis;
     try {
-      synthesis.cancel();
-      synthesis.resume();
+      if (synthesis.speaking || synthesis.pending) {
+        synthesis.cancel();
+      }
+      if (synthesis.paused) {
+        synthesis.resume();
+      }
     } catch {
       // ignore
     }
@@ -291,11 +437,14 @@ export class TtsService {
   }
 
   stop(): void {
+    this.stopAnalyser();
+    this.stopWebSpeechViz();
     this.stopProgressTracking();
     this.cleanupAudio();
     this.clearSpeech();
     this.synthesisFailures = 0;
     this.isPlaying.set(false);
+    this.isLoading.set(false);
     this.currentAudioTime.set(0);
     this.currentUtterance = null;
   }

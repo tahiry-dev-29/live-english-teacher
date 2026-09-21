@@ -43,4 +43,51 @@ model User {
   email       String    @unique
   password    String
   sessions    Session[]
+  memories    UserMemory[]
+  profile     UserProfile?
+  promptTags  PromptTag[]
+}
+
+// Enterprise user data (tasks 85/86/87): backend is the source of truth.
+// Rows are scoped by nullable userId (ready for task 28 auth) + deviceKey
+// (stable per-browser key for guests). Quota enforced server-side.
+model UserMemory {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceKey String
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([deviceKey])
+  @@index([deviceKey, updatedAt])
+}
+
+model UserProfile {
+  id             String   @id @default(uuid())
+  userId         String?  @unique
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceKey      String   @unique
+  displayName    String   @default("")
+  profession     String   @default("")
+  specialization String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PromptTag {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceKey    String
+  name         String
+  description  String   @db.Text
+  systemPrompt String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([deviceKey, name])
+  @@index([userId])
 }

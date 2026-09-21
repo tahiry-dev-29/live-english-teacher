@@ -45,8 +45,7 @@ core/
 │   └── network-interceptor.ts     [CREATE]  detects offline/online, navigation guards
 └── components/
     └── toast/
-        ├── toast.component.ts     [CREATE]  <app-toast-container>, DaisyUI 5 toast
-        └── toast.component.html   [CREATE]  @for on signal, lucide icons
+        ├── toast.component.ts     [CREATE]  <app-toast-container>, DaisyUI 5 toast " @for on signal, lucide icons
 ```
 
 ### Separation of Responsibilities

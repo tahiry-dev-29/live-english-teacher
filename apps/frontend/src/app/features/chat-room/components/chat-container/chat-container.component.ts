@@ -6,8 +6,6 @@ import {
   ElementRef,
   signal,
   computed,
-  AfterViewInit,
-  OnDestroy,
   ChangeDetectionStrategy,
   inject,
   Renderer2,
@@ -33,7 +31,7 @@ import { ChatMessage } from '@models/chat-message.model';
   templateUrl: './chat-container.component.html',
   styleUrl: './chat-container.component.css',
 })
-export class ChatContainerComponent implements AfterViewInit, OnDestroy {
+export class ChatContainerComponent {
   readonly messages = input<ChatMessage[]>([]);
   readonly loading = input<boolean>(false);
   readonly isPlaying = input<boolean>(false);
@@ -44,6 +42,10 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly learningLanguage = input<string>('en');
   /** Shows a centered spinner when the session messages are being fetched. */
   readonly isSessionLoading = input<boolean>(false);
+  /** TTS state forwarded to the voice widget (loading spinner, retry, viz). */
+  readonly ttsLoading = input<boolean>(false);
+  readonly ttsFailed = input<boolean>(false);
+  readonly ttsLevels = input<number[]>([]);
 
   readonly playAudio = output<{ text: string; index: number }>();
   readonly stop = output<void>();
@@ -52,6 +54,7 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly seekAudio = output<number>();
   readonly retryMessage = output<number>();
   readonly forkSession = output<number>();
+  readonly retryAudio = output<void>();
 
   readonly scrollContainer = viewChild<ElementRef>('scrollContainer');
 
@@ -73,8 +76,7 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
       if (msgs.length === 0 && !isLoading) return;
 
       // Detect new messages arriving while user is scrolled away from bottom
-      const atBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
       if (msgs.length > this.prevMessageCount && !atBottom) {
         this.hasNewMessages.set(true);
       }
@@ -98,10 +100,6 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
   readonly hasAiMessage = computed<boolean>(
     () => this.lastAiMessageIndex() !== null,
   );
-
-  ngAfterViewInit(): void {}
-
-  ngOnDestroy(): void {}
 
   onScroll(): void {
     const el = this.scrollContainer()?.nativeElement;
@@ -145,8 +143,8 @@ export class ChatContainerComponent implements AfterViewInit, OnDestroy {
       }
       throw new Error('Clipboard API unavailable');
     } catch {
-    // Fallback without deprecated API: select text for manual copy (Ctrl/Cmd+C),
-    // then clean up. No document.execCommand here.
+      // Fallback without deprecated API: select text for manual copy (Ctrl/Cmd+C),
+      // then clean up. No document.execCommand here.
       const textarea = this.documentRef.createElement(
         'textarea',
       ) as HTMLTextAreaElement;

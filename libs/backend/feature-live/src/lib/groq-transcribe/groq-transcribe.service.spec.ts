@@ -4,7 +4,7 @@
  * Tests all code paths without making real HTTP calls.
  * A mock `fetch` is injected for network-dependent paths.
  */
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 // ── Inline GroqTranscribeService (without NestJS decorators) ─────────────────
@@ -17,7 +17,7 @@ class GroqTranscribeService {
   private readonly model = 'whisper-large-v3-turbo';
 
   constructor(
-    private readonly apiKey: string = '',
+    private readonly apiKey = '',
     private readonly fetchFn: typeof fetch = fetch,
   ) {}
 
@@ -194,7 +194,7 @@ describe('GroqTranscribeService', () => {
     for (const [mimeType, expectedExt] of testCases) {
       it(`maps "${mimeType}" to ".${expectedExt}"`, async () => {
         let capturedFilename: string | undefined;
-        const captureFetch: typeof fetch = async (_url, options: any) => {
+        const captureFetch: typeof fetch = async (_url, _options) => {
           // FormData doesn't expose append calls directly — we check indirectly
           // by verifying the service doesn't throw and returns data
           capturedFilename = expectedExt; // just validate no throw

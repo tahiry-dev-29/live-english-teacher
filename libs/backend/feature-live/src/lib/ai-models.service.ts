@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   AI_PROVIDERS_REGISTRY,
-  FALLBACK_MODELS_BY_PROVIDER,
   AiProviderConfig,
 } from './ai-providers.registry';
 
@@ -25,6 +24,12 @@ interface GeminiRawModel {
   displayName?: string;
   description?: string;
   supportedGenerationMethods?: string[];
+}
+
+interface AnthropicRawModel {
+  id: string;
+  display_name?: string;
+  description?: string;
 }
 
 @Injectable()
@@ -64,40 +69,34 @@ export class AiModelsService {
     config: AiProviderConfig,
     apiKey: string,
   ): Promise<DiscoveredAiModel[]> {
-    const fallbacks = (FALLBACK_MODELS_BY_PROVIDER[config.id] || []).map(
-      (m) => ({
-        ...m,
-        provider: config.id,
-      }),
-    );
-
-    if (!apiKey) {
-      return fallbacks;
-    }
+    // Live-only: no mocks. Without a key we return [] so the UI
+    // prompts for a key instead of showing stale data.
+    if (!apiKey) return [];
 
     if (config.id === 'gemini') {
-      return this.fetchGeminiModels(apiKey, fallbacks);
+      return this.fetchGeminiModels(apiKey);
+    }
+
+    if (config.id === 'anthropic') {
+      return this.fetchAnthropicModels(config, apiKey);
     }
 
     if (config.chatApi === 'openai-compatible' && config.modelsUrl) {
-      return this.fetchOpenAiCompatibleModels(config, apiKey, fallbacks);
+      return this.fetchOpenAiCompatibleModels(config, apiKey);
     }
 
-    return fallbacks;
+    return [];
   }
 
   private async fetchOpenAiCompatibleModels(
     config: AiProviderConfig,
     apiKey: string,
-    fallbacks: DiscoveredAiModel[],
   ): Promise<DiscoveredAiModel[]> {
     try {
       const res = await fetch(config.modelsUrl as string, {
         headers: { Authorization: `Bearer ${apiKey}` },
       });
-      if (!res.ok) {
-        return fallbacks;
-      }
+      if (!res.ok) return [];
       const data = (await res.json()) as { data?: OpenAiRawModel[] };
       const rawList = data.data || [];
 
@@ -116,29 +115,29 @@ export class AiModelsService {
         return true;
       });
 
-      if (filtered.length === 0) return fallbacks;
+      if (filtered.length === 0) return [];
 
-      return filtered.slice(0, 10).map((m, idx) => ({
+      return filtered.slice(0, 20).map((m, idx) => ({
         id: m.id,
         name: this.formatModelName(m.id),
         provider: config.id,
-        description: `Discovered from ${config.label}`,
+        description: `Live from ${config.label}`,
         size: this.extractSize(m.id),
         isDefault: idx === 0 || m.id === config.defaultModel,
       }));
-    } catch {
-      return fallbacks;
+    } catch (e) {
+      this.logger.warn(`Live models fetch failed for ${config.id}: ${e}`);
+      return [];
     }
   }
 
   private async fetchGeminiModels(
     apiKey: string,
-    fallbacks: DiscoveredAiModel[],
   ): Promise<DiscoveredAiModel[]> {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
       const response = await fetch(url);
-      if (!response.ok) return fallbacks;
+      if (!response.ok) return [];
 
       const body = (await response.json()) as { models?: GeminiRawModel[] };
       const rawList = body.models || [];
@@ -158,7 +157,7 @@ export class AiModelsService {
         return name.includes('gemini');
       });
 
-      if (filtered.length === 0) return fallbacks;
+      if (filtered.length === 0) return [];
 
       return filtered.map((m) => {
         const id = m.name.replace(/^models\//, '');
@@ -168,13 +167,45 @@ export class AiModelsService {
           provider: 'gemini',
           description: m.description
             ? m.description.slice(0, 100)
-            : 'Google Gemini model',
+            : 'Live Google Gemini model',
           size: id.includes('pro') ? 'Pro' : 'Flash',
           isDefault: id === 'gemini-2.5-flash' || id === 'gemini-2.0-flash',
         };
       });
-    } catch {
-      return fallbacks;
+    } catch (e) {
+      this.logger.warn(`Live Gemini models fetch failed: ${e}`);
+      return [];
+    }
+  }
+
+  private async fetchAnthropicModels(
+    config: AiProviderConfig,
+    apiKey: string,
+  ): Promise<DiscoveredAiModel[]> {
+    try {
+      const res = await fetch(config.modelsUrl as string, {
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+      });
+      if (!res.ok) return [];
+      const body = (await res.json()) as { data?: AnthropicRawModel[] };
+      const rawList = body.data || [];
+      if (rawList.length === 0) return [];
+      return rawList.slice(0, 20).map((m, idx) => ({
+        id: m.id,
+        name: m.display_name || this.formatModelName(m.id),
+        provider: config.id,
+        description: m.description
+          ? m.description.slice(0, 100)
+          : `Live from ${config.label}`,
+        size: undefined,
+        isDefault: idx === 0 || m.id === config.defaultModel,
+      }));
+    } catch (e) {
+      this.logger.warn(`Live Anthropic models fetch failed: ${e}`);
+      return [];
     }
   }
 

@@ -42,29 +42,52 @@ describe('AiConfigService', () => {
     TestBed.flushEffects();
   });
 
-  it('initializes with default provider and model signals', () => {
+  it('initializes live-only: empty models until API fetch', () => {
     expect(service.provider()).toBeTruthy();
-    expect(service.selectedModel()).toBeTruthy();
-    expect(service.models().length).toBeGreaterThan(0);
+    // Live-only: no hardcoded models, starts empty, no selection yet.
+    expect(service.models().length).toBe(0);
+    expect(service.selectedModel()).toBeNull();
   });
 
-  it('filters models by provider', () => {
+  it('filters live models by provider once loaded', () => {
+    service.models.set([
+      {
+        id: 'live-groq-1',
+        name: 'Groq Live 1',
+        provider: 'groq',
+        description: 'Live',
+      },
+      {
+        id: 'live-gemini-1',
+        name: 'Gemini Live 1',
+        provider: 'gemini',
+        description: 'Live',
+      },
+    ]);
     const groqModels = service.getModelsForProvider('groq');
-    expect(groqModels.length).toBeGreaterThan(0);
+    expect(groqModels.length).toBe(1);
     expect(groqModels.every((m) => m.provider === 'groq')).toBe(true);
 
     const geminiModels = service.getModelsForProvider('gemini');
-    expect(geminiModels.length).toBeGreaterThan(0);
+    expect(geminiModels.length).toBe(1);
     expect(geminiModels.every((m) => m.provider === 'gemini')).toBe(true);
   });
 
   it('allows updating provider and selectedModelId signals', () => {
+    service.models.set([
+      {
+        id: 'gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
+        provider: 'gemini',
+        description: 'Live',
+      },
+    ]);
     service.provider.set('gemini');
     service.selectedModelId.set('gemini-2.5-flash');
     TestBed.flushEffects();
 
     expect(service.provider()).toBe('gemini');
     expect(service.selectedModelId()).toBe('gemini-2.5-flash');
-    expect(service.selectedModel().provider).toBe('gemini');
+    expect(service.selectedModel()?.provider).toBe('gemini');
   });
 });

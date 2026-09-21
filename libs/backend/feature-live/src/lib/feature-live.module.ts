@@ -12,10 +12,14 @@ import { ChatHistoryService } from './chat-history/chat-history.service';
 
 import { OpenAiCompatService } from './openai-compat.service';
 import { TtsProviderService } from './tts/tts-provider.service';
+import { UserMemoryService } from './user-data/user-memory.service';
+import { UserProfileService } from './user-data/user-profile.service';
+import { PromptTagService } from './user-data/prompt-tag.service';
+import { UserDataController } from './user-data/user-data.controller';
 
 @Module({
   imports: [DataAccessPrismaModule],
-  controllers: [AiStreamController],
+  controllers: [AiStreamController, UserDataController],
   providers: [
     GeminiLiveService,
     GroqLiveService,
@@ -27,6 +31,9 @@ import { TtsProviderService } from './tts/tts-provider.service';
     TtsProviderService,
     LiveResolver,
     ChatHistoryService,
+    UserMemoryService,
+    UserProfileService,
+    PromptTagService,
   ],
   exports: [
     GeminiLiveService,
@@ -38,6 +45,9 @@ import { TtsProviderService } from './tts/tts-provider.service';
     OpenAiCompatService,
     TtsProviderService,
     ChatHistoryService,
+    UserMemoryService,
+    UserProfileService,
+    PromptTagService,
   ],
 })
 export class FeatureLiveModule {}

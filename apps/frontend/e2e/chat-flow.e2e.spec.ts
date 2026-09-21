@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Live English Teacher - App Shell & Chat Flow', () => {
-  test('loads home page successfully and renders chat interface', async ({ page }) => {
+  test('loads home page successfully and renders chat interface', async ({
+    page,
+  }) => {
     await page.goto('/');
 
     // Check page title and root element
@@ -25,7 +27,11 @@ test.describe('Live English Teacher - App Shell & Chat Flow', () => {
     await page.goto('/');
 
     // Click settings button if available
-    const settingsButton = page.locator('button[aria-label*="settings" i], button:has-text("Settings"), [data-testid="settings-btn"]').first();
+    const settingsButton = page
+      .locator(
+        'button[aria-label*="settings" i], button:has-text("Settings"), [data-testid="settings-btn"]',
+      )
+      .first();
     if (await settingsButton.isVisible()) {
       await settingsButton.click();
       const modal = page.locator('app-settings-dialog, dialog');

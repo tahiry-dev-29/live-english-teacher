@@ -1,24 +1,28 @@
-<div
-  class="relative flex h-full min-w-0 flex-col bg-base-100"
->
+<div class="relative flex h-full min-w-0 flex-col bg-base-100">
   <!-- Session loading spinner (direct URL navigation) -->
   @if (isSessionLoading()) {
-    <div class="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-base-100/80 backdrop-blur-sm">
-      <span class="loading loading-spinner loading-md text-primary"></span>
+    <div
+      class="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-base-100/80 backdrop-blur-sm"
+    >
+      <span class="loading loading-md loading-spinner text-primary"></span>
       <span class="text-xs text-base-content/50">Loading conversation…</span>
     </div>
   }
 
   @if (showVoiceControl()) {
     <div
-      class="absolute top-2 left-1/2 z-20 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 transition-all duration-300 ease-in-out"
+      class="absolute top-4 right-0 left-0 z-20 flex justify-center px-4 transition-all duration-300 ease-in-out"
     >
       <app-voice-control
         [currentTime]="currentAudioTime()"
         [totalDuration]="totalAudioDuration()"
         [playing]="isPlaying()"
+        [loading]="ttsLoading()"
+        [ttsFailed]="ttsFailed()"
+        [levels]="ttsLevels()"
         (paused)="pauseAudio.emit()"
         (resumed)="resumeAudio.emit()"
+        (retryRequested)="retryAudio.emit()"
         (audioSeeked)="seekAudio.emit($event)"
         (stopped)="onStopAudio()"
       />
@@ -31,10 +35,10 @@
     (scroll)="onScroll()"
   >
     <div
-      class="mx-auto flex w-full max-w-3xl min-w-0 flex-col gap-6 px-4 py-6 sm:px-6"
+      class="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-6 px-4 pt-6 sm:px-6"
     >
       @if (showVoiceControl()) {
-        <div class="h-10"></div>
+        <div class="h-8"></div>
       }
       @if (messages().length === 0 && !loading()) {
         <app-chat-welcome

@@ -23,9 +23,11 @@ class ChatHistoryService {
   }
 
   setSessionPinned(sessionId: string, isPinned: boolean): void {
-    isPinned
-      ? this.pinnedSessionIds.add(sessionId)
-      : this.pinnedSessionIds.delete(sessionId);
+    if (isPinned) {
+      this.pinnedSessionIds.add(sessionId);
+    } else {
+      this.pinnedSessionIds.delete(sessionId);
+    }
   }
 
   // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -118,11 +120,11 @@ class ChatHistoryService {
     sessionId: string,
     data: { title?: string; learningLanguage?: string; isPinned?: boolean },
   ) {
-    if (data.isPinned !== undefined) {
-      this.setSessionPinned(sessionId, data.isPinned);
-    }
+    const { isPinned, ...prismaData } = data;
 
-    const { isPinned: _unused, ...prismaData } = data;
+    if (isPinned !== undefined) {
+      this.setSessionPinned(sessionId, isPinned);
+    }
 
     if (Object.keys(prismaData).length === 0) {
       return this.getSession(sessionId);

@@ -43,7 +43,7 @@
               </div>
             } @else {
               <div
-                class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 select-none group-hover:bg-secondary/15"
+                class="flex w-full items-center justify-between rounded-(--radius-field) px-2.5 py-1.5 transition-colors duration-150 select-none group-hover:bg-secondary/15"
                 [class.bg-secondary/20]="activeSessionId() === item.id"
                 [class.font-medium]="activeSessionId() === item.id"
               >
@@ -71,20 +71,11 @@
 
                   <!-- Hover 3-dots action menu (fades in on hover) -->
                   <div
-                    class="dropdown pointer-events-none absolute inset-0 dropdown-end dropdown-bottom flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100"
+                    class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100"
                   >
-                    <button
-                      tabindex="0"
-                      type="button"
-                      class="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 outline-none hover:bg-base-300 hover:text-base-content"
+                    <app-dropdown-menu
+                      triggerLabel="Chat options"
                       (click)="$event.stopPropagation()"
-                      aria-label="Chat options"
-                    >
-                      <svg lucideEllipsis class="h-3.5 w-3.5" />
-                    </button>
-                    <ul
-                      tabindex="0"
-                      class="menu dropdown-content z-50 mt-1 w-48 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
                     >
                       <li>
                         <button
@@ -135,7 +126,7 @@
                           <span>Delete</span>
                         </button>
                       </li>
-                    </ul>
+                    </app-dropdown-menu>
                   </div>
                 </div>
               </div>
@@ -273,8 +264,8 @@
             </div>
           } @else {
             <div
-              class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 select-none group-hover:bg-secondary/15"
-              [class.bg-secondary/20]="activeSessionId() === item.id"
+              class="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 transition-colors duration-150 select-none group-hover:bg-base-100"
+              [class.bg-base-300]="activeSessionId() === item.id"
               [class.font-medium]="activeSessionId() === item.id"
             >
               <!-- Title & click target -->
@@ -291,20 +282,11 @@
 
               <!-- Fixed 3-dots action menu (zero layout shift, pure opacity transition) -->
               <div
-                class="dropdown pointer-events-none dropdown-end dropdown-bottom flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100"
+                class="pointer-events-none flex h-6 w-6 shrink-0 items-center justify-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100"
               >
-                <button
-                  tabindex="0"
-                  type="button"
-                  class="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-base-content/70 transition-colors duration-150 outline-none hover:bg-base-300 hover:text-base-content"
+                <app-dropdown-menu
+                  triggerLabel="Chat options"
                   (click)="$event.stopPropagation()"
-                  aria-label="Chat options"
-                >
-                  <svg lucideEllipsis class="h-3.5 w-3.5" />
-                </button>
-                <ul
-                  tabindex="0"
-                  class="menu dropdown-content z-50 mt-1 w-48 rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
                 >
                   <li>
                     <button
@@ -352,7 +334,7 @@
                       <span>Delete</span>
                     </button>
                   </li>
-                </ul>
+                </app-dropdown-menu>
               </div>
             </div>
           }

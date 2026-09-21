@@ -22,11 +22,11 @@ import {
   LucidePin,
   LucidePinOff,
   LucideShare2,
-  LucideEllipsis,
   LucideSlidersHorizontal,
   LucideTriangleAlert,
 } from '@lucide/angular';
 import { ShareDialogComponent } from '../share-dialog/share-dialog.component';
+import { AppDropdownMenuComponent } from '../ui/dropdown-menu/dropdown-menu.component';
 
 export type SessionSortBy = 'activity' | 'created' | 'name';
 
@@ -35,6 +35,7 @@ export type SessionSortBy = 'activity' | 'created' | 'name';
   selector: 'app-sidebar-session-list',
   standalone: true,
   imports: [
+    AppDropdownMenuComponent,
     ShareDialogComponent,
     LucideMessageCircle,
     LucidePencil,
@@ -45,7 +46,6 @@ export type SessionSortBy = 'activity' | 'created' | 'name';
     LucidePin,
     LucidePinOff,
     LucideShare2,
-    LucideEllipsis,
     LucideSlidersHorizontal,
     LucideTriangleAlert,
   ],

@@ -111,6 +111,34 @@ export class AiStreamController {
     return this.ttsProviderService.getProviders();
   }
 
+  @Get('tts-models')
+  async getTtsModels(
+    @Headers('x-provider') provider?: string,
+    @Headers('x-tts-provider') ttsProviderHeader?: string,
+    @Headers('x-azure-tts-key') azureKey?: string,
+    @Headers('x-elevenlabs-api-key') elevenKey?: string,
+    @Headers('x-openai-api-key') openaiKey?: string,
+    @Headers('x-google-tts-key') googleKey?: string,
+    @Headers('x-aws-polly-key') pollyKey?: string,
+    @Headers('x-minimax-tts-key') minimaxKey?: string,
+    @Headers('x-provider-api-key') providerKey?: string,
+  ): Promise<{ id: string; name: string; description?: string }[]> {
+    const activeProvider = ttsProviderHeader || provider || 'elevenlabs';
+    const keyMap: Record<string, string | undefined> = {
+      azure: azureKey,
+      elevenlabs: elevenKey,
+      openai: openaiKey,
+      google: googleKey,
+      polly: pollyKey,
+      minimax: minimaxKey,
+    };
+    const apiKey = providerKey || keyMap[activeProvider];
+    return this.ttsProviderService.getTtsModels({
+      provider: activeProvider,
+      apiKey,
+    });
+  }
+
   @Get('voices')
   async getVoices(
     @Headers('x-provider') provider?: string,

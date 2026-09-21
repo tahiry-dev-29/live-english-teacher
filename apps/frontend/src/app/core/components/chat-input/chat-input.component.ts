@@ -24,6 +24,7 @@ import {
 } from '@lucide/angular';
 import { AudioRecorderComponent } from '@features/chat-room/components/audio-recorder/audio-recorder';
 import { LanguageService } from '@core/services/language.service';
+import { PromptTagService, PromptTag } from '@core/services/prompt-tag.service';
 
 export interface PromptAttachment {
   name: string;
@@ -52,7 +53,7 @@ const INPUT_EXPANDED_HEIGHT_PX = 320;
     AudioRecorderComponent,
   ],
   template: `
-    <div class="mx-auto w-full max-w-3xl min-w-0">
+    <div class="mx-auto w-full max-w-4xl min-w-0">
       <div
         class="min-w-0 rounded-[20px] border border-base-300/60 bg-base-200 px-4 pt-3 pb-2.5 shadow-lg transition-colors focus-within:border-base-content/25"
       >
@@ -108,6 +109,36 @@ const INPUT_EXPANDED_HEIGHT_PX = 320;
               aria-label="Message input"
               class="max-h-80 min-h-12 w-full min-w-0 resize-none border-0 bg-transparent pr-8 text-[15px] leading-6 break-words text-base-content outline-none placeholder:text-base-content/40 focus:border-0 focus:ring-0 disabled:opacity-50"
             ></textarea>
+            <!-- #tag autocomplete dropdown (task 87) -->
+            @if (tagSuggestions().length > 0) {
+              <ul
+                role="listbox"
+                aria-label="Skill tags"
+                class="menu absolute right-0 bottom-full left-0 z-30 mb-1 max-h-52 overflow-y-auto rounded-2xl border border-base-300 bg-base-200/95 p-1.5 shadow-2xl backdrop-blur-md"
+              >
+                @for (tag of tagSuggestions(); track tag.name; let i = $index) {
+                  <li>
+                    <button
+                      type="button"
+                      role="option"
+                      [attr.aria-selected]="i === activeTagIndex()"
+                      (click)="insertTag(tag.name)"
+                      (mouseenter)="activeTagIndex.set(i)"
+                      class="flex items-center gap-2 rounded-xl py-1.5 text-xs"
+                      [class.bg-primary/10]="i === activeTagIndex()"
+                    >
+                      <span class="badge badge-ghost font-mono badge-sm"
+                        >#{{ tag.name }}</span
+                      >
+                      <span
+                        class="min-w-0 flex-1 truncate text-base-content/70"
+                        >{{ tag.description }}</span
+                      >
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
             @if (canExpand() || expanded()) {
               <button
                 type="button"
@@ -174,7 +205,7 @@ const INPUT_EXPANDED_HEIGHT_PX = 320;
               popover
               role="listbox"
               style="position-anchor: --lang-picker"
-              class="dropdown dropdown-top dropdown-end menu max-h-64 w-60 overflow-y-auto rounded-2xl border border-base-300 bg-base-200 p-1.5 shadow-2xl"
+              class="menu dropdown dropdown-end dropdown-top max-h-64 w-60 overflow-y-auto rounded-2xl border border-base-300 bg-base-200 p-1.5 shadow-2xl"
             >
               @for (lang of languages; track lang.code) {
                 <li
@@ -269,6 +300,7 @@ const INPUT_EXPANDED_HEIGHT_PX = 320;
 })
 export class ChatInputComponent {
   private readonly languageService = inject(LanguageService);
+  private readonly promptTags = inject(PromptTagService);
 
   readonly languages = this.languageService.languages;
   readonly selectedLangCode = this.languageService.selectedLanguageCode;
@@ -295,6 +327,11 @@ export class ChatInputComponent {
   readonly expanded = signal<boolean>(false);
   readonly canExpand = signal<boolean>(false);
   readonly attachments = signal<PromptAttachment[]>([]);
+
+  /** #tag autocomplete state (task 87). */
+  readonly tagSuggestions = signal<PromptTag[]>([]);
+  readonly activeTagIndex = signal<number>(0);
+  private tagTokenStart = -1;
 
   readonly canSend = computed<boolean>(() => this.value().trim().length > 0);
 
@@ -328,15 +365,46 @@ export class ChatInputComponent {
     const lang = this.languages.find((l) => l.code === code);
     if (lang) this.currentFlag.set(lang.flag);
     // Ferme le popover après sélection
-    (document.getElementById('lang-picker') as HTMLElement | null)?.hidePopover?.();
+    (
+      document.getElementById('lang-picker') as HTMLElement | null
+    )?.hidePopover?.();
   }
 
   onInputChange(text: string): void {
     this.valueChange.emit(text);
+    this.updateTagSuggestions(text);
     this.autosize();
   }
 
   onComposerKeydown(event: KeyboardEvent): void {
+    if (this.tagSuggestions().length > 0) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.activeTagIndex.update((i) =>
+          Math.min(this.tagSuggestions().length - 1, i + 1),
+        );
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.activeTagIndex.update((i) => Math.max(0, i - 1));
+        return;
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        const tag = this.tagSuggestions()[this.activeTagIndex()];
+        if (tag) {
+          event.preventDefault();
+          this.insertTag(tag.name);
+          return;
+        }
+      }
+      if (event.key === 'Escape') {
+        this.tagSuggestions.set([]);
+        this.tagTokenStart = -1;
+        if (this.expanded()) this.expanded.set(false);
+        return;
+      }
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.onSubmit();
@@ -344,6 +412,57 @@ export class ChatInputComponent {
     if (event.key === 'Escape' && this.expanded()) {
       this.expanded.set(false);
     }
+  }
+
+  /** Detect an in-progress #token before the caret and suggest tags. */
+  private updateTagSuggestions(text: string): void {
+    const el = this.composer()?.nativeElement;
+    const caret =
+      el?.selectionStart ?? (typeof text === 'string' ? text.length : 0);
+    const before = text.slice(0, caret);
+    const match = /(?:^|\s)#([A-Za-z0-9_-]*)$/.exec(before);
+    if (!match) {
+      this.tagSuggestions.set([]);
+      this.tagTokenStart = -1;
+      return;
+    }
+    const token = match[1] ?? '';
+    this.tagTokenStart = caret - token.length - 1;
+    // Server-backed tags (task 87): load once, then suggest synchronously.
+    void this.promptTags.ensureLoaded().then(() => {
+      const suggestions =
+        token.length === 0
+          ? this.promptTags.allTags()
+          : this.promptTags.suggest(token);
+      this.tagSuggestions.set(suggestions.slice(0, 8));
+      this.activeTagIndex.set(0);
+    });
+  }
+
+  /** Insert the chosen tag at the #token position. */
+  insertTag(name: string): void {
+    if (this.tagTokenStart < 0) return;
+    const el = this.composer()?.nativeElement;
+    const caret = el?.selectionStart ?? this.value().length;
+    const current = this.value();
+    const tokenStart = this.tagTokenStart;
+    const next =
+      current.slice(0, tokenStart + 1) + name + ' ' + current.slice(caret);
+    const caretPos = tokenStart + name.length + 2;
+    this.valueChange.emit(next);
+    this.tagSuggestions.set([]);
+    this.tagTokenStart = -1;
+    this.autosize();
+    requestAnimationFrame(() => {
+      const input = this.composer()?.nativeElement;
+      if (!input) return;
+      try {
+        input.focus();
+        input.setSelectionRange(caretPos, caretPos);
+      } catch {
+        // ignore
+      }
+    });
   }
 
   onSubmit(): void {
@@ -399,7 +518,9 @@ export class ChatInputComponent {
     el.style.height = 'auto';
     const contentHeight = el.scrollHeight;
     // Use untracked so this signal write doesn't re-trigger the effect
-    untracked(() => this.canExpand.set(contentHeight > INPUT_LONG_TEXT_THRESHOLD_PX));
+    untracked(() =>
+      this.canExpand.set(contentHeight > INPUT_LONG_TEXT_THRESHOLD_PX),
+    );
     if (this.expanded()) {
       el.style.height = `${Math.min(
         Math.max(contentHeight, 96),

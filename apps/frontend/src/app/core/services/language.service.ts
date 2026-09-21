@@ -27,8 +27,10 @@ export class LanguageService {
 
   constructor() {
     this.loadVoices();
-    if (typeof window !== 'undefined') {
-      window.speechSynthesis.onvoiceschanged = () => this.loadVoices();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.addEventListener('voiceschanged', () =>
+        this.loadVoices(),
+      );
     }
 
     effect(() => {
