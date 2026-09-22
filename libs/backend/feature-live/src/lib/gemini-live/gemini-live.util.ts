@@ -1,11 +1,12 @@
 import { buildTutorSystemPrompt } from '../tutor-prompt';
+import { GEMINI_CONFIG } from '@shared/constants';
 
-export const GEMINI_API_KEY = process.env['GEMINI_API_KEY'];
-export const GEMINI_CHAT_MODEL = 'gemini-2.5-flash';
-export const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+export const GEMINI_API_KEY = process.env[GEMINI_CONFIG.apiKeyEnv];
+export const GEMINI_CHAT_MODEL = GEMINI_CONFIG.defaultChatModel;
+export const GEMINI_TTS_MODEL = GEMINI_CONFIG.defaultTtsModel;
 
-export const GEMINI_API_BASE_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/';
+/** @deprecated Use GEMINI_CONFIG.apiBaseUrl — kept for backward compatibility */
+export const GEMINI_API_BASE_URL = GEMINI_CONFIG.apiBaseUrl;
 
 export type ChatRole = 'user' | 'model';
 
@@ -41,9 +42,70 @@ export function resolveGeminiUrl(
   model: string,
   apiKey: string,
 ): string {
-  return `${
-    baseUrl || GEMINI_API_BASE_URL
-  }${model}:generateContent?key=${apiKey}`;
+  return GEMINI_CONFIG.buildGenerateUrl(model, apiKey, baseUrl);
+}
+
+export function resolveGeminiStreamUrl(
+  baseUrl: string | undefined,
+  model: string,
+  apiKey: string,
+): string {
+  return GEMINI_CONFIG.buildStreamUrl(model, apiKey, baseUrl);
+}
+
+/**
+ * Extracts the text delta from one SSE `data:` line of
+ * `streamGenerateContent` (each line is a full JSON response chunk).
+ * Returns '' when the line carries no text (keep-alive, finish marker…).
+ */
+export function parseGeminiSseLine(line: string): string {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('data:')) return '';
+  const payload = trimmed.slice(5).trim();
+  if (!payload || payload === '[DONE]') return '';
+  try {
+    const chunk = JSON.parse(payload) as GeminiApiResponse;
+    return extractResponseText(chunk) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/** Low-level Gemini REST POST shared by chat, stream and TTS. */
+export const postJson = async (
+  url: string,
+  payload: unknown,
+): Promise<Response> =>
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+/**
+ * Yields text deltas from an open `streamGenerateContent` SSE body,
+ * handling chunk splits across network frames.
+ */
+export async function* streamResponseDeltas(
+  response: Response,
+): AsyncGenerator<string, void, unknown> {
+  const reader = response.body?.getReader();
+  if (!reader) return;
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const token = parseGeminiSseLine(line);
+      if (token) yield token;
+    }
+  }
+  const tail = parseGeminiSseLine(buffer);
+  if (tail) yield tail;
 }
 
 export function buildChatPayload(

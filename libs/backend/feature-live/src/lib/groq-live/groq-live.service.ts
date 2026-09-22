@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { buildTutorSystemPrompt } from '../tutor-prompt';
 import { BACKEND_MESSAGES } from '../constants/messages';
+import { GROQ_CONFIG } from '@shared/constants';
 
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MAX_HISTORY_LENGTH = 10;
-const MAX_CONTENT_LENGTH = 1500;
+const GROQ_API_URL = GROQ_CONFIG.apiBaseUrl;
+const MAX_HISTORY_LENGTH = GROQ_CONFIG.maxHistoryLength;
+const MAX_CONTENT_LENGTH = GROQ_CONFIG.maxContentLength;
 
 /** Thrown when the server API key quota is exhausted (HTTP 429 / 402). */
 export class QuotaExceededError extends Error {
@@ -29,10 +30,11 @@ export interface GroqHistoryMessage {
 @Injectable()
 export class GroqLiveService {
   private readonly logger = new Logger(GroqLiveService.name);
-  private readonly apiKey = process.env['GROQ_API_KEY'] || '';
-  private readonly model = process.env['AI_MODEL'] || 'llama-3.1-8b-instant';
+  private readonly apiKey = process.env[GROQ_CONFIG.apiKeyEnv] || '';
+  private readonly model =
+    process.env[GROQ_CONFIG.modelEnv] || GROQ_CONFIG.defaultModel;
   private readonly fallbackModel =
-    process.env['AI_FALLBACK_MODEL'] || 'llama-3.1-8b-instant';
+    process.env[GROQ_CONFIG.fallbackModelEnv] || GROQ_CONFIG.fallbackModel;
 
   private buildMessages(
     history: GroqHistoryMessage[],

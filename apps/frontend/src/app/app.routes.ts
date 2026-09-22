@@ -4,7 +4,7 @@ export const appRoutes: Route[] = [
   {
     path: '',
     loadComponent: () =>
-      import('./features/chat-room/chat-page.component').then(
+      import('./features/chat/chat-page/chat-page.component').then(
         (m) => m.ChatPageComponent,
       ),
   },
@@ -12,7 +12,7 @@ export const appRoutes: Route[] = [
     path: 'chat/:sessionId',
     title: 'Chat',
     loadComponent: () =>
-      import('./features/chat-room/chat-page.component').then(
+      import('./features/chat/chat-page/chat-page.component').then(
         (m) => m.ChatPageComponent,
       ),
   },
@@ -20,7 +20,7 @@ export const appRoutes: Route[] = [
     path: 'share/:sessionId',
     title: 'Shared Chat',
     loadComponent: () =>
-      import('./features/chat-room/chat-page.component').then(
+      import('./features/chat/chat-page/chat-page.component').then(
         (m) => m.ChatPageComponent,
       ),
   },

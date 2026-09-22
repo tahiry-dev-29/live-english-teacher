@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
-import { environment } from '@environment';
 import { getDeviceKey } from '../utils/device-key.util';
+import { API_URLS, DYNAMIC_ENDPOINTS } from '@shared/constants/api-config';
 
 export interface UserMemory {
   id: string;
@@ -54,7 +54,7 @@ export class MemoryService {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const res = await fetch(`${environment.apiBaseUrl}/user/memories`, {
+      const res = await fetch(API_URLS.memories, {
         headers: this.headers(),
       });
       if (!res.ok) throw new Error(`Memories unavailable (${res.status}).`);
@@ -71,7 +71,7 @@ export class MemoryService {
     const clean = text.trim();
     if (!clean || this.isFull()) return null;
     try {
-      const res = await fetch(`${environment.apiBaseUrl}/user/memories`, {
+      const res = await fetch(API_URLS.memories, {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({ text: clean }),
@@ -89,7 +89,7 @@ export class MemoryService {
     const clean = text.trim();
     if (!clean) return false;
     try {
-      const res = await fetch(`${environment.apiBaseUrl}/user/memories/${id}`, {
+      const res = await fetch(DYNAMIC_ENDPOINTS.memoryById(id), {
         method: 'PATCH',
         headers: this.headers(),
         body: JSON.stringify({ text: clean }),
@@ -107,7 +107,7 @@ export class MemoryService {
   async remove(id: string): Promise<void> {
     this.memories.update((list) => list.filter((m) => m.id !== id));
     try {
-      await fetch(`${environment.apiBaseUrl}/user/memories/${id}`, {
+      await fetch(DYNAMIC_ENDPOINTS.memoryById(id), {
         method: 'DELETE',
         headers: this.headers(),
       });
@@ -119,7 +119,7 @@ export class MemoryService {
   async clear(): Promise<void> {
     this.memories.set([]);
     try {
-      await fetch(`${environment.apiBaseUrl}/user/memories`, {
+      await fetch(API_URLS.memories, {
         method: 'DELETE',
         headers: this.headers(),
       });

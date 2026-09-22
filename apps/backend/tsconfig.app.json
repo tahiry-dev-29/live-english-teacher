@@ -9,5 +9,9 @@
     "target": "es2021"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["**/*.spec.ts", "**/*.test.ts"]
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "../../libs/shared/constants/api-config.ts"
+  ]
 }

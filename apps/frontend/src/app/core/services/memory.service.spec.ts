@@ -72,4 +72,11 @@ describe('MemoryService (server-backed)', () => {
     expect(await service.add('extra')).toBeNull();
     expect(vi.mocked(fetch)).not.toHaveBeenCalled();
   });
+
+  it('surfaces backend-down as error without rejecting', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(service.ensureLoaded()).resolves.toBeUndefined();
+    expect(service.error()).toMatch(/Failed to fetch/);
+    expect(service.memories()).toEqual([]);
+  });
 });

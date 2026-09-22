@@ -31,4 +31,23 @@ export default [
     // Override or add rules here
     rules: {},
   },
+  {
+    // Plan-001 T91: ban deep relative imports in frontend — use path aliases
+    // (@core/*, @features/*, @models/*, @app-shared/*, @environment).
+    files: ['apps/frontend/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../../*'],
+              message:
+                'Deep relative imports are forbidden — use @core/*, @features/*, @models/*, @app-shared/* or @environment instead (plan-001).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

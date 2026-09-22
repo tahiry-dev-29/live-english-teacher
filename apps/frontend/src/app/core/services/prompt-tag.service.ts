@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
-import { environment } from '@environment';
 import { getDeviceKey } from '../utils/device-key.util';
+import { API_URLS, DYNAMIC_ENDPOINTS } from '@shared/constants/api-config';
 
 export interface PromptTag {
   name: string;
@@ -24,6 +24,7 @@ export class PromptTagService {
   readonly defaults = signal<PromptTag[]>([]);
   readonly customTags = signal<PromptTag[]>([]);
   readonly loading = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
 
   readonly allTags = computed<PromptTag[]>(() => [
     ...this.defaults(),
@@ -49,13 +50,15 @@ export class PromptTagService {
     return this.inflight;
   }
 
+  /** Never rejects: backend down (ERR_CONNECTION_REFUSED) → error signal. */
   async load(): Promise<void> {
     this.loading.set(true);
+    this.error.set(null);
     try {
-      const res = await fetch(`${environment.apiBaseUrl}/user/tags`, {
+      const res = await fetch(API_URLS.tags, {
         headers: this.headers(),
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error(`Tags unavailable (${res.status}).`);
       const data = (await res.json()) as {
         defaults: PromptTag[];
         custom: PromptTag[];
@@ -65,6 +68,8 @@ export class PromptTagService {
         (data.custom ?? []).map((t) => ({ ...t, custom: true })),
       );
       this.loaded = true;
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Load failed.');
     } finally {
       this.loading.set(false);
     }
@@ -123,7 +128,7 @@ export class PromptTagService {
     const cleanDesc = description.trim();
     if (!cleanName || !cleanDesc) return null;
     try {
-      const res = await fetch(`${environment.apiBaseUrl}/user/tags`, {
+      const res = await fetch(API_URLS.tags, {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({ name: cleanName, description: cleanDesc }),
@@ -142,14 +147,11 @@ export class PromptTagService {
     const cleanDesc = description.trim();
     if (!cleanDesc) return false;
     try {
-      const res = await fetch(
-        `${environment.apiBaseUrl}/user/tags/${encodeURIComponent(name)}`,
-        {
-          method: 'PATCH',
-          headers: this.headers(),
-          body: JSON.stringify({ description: cleanDesc }),
-        },
-      );
+      const res = await fetch(DYNAMIC_ENDPOINTS.tagByName(name), {
+        method: 'PATCH',
+        headers: this.headers(),
+        body: JSON.stringify({ description: cleanDesc }),
+      });
       if (!res.ok) return false;
       this.customTags.update((list) =>
         list.map((t) =>
@@ -167,10 +169,10 @@ export class PromptTagService {
   async removeCustom(name: string): Promise<void> {
     this.customTags.update((list) => list.filter((t) => t.name !== name));
     try {
-      await fetch(
-        `${environment.apiBaseUrl}/user/tags/${encodeURIComponent(name)}`,
-        { method: 'DELETE', headers: this.headers() },
-      );
+      await fetch(DYNAMIC_ENDPOINTS.tagByName(name), {
+        method: 'DELETE',
+        headers: this.headers(),
+      });
     } catch {
       // Optimistic removal stands.
     }
@@ -179,7 +181,7 @@ export class PromptTagService {
   async resetDefaults(): Promise<void> {
     this.customTags.set([]);
     try {
-      await fetch(`${environment.apiBaseUrl}/user/tags/reset`, {
+      await fetch(API_URLS.tagsReset, {
         method: 'DELETE',
         headers: this.headers(),
       });

@@ -15,12 +15,15 @@ test.describe('Live English Teacher - App Shell & Chat Flow', () => {
   test('displays chat input and allows typing', async ({ page }) => {
     await page.goto('/');
 
-    // Locate the textarea / input in chat-input
-    const input = page.locator('textarea, input[type="text"]').first();
-    await expect(input).toBeVisible();
+    // Wait for app to be ready
+    await page.waitForSelector('app-root');
 
-    await input.fill('Hello AI Tutor!');
-    await expect(input).toHaveValue('Hello AI Tutor!');
+    // Locate the textarea in chat-input component specifically
+    const textarea = page.locator('textarea:not([readonly])').first();
+    await expect(textarea).toBeVisible();
+
+    await textarea.fill('Hello AI Tutor!');
+    await expect(textarea).toHaveValue('Hello AI Tutor!');
   });
 
   test('opens and navigates settings modal', async ({ page }) => {

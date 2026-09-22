@@ -1,0 +1,89 @@
+<div
+  class="fixed inset-0 z-50 flex flex-col items-center justify-between overflow-hidden bg-base-100 font-sans text-base-content"
+>
+  <div class="pointer-events-none absolute inset-0 bg-primary/10"></div>
+
+  <div class="relative z-10 flex w-full items-center justify-between p-6">
+    <div class="flex items-center gap-2">
+      <div class="h-2 w-2 animate-pulse rounded-full bg-success"></div>
+      <span
+        class="text-sm font-medium tracking-wider text-base-content/60 uppercase"
+        >Live Call</span
+      >
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="dropdown dropdown-end dropdown-bottom">
+        <button
+          tabindex="0"
+          type="button"
+          class="flex items-center gap-1.5 rounded-full border border-base-300/50 bg-base-200/80 px-3 py-1.5 text-xs font-medium text-base-content/70 backdrop-blur-sm transition-colors hover:bg-base-300/50"
+        >
+          <span>{{ currentFlag() }}</span>
+          <span>{{ currentLanguageName() }}</span>
+          <svg lucideChevronDown class="h-3 w-3 opacity-50"></svg>
+        </button>
+        <ul
+          tabindex="0"
+          class="menu dropdown-content z-50 mb-2 w-40 rounded-2xl border border-base-300 bg-base-200 p-1.5 shadow-2xl"
+        >
+          @for (lang of languages(); track lang.code) {
+            <li>
+              <button
+                type="button"
+                (click)="onLanguageSelect(lang.code)"
+                class="flex items-center gap-2 rounded-xl py-1.5 text-xs"
+                [class.font-semibold]="lang.code === selectedLanguage()"
+                [class.text-primary]="lang.code === selectedLanguage()"
+              >
+                <span>{{ lang.flag }}</span>
+                <span>{{ lang.name }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="text-sm font-medium text-base-content/40">
+        {{ duration() }}
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="relative z-10 flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4"
+  >
+    <app-call-status [callState]="callState()" [transcript]="transcript()" />
+
+    <div class="relative flex h-32 w-full items-center justify-center gap-1.5">
+      <!-- $index volontaire : tableau de barres de visualiseur dynamique généré à la volée -->
+      @for (bar of bars; track $index) {
+        <div
+          class="w-1.5 rounded-full transition-all duration-75 ease-in-out md:w-2"
+          [class.bg-primary]="callState() === 'listening'"
+          [class.bg-secondary]="callState() === 'speaking'"
+          [class.bg-warning]="callState() === 'processing'"
+          [class.bg-base-300]="callState() === 'idle'"
+          [style.height.%]="getBarHeight($index)"
+          [style.opacity]="getBarOpacity($index)"
+        ></div>
+      }
+    </div>
+  </div>
+
+  <div
+    class="relative z-10 flex w-full items-center justify-center gap-6 p-8 md:gap-8 md:p-12"
+  >
+    <button (click)="toggleMuteState()" class="btn btn-circle btn-ghost">
+      @if (isMuted()) {
+        <svg lucideMicOff class="h-6 w-6 text-error"></svg>
+      } @else {
+        <svg lucideMic class="h-6 w-6"></svg>
+      }
+    </button>
+
+    <button (click)="onEndCall()" class="btn btn-circle btn-error btn-lg">
+      <svg lucidePhoneOff class="h-8 w-8"></svg>
+    </button>
+  </div>
+</div>

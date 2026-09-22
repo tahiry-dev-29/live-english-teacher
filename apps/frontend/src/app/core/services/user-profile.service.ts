@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
-import { environment } from '@environment';
 import { getDeviceKey } from '../utils/device-key.util';
+import { API_URLS } from '@shared/constants/api-config';
 
 export interface UserProfile {
   displayName: string;
@@ -24,6 +24,7 @@ export class UserProfileService {
   readonly specialization = signal<string>('');
   readonly profession = signal<string>('');
   readonly loading = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
 
   readonly hasProfile = computed(
     () =>
@@ -51,16 +52,20 @@ export class UserProfileService {
     return this.inflight;
   }
 
+  /** Never rejects: backend down (ERR_CONNECTION_REFUSED) → error signal. */
   async load(): Promise<void> {
     this.loading.set(true);
+    this.error.set(null);
     try {
-      const res = await fetch(`${environment.apiBaseUrl}/user/profile`, {
+      const res = await fetch(API_URLS.profile, {
         headers: this.headers(),
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error(`Profile unavailable (${res.status}).`);
       const profile = (await res.json()) as Partial<UserProfile> | null;
       if (profile) this.apply(profile);
       this.loaded = true;
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Load failed.');
     } finally {
       this.loading.set(false);
     }
@@ -74,7 +79,7 @@ export class UserProfileService {
   /** Persist current signals to the server. */
   async saveProfile(): Promise<void> {
     try {
-      await fetch(`${environment.apiBaseUrl}/user/profile`, {
+      await fetch(API_URLS.profile, {
         method: 'PUT',
         headers: this.headers(),
         body: JSON.stringify({

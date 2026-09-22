@@ -33,8 +33,7 @@ export class LiveResolver {
       title: session.title || 'New Conversation',
       learningLanguage: session.learningLanguage || undefined,
       isPinned:
-        Boolean((session as any).isPinned) ||
-        this.chatHistoryService.isSessionPinned(session.id),
+        session.isPinned || this.chatHistoryService.isSessionPinned(session.id),
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       lastMessage: session.messages?.[0]?.content,
@@ -53,8 +52,7 @@ export class LiveResolver {
       title: session.title || 'New Conversation',
       learningLanguage: session.learningLanguage ?? 'en',
       isPinned:
-        Boolean((session as any).isPinned) ||
-        this.chatHistoryService.isSessionPinned(session.id),
+        session.isPinned || this.chatHistoryService.isSessionPinned(session.id),
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       messages: session.messages.map((msg) => ({
@@ -207,7 +205,7 @@ export class LiveResolver {
       isPinned:
         data.isPinned !== undefined
           ? data.isPinned
-          : Boolean((session as any).isPinned) ||
+          : session.isPinned ||
             this.chatHistoryService.isSessionPinned(session.id),
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),

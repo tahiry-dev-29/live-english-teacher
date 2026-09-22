@@ -11,12 +11,15 @@
     "isolatedModules": true,
     "emitDecoratorMetadata": false,
     "module": "preserve",
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
-      "@environment": ["environments/environment"],
-      "@models/*": ["app/models/*"],
-      "@core/*": ["app/core/*"],
-      "@features/*": ["app/features/*"]
+      "@environment": ["./src/environments/environment"],
+      "@models/*": ["./src/app/models/*"],
+      "@core/*": ["./src/app/core/*"],
+      "@features/*": ["./src/app/features/*"],
+      "@app-shared/*": ["./src/app/shared/*"],
+      "@shared/constants": ["../../libs/shared/constants/index.ts"],
+      "@shared/constants/*": ["../../libs/shared/constants/*"]
     }
   },
   "angularCompilerOptions": {

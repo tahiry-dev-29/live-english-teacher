@@ -20,7 +20,9 @@
       ],
       "@live-languages-teacher/feature-live": [
         "libs/backend/feature-live/src/index.ts"
-      ]
+      ],
+      "@shared/constants": ["libs/shared/constants/index.ts"],
+      "@shared/constants/*": ["libs/shared/constants/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]

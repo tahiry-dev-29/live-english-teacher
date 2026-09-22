@@ -98,8 +98,13 @@ export class AiStreamController {
     if (deepseekApiKey) keys['deepseek'] = deepseekApiKey;
     if (qwenApiKey) keys['qwen'] = qwenApiKey;
 
+    const effectiveProvider =
+      headerProvider && headerProvider !== 'default'
+        ? headerProvider
+        : undefined;
+
     return this.aiModelsService.getModels({
-      provider: headerProvider,
+      provider: effectiveProvider,
       keys,
       groqApiKey,
       geminiApiKey,
@@ -123,7 +128,9 @@ export class AiStreamController {
     @Headers('x-minimax-tts-key') minimaxKey?: string,
     @Headers('x-provider-api-key') providerKey?: string,
   ): Promise<{ id: string; name: string; description?: string }[]> {
-    const activeProvider = ttsProviderHeader || provider || 'elevenlabs';
+    const rawProvider = ttsProviderHeader || provider;
+    const activeProvider =
+      rawProvider === 'default' ? 'elevenlabs' : rawProvider || 'elevenlabs';
     const keyMap: Record<string, string | undefined> = {
       azure: azureKey,
       elevenlabs: elevenKey,
@@ -150,7 +157,9 @@ export class AiStreamController {
     @Headers('x-aws-polly-key') pollyKey?: string,
     @Headers('x-minimax-tts-key') minimaxKey?: string,
   ): Promise<TtsVoiceInfo[]> {
-    const activeProvider = ttsProviderHeader || provider || 'elevenlabs';
+    const rawProvider = ttsProviderHeader || provider;
+    const activeProvider =
+      rawProvider === 'default' ? 'elevenlabs' : rawProvider || 'elevenlabs';
     const keyMap: Record<string, string | undefined> = {
       azure: azureKey,
       elevenlabs: elevenKey,

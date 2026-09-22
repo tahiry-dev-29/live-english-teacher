@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { ThemeService } from '@core/services/theme.service';
+import { ThemeService } from '@features/settings/services/theme.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,

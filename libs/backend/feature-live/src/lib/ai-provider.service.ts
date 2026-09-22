@@ -104,16 +104,13 @@ export class AiProviderService {
     }
 
     if (activeProvider === 'gemini') {
-      const text = await this.geminiLiveService.getGeminiChatResponse(
+      yield* this.geminiLiveService.generateStream(
         history,
         content,
-        undefined,
-        undefined,
         targetLanguage,
         options.model,
         options.geminiApiKey || options.customApiKey,
       );
-      yield text;
       return;
     }
 
