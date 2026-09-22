@@ -1,0 +1,70 @@
+<div
+  class="voice-control-bar flex h-12 w-[300px] min-w-0 items-center gap-1.5 overflow-hidden rounded-full border border-base-300/60 bg-base-200/95 py-0.5 pr-1.5 pl-0.5 shadow-md backdrop-blur-sm"
+>
+  <button
+    type="button"
+    (click)="togglePlayPause()"
+    class="btn btn-circle min-h-0 shrink-0 border-none shadow-sm btn-primary btn-sm"
+    [attr.aria-label]="
+      loading() ? 'Loading audio' : isPlaying() ? 'Pause' : 'Play'
+    "
+    [disabled]="loading()"
+  >
+    @if (loading()) {
+      <svg lucideLoader class="h-3.5 w-3.5 animate-spin"></svg>
+    } @else if (isPlaying()) {
+      <svg lucidePause class="h-3.5 w-3.5"></svg>
+    } @else {
+      <svg lucidePlay class="ml-0.5 h-3.5 w-3.5"></svg>
+    }
+  </button>
+
+  <div class="flex min-w-0 flex-1 flex-col justify-center gap-px">
+    <div
+      class="font-mono text-xs leading-none font-medium text-base-content/60 tabular-nums"
+    >
+      {{ formatTime(currentTime()) }}
+      <span class="text-base-content/35"
+        >/ {{ formatTime(totalDuration()) }}</span
+      >
+    </div>
+
+    <div class="relative min-w-0 flex-1">
+      <div
+        class="relative flex h-5 w-full min-w-0 cursor-pointer items-center gap-px overflow-hidden"
+        (click)="seekToPosition($event)"
+        (keydown)="handleKeydown($event)"
+        tabindex="0"
+        role="slider"
+        [attr.aria-label]="'Seek audio position'"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="totalDuration()"
+        [attr.aria-valuenow]="currentTime()"
+      >
+        @for (bar of waveformBars(); track $index) {
+          <div
+            class="min-w-[1.5px] flex-1 rounded-full transition-all duration-75"
+            [class.bg-primary]="isBarPlayed($index)"
+            [class.bg-base-content/15]="!isBarPlayed($index)"
+            [style.height.px]="getBarHeight(bar)"
+          ></div>
+        }
+      </div>
+
+      <div
+        class="pointer-events-none absolute bottom-0 left-0 h-px rounded-full bg-primary transition-all duration-75"
+        [style.width.%]="progress()"
+      ></div>
+    </div>
+  </div>
+
+  <button
+    type="button"
+    (click)="stopPlayback()"
+    class="btn btn-circle h-6 min-h-0 w-6 shrink-0 btn-ghost text-base-content/50 btn-xs hover:text-error"
+    [attr.aria-label]="'Stop'"
+    title="Stop"
+  >
+    <svg lucideSquare class="h-3 w-3"></svg>
+  </button>
+</div>

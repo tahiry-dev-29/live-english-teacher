@@ -6,6 +6,9 @@ import {
   buildChatPayload,
   buildTtsPayload,
   resolveGeminiUrl,
+  resolveGeminiStreamUrl,
+  postJson,
+  streamResponseDeltas,
   getVoiceForLanguage,
   extractResponseText,
   extractResponseAudio,
@@ -13,19 +16,12 @@ import {
 } from './gemini-live.util';
 import { QuotaExceededError } from '../groq-live/groq-live.service';
 import { BACKEND_MESSAGES } from '../constants/messages';
-
-/** Low-level Gemini REST helpers shared by all Gemini Live service methods. */
-const postJson = async (url: string, payload: unknown): Promise<Response> =>
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+import { GEMINI_CONFIG } from '@shared/constants';
 
 @Injectable()
 export class GeminiLiveService {
   private readonly logger = new Logger(GeminiLiveService.name);
-  private readonly apiUrlBase = process.env['apiUrlBase'];
+  private readonly apiUrlBase = process.env[GEMINI_CONFIG.customBaseUrlEnv];
 
   async getGeminiChatResponse(
     history: ChatMessage[],
@@ -71,6 +67,63 @@ export class GeminiLiveService {
       }
       return BACKEND_MESSAGES.error.geminiConnectivity;
     }
+  }
+
+  /** True token streaming via `streamGenerateContent` (SSE). 429/402 on the
+   * server key throws QuotaExceededError, like the Groq path. */
+  async *generateStream(
+    history: ChatMessage[],
+    newMessage: string,
+    targetLanguage = 'English',
+    modelOverride?: string,
+    apiKeyOverride?: string,
+  ): AsyncGenerator<string, void, unknown> {
+    const key = apiKeyOverride || GEMINI_API_KEY || '';
+    if (!key) {
+      this.logger.warn(BACKEND_MESSAGES.log.geminiKeyMissing);
+      yield BACKEND_MESSAGES.error.geminiApiKeyMissing;
+      return;
+    }
+
+    const url = resolveGeminiStreamUrl(
+      this.apiUrlBase,
+      modelOverride || GEMINI_CHAT_MODEL,
+      key,
+    );
+    const payload = buildChatPayload(
+      history,
+      newMessage,
+      undefined,
+      undefined,
+      targetLanguage,
+    );
+
+    let response: Response;
+    try {
+      response = await postJson(url, payload);
+    } catch (error) {
+      this.logger.error(
+        BACKEND_MESSAGES.template.geminiChatError(
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
+      yield BACKEND_MESSAGES.error.geminiConnectivity;
+      return;
+    }
+
+    if (!response.ok || !response.body) {
+      if (
+        (response.status === 429 || response.status === 402) &&
+        !apiKeyOverride
+      ) {
+        throw new QuotaExceededError('gemini');
+      }
+      this.logger.error(`Gemini stream error: ${response.status}`);
+      yield BACKEND_MESSAGES.error.geminiConnectivity;
+      return;
+    }
+
+    yield* streamResponseDeltas(response);
   }
 
   async getGeminiTtsAudio(

@@ -45,7 +45,9 @@ export const MESSAGES = {
     audioPlayFailed: 'Failed to play audio:',
     ttsSpeakFailed: 'TTS speak() failed:',
     ttsRequestFailed: 'ElevenLabs TTS request failed:',
-    ttsFallback: 'ElevenLabs TTS failed, falling back to Web Speech:',
+    ttsFallback: 'TTS service unavailable, falling back to Web Speech:',
+    ttsUnavailable: (provider: string): string =>
+      `TTS not available for provider "${provider}". Using fallback.`,
     audioFallback: 'Audio playback error, fallback to Web Speech',
     audioFallbackFailed: 'Audio play error, fallback to Web Speech:',
     vadStartFailed: 'Error starting VAD:',

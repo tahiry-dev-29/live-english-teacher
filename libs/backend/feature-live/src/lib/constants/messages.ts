@@ -90,4 +90,10 @@ export const BACKEND_MESSAGES = {
     genkitRunning: (url: string): string =>
       `GenKit Flow Server is running on: ${url}`,
   },
+  server: {
+    applicationRunning: (port: string | number, prefix: string): string =>
+      `Application is running on: http://localhost:${port}/${prefix}`,
+    genkitRunning: (port: string | number): string =>
+      `GenKit Flow Server is running on: http://localhost:${port}`,
+  },
 } as const;

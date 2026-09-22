@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { Session } from '@models/session.model';
 import { NotificationService } from '@core/services/notification.service';
-import { ChatService } from '@core/services/chat.service';
+import { ChatService } from '@features/chat/services/chat.service';
 import {
   LucideX,
   LucideCopy,

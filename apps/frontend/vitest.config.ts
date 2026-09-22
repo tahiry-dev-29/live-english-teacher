@@ -18,7 +18,10 @@ export default defineConfig({
       {
         // Exact key (vite-tsconfig-paths maps wildcards only): bare barrel…
         find: /^@shared\/constants$/,
-        replacement: path.resolve(__dirname, '../../libs/shared/constants/index.ts'),
+        replacement: path.resolve(
+          __dirname,
+          '../../libs/shared/constants/index.ts',
+        ),
       },
       {
         // …and subpath imports (@shared/constants/api-config etc.).

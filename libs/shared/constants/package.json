@@ -1,0 +1,11 @@
+{
+  "name": "@live-languages-teacher/shared-constants",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./index.ts",
+    "./api-endpoints": "./api-endpoints.ts",
+    "./external-apis": "./external-apis.ts",
+    "./api-config": null
+  }
+}

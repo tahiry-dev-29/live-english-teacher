@@ -37,15 +37,13 @@ describe('UserProfileService (server-backed)', () => {
   });
 
   it('loads the profile once and exposes signals', async () => {
-    const fetchMock = vi
-      .mocked(fetch)
-      .mockResolvedValue(
-        jsonResponse({
-          displayName: 'Tahiry',
-          profession: 'Teacher',
-          specialization: 'kids',
-        }),
-      );
+    const fetchMock = vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({
+        displayName: 'Tahiry',
+        profession: 'Teacher',
+        specialization: 'kids',
+      }),
+    );
     await service.ensureLoaded();
     await service.ensureLoaded();
     expect(service.displayName()).toBe('Tahiry');
@@ -66,5 +64,12 @@ describe('UserProfileService (server-backed)', () => {
 
   it('returns empty context without a profile', () => {
     expect(service.buildProfileContext()).toBe('');
+  });
+
+  it('surfaces backend-down as error without rejecting', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(service.ensureLoaded()).resolves.toBeUndefined();
+    expect(service.error()).toMatch(/Failed to fetch/);
+    expect(service.displayName()).toBe('');
   });
 });

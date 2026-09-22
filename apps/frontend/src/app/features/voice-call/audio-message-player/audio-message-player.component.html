@@ -1,0 +1,48 @@
+<div
+  class="audio-player flex w-full max-w-xs min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-base-300 bg-base-200 px-4 py-3 transition-colors"
+>
+  <button
+    (click)="togglePlay()"
+    class="btn btn-circle border-none bg-primary text-primary-content shadow-md transition-transform btn-sm hover:scale-105"
+    [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
+  >
+    @if (isPlaying()) {
+      <svg lucidePause class="h-5 w-5"></svg>
+    } @else {
+      <svg lucidePlay class="ml-0.5 h-5 w-5"></svg>
+    }
+  </button>
+
+  <div class="flex min-w-0 flex-1 flex-col gap-1">
+    <div
+      class="flex h-8 min-w-0 cursor-pointer items-center gap-0.5 overflow-hidden"
+      role="slider"
+      tabindex="0"
+      [attr.aria-label]="'Seek audio'"
+      [attr.aria-valuemin]="0"
+      [attr.aria-valuemax]="duration()"
+      [attr.aria-valuenow]="currentTime()"
+      (click)="seekToPosition($event)"
+      (keydown.arrowright)="seekBy(5)"
+      (keydown.arrowleft)="seekBy(-5)"
+      #waveformContainer
+    >
+      <!-- $index volontaire : échantillon waveform fixe sans ID unique -->
+      @for (bar of waveformBars(); track $index) {
+        <div
+          class="w-1 rounded-full transition-all duration-75"
+          [class.bg-primary]="isBarPlayed($index)"
+          [class.bg-base-300]="!isBarPlayed($index)"
+          [style.height.px]="getBarHeight(bar)"
+        ></div>
+      }
+    </div>
+
+    <div
+      class="flex justify-between font-mono text-[11px] text-base-content/60"
+    >
+      <span>{{ formatTime(currentTime()) }}</span>
+      <span>{{ formatTime(duration()) }}</span>
+    </div>
+  </div>
+</div>

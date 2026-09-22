@@ -64,6 +64,13 @@ describe('PromptTagService (server-backed)', () => {
     expect(service.buildSystemPrompt('go #exam')).toContain('Grade strictly.');
   });
 
+  it('surfaces backend-down as error without rejecting', async () => {
+    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(service.ensureLoaded()).resolves.toBeUndefined();
+    expect(service.error()).toMatch(/Failed to fetch/);
+    expect(service.allTags()).toEqual([]);
+  });
+
   it('adds a custom tag and flags it', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(jsonResponse({ defaults: DEFAULTS, custom: [] }))

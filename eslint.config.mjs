@@ -52,4 +52,19 @@ export default [
       ],
     },
   },
+  // Test files: allow `any` and non-null assertions for practical testing
+  {
+    files: [
+      '**/*.spec.ts',
+      '**/*.test.ts',
+      '**/*.spec.tsx',
+      '**/*.test.tsx',
+      '**/testing/**/*.ts',
+      '**/mocks/**/*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
 ];

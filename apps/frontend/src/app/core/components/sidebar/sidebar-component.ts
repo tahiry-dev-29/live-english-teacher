@@ -12,7 +12,7 @@ import { UserMenuComponent } from '../user-menu/user-menu-component';
 import { SidebarSearchModalComponent } from './sidebar-search-modal.component';
 import { SidebarSessionListComponent } from './sidebar-session-list.component';
 import { PwaService } from '@core/services/pwa.service';
-import { ThemeService } from '@core/services/theme.service';
+import { ThemeService } from '@features/settings/services/theme.service';
 import {
   LucideSquarePen,
   LucideSearch,
@@ -155,7 +155,7 @@ export class SidebarComponent {
     if (this.isMobile) this.isOpen.set(false);
   }
 
-  private checkScreenSize(): void {
+  protected checkScreenSize(): void {
     this.isMobile = window.innerWidth < 768;
     if (this.isMobile) {
       this.isOpen.set(false);

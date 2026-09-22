@@ -1,0 +1,189 @@
+<!-- Theme Selection (Mini UI cards) -->
+<div class="space-y-2">
+  <p class="text-xs font-medium tracking-wider text-base-content/50 uppercase">
+    {{ t('general.theme') }}
+  </p>
+  <div class="grid grid-cols-3 gap-3">
+    <!-- Dark Card (Halloween theme) -->
+    <button
+      type="button"
+      class="group relative flex flex-col items-start gap-2.5 rounded-xl border p-2 text-left transition-all hover:border-primary/50"
+      [class.border-primary]="themeService.theme() === 'dark'"
+      [class.bg-primary/5]="themeService.theme() === 'dark'"
+      [class.border-base-300]="themeService.theme() !== 'dark'"
+      (click)="themeService.setTheme('dark')"
+    >
+      <!-- Realistic mini app mockup: Dark theme (indigo-blue on dark base) -->
+      <div
+        data-theme="app-dark"
+        class="w-full rounded-lg border border-base-content/10 bg-base-100 p-2 shadow-xs"
+      >
+        <!-- Window top bar -->
+        <div
+          class="mb-1.5 flex items-center justify-between border-b border-base-content/10 pb-1.5"
+        >
+          <div class="flex items-center gap-1">
+            <div class="h-1.5 w-1.5 rounded-full bg-error"></div>
+            <div class="h-1.5 w-1.5 rounded-full bg-warning"></div>
+            <div class="h-1.5 w-1.5 rounded-full bg-success"></div>
+          </div>
+          <div class="h-1.5 w-8 rounded-full bg-base-content/20"></div>
+        </div>
+        <!-- Mini app layout: sidebar + content area -->
+        <div class="flex gap-1.5">
+          <!-- Mini sidebar -->
+          <div class="w-1/4 space-y-1 rounded bg-base-200 p-1">
+            <div class="h-1.5 w-full rounded bg-primary"></div>
+            <div class="h-1 w-3/4 rounded bg-base-content/20"></div>
+            <div class="h-1 w-1/2 rounded bg-base-content/20"></div>
+          </div>
+          <!-- Mini chat body -->
+          <div class="flex-1 space-y-1 rounded bg-base-200/50 p-1">
+            <div class="flex justify-start">
+              <div class="h-2 w-3/5 rounded bg-base-300"></div>
+            </div>
+            <div class="flex justify-end">
+              <div class="h-2 w-4/5 rounded bg-primary"></div>
+            </div>
+            <div class="flex justify-start">
+              <div class="h-2 w-1/2 rounded bg-base-300"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card footer -->
+      <div class="flex w-full items-center justify-between px-0.5">
+        <div class="flex items-center gap-1.5">
+          <svg lucideMoon class="h-3.5 w-3.5 text-base-content/70"></svg>
+          <span class="text-xs font-medium">{{ t('general.theme.dark') }}</span>
+        </div>
+        @if (themeService.theme() === 'dark') {
+          <span class="badge badge-xs badge-primary">Active</span>
+        }
+      </div>
+    </button>
+
+    <!-- Light Card (Emerald theme) -->
+    <button
+      type="button"
+      class="group relative flex flex-col items-start gap-2.5 rounded-xl border p-2 text-left transition-all hover:border-primary/50"
+      [class.border-primary]="themeService.theme() === 'light'"
+      [class.bg-primary/5]="themeService.theme() === 'light'"
+      [class.border-base-300]="themeService.theme() !== 'light'"
+      (click)="themeService.setTheme('light')"
+    >
+      <!-- Realistic mini app mockup: Light theme (indigo-blue on light base) -->
+      <div
+        data-theme="app-light"
+        class="w-full rounded-lg border border-base-content/10 bg-base-100 p-2 shadow-xs"
+      >
+        <!-- Window top bar -->
+        <div
+          class="mb-1.5 flex items-center justify-between border-b border-base-content/10 pb-1.5"
+        >
+          <div class="flex items-center gap-1">
+            <div class="h-1.5 w-1.5 rounded-full bg-error"></div>
+            <div class="h-1.5 w-1.5 rounded-full bg-warning"></div>
+            <div class="h-1.5 w-1.5 rounded-full bg-success"></div>
+          </div>
+          <div class="h-1.5 w-8 rounded-full bg-base-content/20"></div>
+        </div>
+        <!-- Mini app layout: sidebar + content area -->
+        <div class="flex gap-1.5">
+          <!-- Mini sidebar -->
+          <div class="w-1/4 space-y-1 rounded bg-base-200 p-1">
+            <div class="h-1.5 w-full rounded bg-primary"></div>
+            <div class="h-1 w-3/4 rounded bg-base-content/20"></div>
+            <div class="h-1 w-1/2 rounded bg-base-content/20"></div>
+          </div>
+          <!-- Mini chat body -->
+          <div class="flex-1 space-y-1 rounded bg-base-200/50 p-1">
+            <div class="flex justify-start">
+              <div class="h-2 w-3/5 rounded bg-base-300"></div>
+            </div>
+            <div class="flex justify-end">
+              <div class="h-2 w-4/5 rounded bg-primary"></div>
+            </div>
+            <div class="flex justify-start">
+              <div class="h-2 w-1/2 rounded bg-base-300"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card footer -->
+      <div class="flex w-full items-center justify-between px-0.5">
+        <div class="flex items-center gap-1.5">
+          <svg lucideSun class="h-3.5 w-3.5 text-base-content/70"></svg>
+          <span class="text-xs font-medium">{{
+            t('general.theme.light')
+          }}</span>
+        </div>
+        @if (themeService.theme() === 'light') {
+          <span class="badge badge-xs badge-primary">Active</span>
+        }
+      </div>
+    </button>
+
+    <!-- System Card -->
+    <button
+      type="button"
+      class="group relative flex flex-col items-start gap-2.5 rounded-xl border p-2 text-left transition-all hover:border-primary/50"
+      [class.border-primary]="themeService.theme() === 'system'"
+      [class.bg-primary/5]="themeService.theme() === 'system'"
+      [class.border-base-300]="themeService.theme() !== 'system'"
+      (click)="themeService.setTheme('system')"
+    >
+      <!-- Realistic mini app mockup: Split Dark & Light (same indigo-blue brand) -->
+      <div
+        class="flex w-full overflow-hidden rounded-lg border border-base-content/10 shadow-xs"
+      >
+        <!-- Left: app-dark half -->
+        <div data-theme="app-dark" class="w-1/2 bg-base-100 p-2">
+          <div
+            class="mb-1.5 flex items-center gap-1 border-b border-base-content/10 pb-1.5"
+          >
+            <div class="h-1.5 w-1.5 rounded-full bg-error"></div>
+            <div class="h-1.5 w-1.5 rounded-full bg-warning"></div>
+          </div>
+          <div class="space-y-1">
+            <div class="h-1.5 w-full rounded bg-primary"></div>
+            <div class="h-2 w-4/5 rounded bg-base-300"></div>
+            <div class="h-2 w-3/5 rounded bg-primary"></div>
+          </div>
+        </div>
+
+        <!-- Right: app-light half -->
+        <div
+          data-theme="app-light"
+          class="w-1/2 border-l border-base-content/10 bg-base-100 p-2"
+        >
+          <div
+            class="mb-1.5 flex items-center justify-end gap-1 border-b border-base-content/10 pb-1.5"
+          >
+            <div class="h-1.5 w-1.5 rounded-full bg-success"></div>
+          </div>
+          <div class="space-y-1">
+            <div class="h-1.5 w-full rounded bg-primary"></div>
+            <div class="h-2 w-4/5 rounded bg-base-300"></div>
+            <div class="h-2 w-3/5 rounded bg-primary"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card footer -->
+      <div class="flex w-full items-center justify-between px-0.5">
+        <div class="flex items-center gap-1.5">
+          <svg lucideMonitor class="h-3.5 w-3.5 text-base-content/70"></svg>
+          <span class="text-xs font-medium">{{
+            t('general.theme.system')
+          }}</span>
+        </div>
+        @if (themeService.theme() === 'system') {
+          <span class="badge badge-xs badge-primary">Active</span>
+        }
+      </div>
+    </button>
+  </div>
+</div>

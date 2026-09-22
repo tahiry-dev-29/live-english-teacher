@@ -1,0 +1,128 @@
+<div class="space-y-5">
+  <app-select
+    selectId="settings-tts-provider"
+    [label]="t('voices.provider')"
+    [options]="ttsProviderOptions()"
+    [value]="ttsService.selectedProviderId()"
+    (valueChange)="onProviderSelect($event)"
+    size="sm"
+    color="primary"
+  />
+  @if (
+    ttsService.selectedProviderId() !== 'default' &&
+    ttsService.selectedProviderId() !== 'browser' &&
+    selectedProviderMeta()?.hasCustomKeys
+  ) {
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-medium uppercase opacity-50">
+          API Key ({{ selectedProviderMeta()?.label }})
+        </p>
+        @if (currentKeyValue()) {
+          <span class="badge badge-xs badge-success">Active</span>
+        } @else {
+          <span class="badge badge-xs badge-warning">Required</span>
+        }
+      </div>
+      <div class="join w-full">
+        <input
+          [type]="showKey() ? 'text' : 'password'"
+          class="input-bordered input join-item flex-1 font-mono text-xs input-sm"
+          placeholder="Enter API key for live voices…"
+          [value]="currentKeyValue()"
+          (input)="onKeyInput($event)"
+        />
+        <button
+          type="button"
+          class="btn join-item btn-ghost btn-sm"
+          (click)="showKey.set(!showKey())"
+          aria-label="Toggle key visibility"
+        >
+          @if (showKey()) {
+            <svg lucideEyeOff class="h-4 w-4"></svg>
+          } @else {
+            <svg lucideEye class="h-4 w-4"></svg>
+          }
+        </button>
+        @if (currentKeyValue()) {
+          <button
+            type="button"
+            class="btn join-item btn-ghost text-error btn-sm"
+            (click)="onClearKey()"
+          >
+            Reset
+          </button>
+        }
+      </div>
+    </div>
+  }
+  @if (ttsService.loading()) {
+    <p class="py-2 text-xs opacity-60">Loading models…</p>
+  } @else if (ttsService.ttsModels().length > 0) {
+    <app-select
+      selectId="settings-tts-model"
+      [label]="t('voices.model')"
+      [options]="ttsModelOptions()"
+      [(value)]="ttsService.selectedModelId"
+      size="sm"
+      color="primary"
+    />
+  } @else if (selectedProviderMeta()?.defaultModel) {
+    <app-select
+      selectId="settings-tts-model"
+      [label]="t('voices.model')"
+      [options]="ttsModelOptions()"
+      [(value)]="ttsService.selectedModelId"
+      size="sm"
+      color="primary"
+    />
+    <p class="text-xs opacity-60">{{ t('voices.model_default_hint') }}</p>
+  }
+  <div class="space-y-2">
+    <p class="text-xs font-medium uppercase opacity-50">
+      {{ t('voices.title') }} ({{ ttsService.voices().length }})
+    </p>
+    @if (ttsService.loading()) {
+      <p class="py-2 text-xs opacity-60">
+        {{ t('voices.loading_voices') }}
+      </p>
+    } @else if (ttsService.voices().length === 0 && ttsService.liveError()) {
+      <div
+        class="rounded-lg border border-dashed p-4 text-center text-xs opacity-60"
+      >
+        <p>{{ ttsService.liveError() }}</p>
+        @if (!currentKeyValue()) {
+          <p class="mt-1">
+            {{ t('voices.hint_no_key') }}
+          </p>
+        }
+      </div>
+    } @else if (ttsService.voices().length === 0) {
+      <div
+        class="rounded-lg border border-dashed p-4 text-center text-xs opacity-60"
+      >
+        {{ t('voices.no_voices_available') }}
+      </div>
+    } @else {
+      <app-select
+        selectId="settings-tutor-voice"
+        [options]="voiceOptions()"
+        [(value)]="ttsService.selectedVoiceId"
+        size="sm"
+        color="primary"
+      />
+      <app-voice-live-test [voiceId]="ttsService.selectedVoiceId()" />
+    }
+  </div>
+  <div class="space-y-1.5 border-t border-base-300 pt-4">
+    <app-select
+      selectId="settings-stt-model"
+      [label]="t('voices.stt_model')"
+      [options]="sttModelOptions()"
+      [(value)]="ttsService.selectedSttModel"
+      size="sm"
+      color="primary"
+    />
+  </div>
+  <app-browser-voice-picker />
+</div>
