@@ -1,6 +1,7 @@
 # Task 32 — Enterprise Error Handling & User Notification Architecture
 
-**Status: TODO**
+**Status: DONE (re-vérifié 2026-09-22 — thr-up dev séquentiel)**
+**Plan:** plan-001
 **Priority:** 🔴 High — depends on Task 31 (`MESSAGES` constants already merged)
 
 ## Goal
@@ -119,3 +120,10 @@ core/
 6. **Lint**: `nx run frontend:lint` → 0 errors (targeted eslint-disable for `LoggingService`)
 7. **Prettier**: `pnpm format:check` → clean
 8. **Manual test**: 1 SSE error + 1 HTTP error → 1 DaisyUI error toast + 1 filtered console log
+
+---
+
+**✅ thr-up dev 2026-09-22 (T31+T32 exécutés réellement) :**
+- T31 : `MESSAGES`/`MESSAGE_TEMPLATES`/`ERROR_CODES` + `formatApiError`/`resolveApiErrorCode` + `ChatMessage.kind` : déjà en place et vérifiés (0 `⚠️`, 0 `startsWith('Error')`, banner quota en lucide, `kind:'error'`).
+- T32 reliquat comblé : `alert(microphoneAccessDenied)` → `notificationService.warning()` (chat-page) ; `main.ts` backend → `BACKEND_MESSAGES.server.*` (0 emoji) ; nouveau `LoggingService` (masquage key/token/password, préfixe `[live-teacher]`) ; 12 call-sites `console.*` migrés vers `this.logger.*` ; nouveau `ErrorInterceptorService.fetchWithErrors` (retry 1x 5xx + toast) ; `GlobalErrorHandler` enregistré dans `app.config.ts` (`provide ErrorHandler`).
+- Preuves : `tsc` frontend+backend 0 errors · specs ciblées vertes (api-error 9, utils 23, notification 5, message 4, backend user-data 15) · `grep console.*` → seul `main.ts` bootstrap + 1 commentaire.

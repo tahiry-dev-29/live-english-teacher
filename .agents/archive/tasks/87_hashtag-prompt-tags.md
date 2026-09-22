@@ -1,6 +1,7 @@
 # Task 87 — Hashtag skill tags (#correction, #spoken, …) + custom tags CRUD
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🟡 Moyen
 
 ## Goal
@@ -36,3 +37,7 @@ telling the AI what to do in that chat (pronunciation only, correction only…).
 ---
 
 **Validated 2026-09-21:** `pnpm lint` (4 projects, 0 errors) · `pnpm format:check` clean · `pnpm build` success · `tsc --noEmit -p apps/frontend/tsconfig.app.json` 0 errors · backend unit 78 pass · frontend unit 41 pass · theme-token guard OK.
+
+---
+
+**✅ Enterprise 2026-09-21 :** `PromptTag` en DB (custom seuls, `@@unique(deviceKey, name)`), 15 built-ins = source unique `prompt-tags.defaults.ts` servie par `GET /api/user/tags`, CRUD + reset via `/api/user/tags/*` (conflit built-in/doublon → 409). Frontend 100 % backend (`ensureLoaded` + suggest synchrone). Preuve live : 15 defaults reçus du PG. Specs : 5 tests backend + 3 frontend, tous verts.

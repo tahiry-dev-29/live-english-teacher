@@ -1,6 +1,7 @@
 # Task 89 — Reusable 3-dots menu (single dropdown component/style)
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🟡 Moyen
 
 ## Goal
@@ -34,3 +35,7 @@ backdrop-blur-md dropdown-top dropdown-end`. Refactor once, reuse everywhere.
 ---
 
 **⚠️ Re-validation thr-feat 2026-09-21 (run réel):** checks ci-dessus reproduits à l'identique. MAIS le critère « `rg LucideEllipsis` → only `dropdown-menu.component.ts` » est FAUX : `user-menu-component.ts` (bouton settings déguisé en ellipsis) et `call-interface.component.ts` (bouton ellipsis `disabled` mort + dropdown langue artisanal ignorant le composant canonique) utilisent encore `LucideEllipsis` en direct. De plus `AppDropdownMenuComponent` n'a aucun état `open` (100 % CSS `:focus` daisyUI) : pas de fermeture Escape/outside-click/au-choix, et l'input `menuPosition` est ignoré hors fallback. Migration `message-item` + `sidebar-session-list` vers `<app-dropdown-menu>` : OK et vérifiée.
+
+---
+
+**✅ Enterprise 2026-09-21 :** critère désormais VRAI (`rg LucideEllipsis` → seul `dropdown-menu.component.ts`). Dropdown réécrit : signal `open`, `dropdown-open`, fermeture Escape/outside-click/au-choix, `menuPosition` honoré, `role=menu` + `aria-expanded`, outputs `opened/closed`. `user-menu` → icône `LucideSettings` (ce n'est pas un menu). `call-interface` : bouton ellipsis `disabled` mort supprimé. Tous les nouveaux fichiers < 200 lignes.

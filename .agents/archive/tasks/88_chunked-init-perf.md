@@ -1,6 +1,7 @@
 # Task 88 — Chunked initialisation (input → UI → API history)
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🔴 Critique (perf)
 
 ## Goal

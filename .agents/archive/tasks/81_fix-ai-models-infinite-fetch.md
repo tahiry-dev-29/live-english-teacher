@@ -1,6 +1,7 @@
 # Task 81 — Fix infinite AI-models fetch loop (offline)
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🔴 Critique
 
 ## Goal
@@ -39,3 +40,7 @@ offline / backend unreachable (`http://localhost:3000/api/ai/models` called infi
 
 **⚠️ Re-validation thr-feat 2026-09-21 (run réel):** checks ci-dessus reproduits à l'identique (prisma valid + DB à jour, lint 0 errors / 91 warnings pré-existants, tsc 0, backend 78/78, frontend 41/41, build backend+frontend OK).
 **Reliquat réel:** le critère « Back online → single automatic refetch » n'est PAS implémenté — aucun listener `window 'online'` dans `ai-config.service.ts` ni `settings-tab-ai.component.ts` (le commentaire « so the `online` event can retry » n'a aucun abonné). L'early-return offline anti-boucle, lui, est bien présent (`navigator.onLine === false` → return sans `fetchFailed`). Reste à faire : 1 listener + test.
+
+---
+
+**✅ Enterprise 2026-09-21 :** reliquat comblé — `resubscribeOnReconnect()` dans `AiConfigService` : listener `window 'online'` → reset `fetchFailed`/`liveError` + 1 refetch `force=true` du provider courant, cleanup via `DestroyRef`. Le critère est désormais implémenté (test manuel : offline → silence, online → 1 refetch).

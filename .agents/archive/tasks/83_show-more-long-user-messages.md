@@ -1,6 +1,7 @@
 # Task 83 — Show more/less on long user messages (+5 lines)
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🟡 Moyen
 
 ## Goal

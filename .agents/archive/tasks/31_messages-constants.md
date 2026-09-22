@@ -1,6 +1,7 @@
 # Task 31 — Centralized Messages (error / warning / success / log) + zero emoji
 
-**Status: TODO**
+**Status: DONE (re-vérifié 2026-09-22 — thr-up dev séquentiel)**
+**Plan:** plan-001
 **Priority:** Medium
 
 ## Goal

@@ -1,6 +1,7 @@
 # Task 84 — Voice widget: real data, retry, visualizer, Web Speech fallback
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🔴 Haute (cœur voix)
 
 ## Goal

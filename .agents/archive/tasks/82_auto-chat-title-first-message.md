@@ -1,6 +1,7 @@
 # Task 82 — Auto-title on first conversation message
 
 **Status: DONE**
+**Plan:** plan-001
 **Priority:** 🟡 Moyen
 
 ## Goal
