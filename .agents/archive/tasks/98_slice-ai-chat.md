@@ -1,6 +1,6 @@
 # Task 98 — Slice backend `ai-chat` + `ai-models` (controller 363/spec 605, resolver 240/spec 523, openai-compat 253, ai-models 223)
 
-**Status:** TODO
+**Status:** DONE (verified 2026-09-24 — wc 0>200, backend tests 175/0, lint 0, build OK)
 **Plan:** plan-001
 **Priority:** 🔴 Critique (les plus gros specs)
 **Depends:** aucune (parallelisable avec T99/T100)

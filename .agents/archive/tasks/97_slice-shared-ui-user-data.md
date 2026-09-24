@@ -1,6 +1,6 @@
 # Task 97 — Slice frontend `shared/ui` (select 225) + `features/user-data`
 
-**Status:** TODO
+**Status: DONE (vérifié 2026-09-24 — wc 0>200, specs 19/19, lint slice 0, build OK)**
 **Plan:** plan-001
 **Priority:** 🟡 Moyenne
 **Depends:** T95, T96

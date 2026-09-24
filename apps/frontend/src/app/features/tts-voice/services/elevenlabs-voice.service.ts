@@ -4,6 +4,7 @@ import { ApiKeyService } from '@features/settings/services/api-key.service';
 import { API_URLS } from '@shared/constants/api-config';
 import { LoggingService } from '@core/services/logging.service';
 import { ElevenLabsCatalogService } from './elevenlabs-catalog.service';
+import { scheduleIdleCallback } from './elevenlabs-idle.util';
 import {
   buildTtsRequestBody,
   loadStorageValue,
@@ -56,33 +57,18 @@ export class ElevenLabsVoiceService {
   );
 
   constructor() {
-    this.scheduleIdleLoad();
+    scheduleIdleCallback(
+      () => this.bootstrapCatalog(),
+      2500,
+      ElevenLabsVoiceService.IDLE_DEFER_MS,
+    );
   }
 
-  /** Chunked init (task 88): voices/models load on browser idle. */
-  private scheduleIdleLoad(): void {
-    if (typeof window === 'undefined') return;
-    const run = (): void => {
-      void this.fetchProviders();
-      const useServerKey = !this.apiKeyService.getKey(
-        this.selectedProviderId(),
-      );
-      void this.loadVoicesForProvider(this.selectedProviderId(), useServerKey);
-      void this.loadTtsModelsForProvider(
-        this.selectedProviderId(),
-        useServerKey,
-      );
-    };
-    const ric = (
-      window as Window & {
-        requestIdleCallback?: (
-          cb: () => void,
-          opts?: { timeout: number },
-        ) => void;
-      }
-    ).requestIdleCallback;
-    if (typeof ric === 'function') ric.call(window, run, { timeout: 2500 });
-    else setTimeout(run, ElevenLabsVoiceService.IDLE_DEFER_MS);
+  private bootstrapCatalog(): void {
+    void this.fetchProviders();
+    const useServerKey = !this.apiKeyService.getKey(this.selectedProviderId());
+    void this.loadVoicesForProvider(this.selectedProviderId(), useServerKey);
+    void this.loadTtsModelsForProvider(this.selectedProviderId(), useServerKey);
   }
 
   setVoiceId(id: string): void {
@@ -175,8 +161,7 @@ export class ElevenLabsVoiceService {
     voiceId?: string,
     targetLanguage?: string,
   ): Promise<TtsAudioPayload | null> {
-    const activeProvider = this.selectedProviderId();
-    if (activeProvider === 'browser') return null;
+    const activeProvider = resolveActiveProviderId(this.selectedProviderId());
     const selectedVoice = voiceId || this.selectedVoiceId();
     const selectedModel = this.selectedModelId() || undefined;
     try {

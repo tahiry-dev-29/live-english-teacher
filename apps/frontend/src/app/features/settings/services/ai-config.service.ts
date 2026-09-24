@@ -18,6 +18,7 @@ import {
   selectValidModelId,
   type AiModel,
 } from './ai-models-catalog.util';
+import { AiConfigIdleHelper } from './ai-config-idle.util';
 
 @Injectable({
   providedIn: 'root',
@@ -50,8 +51,18 @@ export class AiConfigService {
   );
 
   constructor() {
-    this.scheduleIdleFetch();
-    this.resubscribeOnReconnect();
+    const idleHelper = new AiConfigIdleHelper(
+      (provider, force) => this.fetchModels(provider, force),
+      () => this.provider(),
+      () => this.fetchFailed(),
+      (value) => this.fetchFailed.set(value),
+      () => this.liveError(),
+      (value) => this.liveError.set(value),
+      this.logger,
+      inject(DestroyRef),
+    );
+    idleHelper.scheduleIdleFetch();
+    idleHelper.resubscribeOnReconnect();
 
     effect(() => {
       const p = this.provider();
@@ -60,42 +71,6 @@ export class AiConfigService {
       writePrefCookie(this.cookies, AiConfigService.COOKIE_MODEL, m);
       this.selectedModel.set(this.resolveModel(p, m));
     });
-  }
-
-  /** Chunked init (task 88): model list is only needed when the settings
-   * dialog opens — fetch on browser idle so first paint stays API-free. */
-  private scheduleIdleFetch(): void {
-    if (typeof window === 'undefined') return;
-    const run = (): void => {
-      void this.fetchModels();
-    };
-    const ric = (
-      window as Window & {
-        requestIdleCallback?: (
-          cb: () => void,
-          opts?: { timeout: number },
-        ) => void;
-      }
-    ).requestIdleCallback;
-    if (typeof ric === 'function') {
-      ric.call(window, run, { timeout: 2000 });
-    } else {
-      setTimeout(run, 1500);
-    }
-  }
-
-  /** Offline (task 81): single refetch when the browser comes back online. */
-  private resubscribeOnReconnect(): void {
-    if (typeof window === 'undefined') return;
-    const onOnline = (): void => {
-      this.fetchFailed.set(false);
-      this.liveError.set(null);
-      void this.fetchModels(this.provider(), true);
-    };
-    window.addEventListener('online', onOnline);
-    inject(DestroyRef).onDestroy(() =>
-      window.removeEventListener('online', onOnline),
-    );
   }
 
   async fetchModels(providerId?: string, force = false): Promise<void> {

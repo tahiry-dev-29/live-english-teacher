@@ -28,6 +28,50 @@
 - **daisyUI semantic colors only** (no `dark:` with these colors)
 - Forbidden relative imports 2+ levels deep — path aliases `@environment`, `@models/*`, `@core/*`, `@features/*`
 
+## Feature-based Architecture (plan-001, T91–T104)
+
+Restructuration par slices terminée : **0 fichier > 200 lignes** sur `apps/frontend/src` + `libs/backend/feature-live/src`.
+
+**Frontend** — `apps/frontend/src/app/`
+
+```text
+core/                # transverse uniquement : constants, graphql, handlers, interceptors,
+                     # models, utils, services infra (graphql/logging/pwa) — aucun composant
+features/
+  chat/              # chat-page, chat-container, chat-input, message-item, services
+  sessions/          # sidebar, share-dialog, user-menu
+  settings/          # dialogue + onglets + services (ai-config, i18n, theme, api-key…)
+  tts-voice/         # tts-tester + services TTS (ElevenLabs, cache, playback)
+  user-data/         # services memory, prompt-tag, user-profile, notification
+  voice-call/        # call-interface, voice-control, audio-message-player, services
+shared/
+  ui/                # design system : select, dropdown-menu, toast, star-background,
+                     # space-illustration
+  not-found-page/    # route `**`
+models/              # modèles Angular globaux (@models/*)
+```
+
+**Backend** — `libs/backend/feature-live/src/lib/`
+
+```text
+ai-chat/     # ai-stream (routes + controller), live.resolver + live-chat.service,
+             # openai-compat, genkit-flow
+ai-models/   # ai-models.service + cache util
+chat-history/# service + specs (crud/pagination)
+transcribe/  # gemini-live, groq-live, groq-transcribe (STT)
+tts/         # tts-provider facade (voices + synthesize) + elevenlabs/
+tutor/       # prompts tutor
+user-data/   # profile, prompt-tag, memory (controllers + services)
+shared/      # constants/messages, dto, testing (mock-prisma)
+feature-live.module.ts = assemblage pur (0 provider direct)
+```
+
+**Aliases** : `@core/*`, `@features/*`, `@app-shared/*`, `@models/*`, `@shared/constants` (libs partagées). Imports relatifs `../../` interdits (règle ESLint).
+
+**Routes Angular** — URLs inchangées, cibles lazy-load relocalisées :
+`''` / `chat/:sessionId` / `share/:sessionId` → `features/chat/chat-page/chat-page.component`,
+`**` → `@app-shared/not-found-page/not-found-page.component`.
+
 ## Data Modeling
 
 No additional data modeling — data already exists in PostgreSQL via Prisma schema. Migration concerns frontend rendering only. Prisma schemas (sessions, messages) remain unchanged.

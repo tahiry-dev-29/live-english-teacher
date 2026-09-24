@@ -1,6 +1,6 @@
 # Task 96 — Slice frontend `features/sessions` (sidebar-list 226, share-dialog 235, user-menu)
 
-**Status:** TODO
+**Status:** DONE (verified 2026-09-24 — wc 0>200, lint 0, build OK, smoke: sessions list + search + share)
 **Plan:** plan-001
 **Priority:** 🟡 Moyenne
 **Depends:** T91
