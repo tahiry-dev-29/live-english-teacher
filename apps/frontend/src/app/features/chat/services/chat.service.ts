@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, resource, signal } from '@angular/core';
+import { Injectable, inject, resource, signal } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { firstValueFrom } from 'rxjs';
 import { Session } from '@models/session.model';
@@ -85,25 +85,40 @@ export class ChatService {
   }
 
   /**
+   * Last successfully loaded sessions. `resource.value()` throws
+   * `ResourceValueError` when `status() === 'error'` — reading that in the
+   * template aborts change detection mid-binding and freezes the sidebar
+   * spinner. Keep a non-throwing snapshot as the UI source of truth.
+   */
+  private readonly _sessions = signal<Session[]>([]);
+
+  /**
    * Session list (history) — reactive fetching via `resource()`.
    * `reload()` / `isLoading()` power the reload button in the History header.
    * Mutations (rename/delete) remain imperative + `reload()`.
    * The loader is skipped until `_shouldLoadSessions` is true (lazy init).
+   * On failure the resource goes to `error` but `_sessions` keeps the last
+   * good list so the sidebar still renders.
    */
   sessionsResource = resource({
     params: () => this._shouldLoadSessions(),
     loader: ({ params: shouldLoad }) => {
-      if (!shouldLoad) return Promise.resolve([]);
+      if (!shouldLoad) return Promise.resolve(this._sessions());
       return firstValueFrom(
         this.apollo.query<{ getSessions: Session[] }>({
           query: GET_SESSIONS_QUERY,
           fetchPolicy: 'network-only',
         }),
-      ).then((result) => result.data?.getSessions ?? []);
+      ).then((result) => {
+        const list = result.data?.getSessions ?? [];
+        this._sessions.set(list);
+        return list;
+      });
     },
   });
 
-  sessions = computed(() => this.sessionsResource.value() ?? []);
+  /** Non-throwing session list for templates (safe in resource error state). */
+  readonly sessions = this._sessions.asReadonly();
 
   async renameSession(id: string, title: string) {
     await firstValueFrom(
