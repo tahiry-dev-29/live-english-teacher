@@ -1,6 +1,6 @@
 # Task 92 — Slice frontend `features/chat` (chat-page 425, message-item 440, chat-input 533)
 
-**Status: IN_PROGRESS (exécuté 2026-09-22 — thr-up dev séquentiel)**
+**Status: DONE (vérifié 2026-09-24 — wc 0>200, test 75/75, lint 0, build OK)**
 **Plan:** plan-001
 **Priority:** 🔴 Critique
 **Depends:** T91
