@@ -4,8 +4,6 @@ import {
   Delete,
   Get,
   Headers,
-  HttpException,
-  HttpStatus,
   Param,
   Patch,
   Post,
@@ -23,30 +21,7 @@ import {
   CreateTagDto,
   UpdateTagDto,
 } from './user-data.dto';
-
-function toScope(deviceKey?: string, userId?: string): OwnerScope {
-  const key = (deviceKey ?? '').trim();
-  if (!key) {
-    throw new HttpException(
-      'Missing x-device-key header.',
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-  return userId?.trim()
-    ? { userId: userId.trim(), deviceKey: key }
-    : { deviceKey: key };
-}
-
-function toHttp(error: unknown): HttpException {
-  const message = error instanceof Error ? error.message : 'Request failed.';
-  if (/not found/i.test(message)) {
-    return new HttpException(message, HttpStatus.NOT_FOUND);
-  }
-  if (/full|already exists|built-in/i.test(message)) {
-    return new HttpException(message, HttpStatus.CONFLICT);
-  }
-  return new HttpException(message, HttpStatus.BAD_REQUEST);
-}
+import { toScope, toHttp } from './user-data-validation.pipe';
 
 /**
  * Enterprise user data (tasks 85/86/87):

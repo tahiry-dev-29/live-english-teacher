@@ -1,53 +1,33 @@
 import { Module } from '@nestjs/common';
 import { DataAccessPrismaModule } from '@live-languages-teacher/data-access-prisma';
-import { GeminiLiveService } from './gemini-live/gemini-live.service';
-import { GroqLiveService } from './groq-live/groq-live.service';
-import { ElevenLabsService } from './elevenlabs/elevenlabs.service';
-import { GroqTranscribeService } from './groq-transcribe/groq-transcribe.service';
-import { AiModelsService } from './ai-models.service';
-import { AiProviderService } from './ai-provider.service';
-import { AiStreamController } from './ai-stream.controller';
-import { LiveResolver } from './live.resolver';
-import { ChatHistoryService } from './chat-history/chat-history.service';
+import { TranscribeModule } from './transcribe/transcribe.module';
+import { TtsModule } from './tts/tts.module';
+import { AiModelsModule } from './ai-models/ai-models.module';
+import { AiChatModule } from './ai-chat/ai-chat.module';
+import { ChatHistoryModule } from './chat-history/chat-history.module';
+import { UserDataModule } from './user-data/user-data.module';
 
-import { OpenAiCompatService } from './openai-compat.service';
-import { TtsProviderService } from './tts/tts-provider.service';
-import { UserMemoryService } from './user-data/user-memory.service';
-import { UserProfileService } from './user-data/user-profile.service';
-import { PromptTagService } from './user-data/prompt-tag.service';
-import { UserDataController } from './user-data/user-data.controller';
-
+/**
+ * Feature slice assembly (T100): no direct providers — only slice imports.
+ * Controllers and providers live in AiChatModule / UserDataModule / etc.
+ */
 @Module({
-  imports: [DataAccessPrismaModule],
-  controllers: [AiStreamController, UserDataController],
-  providers: [
-    GeminiLiveService,
-    GroqLiveService,
-    ElevenLabsService,
-    GroqTranscribeService,
-    AiModelsService,
-    AiProviderService,
-    OpenAiCompatService,
-    TtsProviderService,
-    LiveResolver,
-    ChatHistoryService,
-    UserMemoryService,
-    UserProfileService,
-    PromptTagService,
+  imports: [
+    DataAccessPrismaModule,
+    TranscribeModule,
+    TtsModule,
+    AiModelsModule,
+    ChatHistoryModule,
+    UserDataModule,
+    AiChatModule,
   ],
   exports: [
-    GeminiLiveService,
-    GroqLiveService,
-    ElevenLabsService,
-    GroqTranscribeService,
-    AiModelsService,
-    AiProviderService,
-    OpenAiCompatService,
-    TtsProviderService,
-    ChatHistoryService,
-    UserMemoryService,
-    UserProfileService,
-    PromptTagService,
+    TranscribeModule,
+    TtsModule,
+    AiModelsModule,
+    ChatHistoryModule,
+    UserDataModule,
+    AiChatModule,
   ],
 })
 export class FeatureLiveModule {}

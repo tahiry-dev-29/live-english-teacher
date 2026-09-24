@@ -6,7 +6,7 @@
  */
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { MockPrismaService } from '../testing/mock-prisma.service.ts';
+import { MockPrismaService } from '../shared/testing/mock-prisma.service.ts';
 import { DEFAULT_PROMPT_TAGS } from './prompt-tags.defaults.ts';
 
 class PromptTagService {

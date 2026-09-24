@@ -1,6 +1,7 @@
 # Task 100 — Slice backend `user-data` + `chat-history` + `tutor` + `shared` (chat-history.spec 392, mock-prisma 253, user-data.controller 202)
 
-**Status:** TODO
+**Status:** DONE
+**Preuves (2026-09-24) :** `wc -l` 0 fichier > 200 (max 179) · `nx test backend` 175/175 · `nx lint backend` 0 · `nx build backend` OK · `feature-live.module.ts` = imports de slices uniquement (0 provider direct).
 **Plan:** plan-001
 **Priority:** 🟡 Moyenne
 **Depends:** aucune (parallelisable avec T98/T99)

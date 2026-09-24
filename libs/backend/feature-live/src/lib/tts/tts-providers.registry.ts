@@ -108,18 +108,6 @@ export const TTS_PROVIDERS_REGISTRY: Record<string, TtsProviderConfig> = {
     defaultVoiceId: 'JBFqnCBsd6RMkjVDRZzb',
     hasCustomKeys: true,
   },
-  browser: {
-    id: 'browser',
-    label: 'Web Speech (Browser)',
-    quotaNote: 'Unlimited local',
-    quality: 'System Voice',
-    review: 'Always available offline fallback',
-    keyHeader: '',
-    keyEnv: '',
-    consoleUrl: '',
-    defaultVoiceId: 'default',
-    hasCustomKeys: false,
-  },
 };
 
 // NOTE: No FALLBACK_TTS_VOICES here by design.

@@ -1,1 +1,4 @@
-// Barrel plan-001 (T91 scaffold) — re-exports ajoutes par T92-T100.
+export * from './messages';
+export * from './dto/live-response.dto';
+export * from './dto/transcribe.dto';
+export * from './testing/mock-prisma.service';
