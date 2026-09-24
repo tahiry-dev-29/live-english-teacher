@@ -74,6 +74,19 @@
 - **derived**: `computed()` for derived values (never methods in templates).
 - **two-way binding**: `model()` for child components (not `output()` + `input()` for bidirectional props).
 - **side effects**: `effect()` to react to signal changes (not `ngOnInit` for watching).
+### When to use `linkedSignal` vs `computed` vs `effect`
+- Use `computed`: When state is **strictly** derived from other state and should never be manually updated.
+- Use `linkedSignal`: When state is derived from other state, but the user **must** be able to override or manually update it.
+- **Never** use `effect` to sync one piece of state to another. That is an anti-pattern. Use `computed` or `linkedSignal` instead.
+## Resource Status Signals
+
+The `Resource` object provides several signals to read its current state:
+
+- `value()`: The resolved data, or `undefined`.
+- `hasValue()`: Type-guard boolean. `true` if a value exists.
+- `isLoading()`: Boolean indicating if the loader is currently running.
+- `error()`: The error thrown by the loader, or `undefined`.
+- `status()`: A string constant representing the exact state (`'idle'`, `'loading'`, `'resolved'`, `'error'`, `'reloading'`, `'local'`).
 
 ### Template
 
