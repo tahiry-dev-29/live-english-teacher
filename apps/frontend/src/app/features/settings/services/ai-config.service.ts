@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   inject,
+  untracked,
   DestroyRef,
 } from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
@@ -107,24 +108,25 @@ export class AiConfigService {
       writePrefCookie(this.cookies, AiConfigService.COOKIE_MODEL, m);
     });
 
-    // Merge server state into models signal
+    // Merge server state into models signal. `models()` is read untracked:
+    // it is written here, and a tracked self-read + set(new array) would
+    // reschedule this effect forever (frozen tab, "Page Unresponsive").
     effect(() => {
+      if (this.modelsGet.status() === 'error') return;
       const fetched = this.modelsGet.value();
+      const current = untracked(() => this.models());
       if (fetched && Array.isArray(fetched) && fetched.length > 0) {
         this.models.set(
           mergeLiveModels(
-            this.models(),
+            current,
             fetched,
             resolveActiveProvider(this.provider()),
           ),
         );
-        this.ensureValidSelection();
+        this.ensureValidSelection(current);
       } else if (fetched !== undefined) {
         this.models.set(
-          pruneProviderModels(
-            this.models(),
-            resolveActiveProvider(this.provider()),
-          ),
+          pruneProviderModels(current, resolveActiveProvider(this.provider())),
         );
       }
     });
@@ -146,13 +148,9 @@ export class AiConfigService {
     return filterModelsForProvider(this.models(), provider);
   }
 
-  private ensureValidSelection(): void {
+  private ensureValidSelection(current: AiModel[]): void {
     this.selectedModelId.set(
-      selectValidModelId(
-        this.models(),
-        this.provider(),
-        this.selectedModelId(),
-      ),
+      selectValidModelId(current, this.provider(), this.selectedModelId()),
     );
   }
 
