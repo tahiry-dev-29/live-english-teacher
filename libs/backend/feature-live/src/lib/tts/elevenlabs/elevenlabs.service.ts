@@ -1,5 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BACKEND_MESSAGES } from '../../shared/messages';
+import { TTS_PROVIDERS_REGISTRY } from '../tts-providers.registry';
+import { audioSuccess, getJson, postForAudio } from '../tts-http.util';
+import {
+  classifyTtsFailure,
+  missingKeyFailure,
+  planDefaultRetry,
+  type TtsSynthesisOutcome,
+} from '../tts-failure.util';
 
 export interface VoiceInfo {
   id: string;
@@ -20,7 +28,10 @@ interface ElevenLabsVoiceRaw {
 @Injectable()
 export class ElevenLabsService {
   private readonly logger = new Logger(ElevenLabsService.name);
-  private readonly defaultVoiceId = 'JBFqnCBsd6RMkjVDRZzb';
+  private readonly config = TTS_PROVIDERS_REGISTRY['elevenlabs'];
+  private readonly defaultVoiceId = this.config.defaultVoiceId;
+  private readonly defaultModelId =
+    this.config.defaultModel || 'eleven_multilingual_v2';
 
   private serverKey(): string {
     return process.env['ELEVENLABS_API_KEY'] || '';
@@ -30,25 +41,29 @@ export class ElevenLabsService {
   async getVoicesLive(customApiKey?: string): Promise<VoiceInfo[]> {
     const key = customApiKey || this.serverKey();
     if (!key) return [];
-    try {
-      const res = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: { 'xi-api-key': key },
-      });
-      if (!res.ok) return [];
-      const body = (await res.json()) as { voices?: ElevenLabsVoiceRaw[] };
-      const list = body.voices || [];
-      return list.slice(0, 30).map((v) => ({
-        id: v.voice_id,
-        name: v.name,
-        lang: v.labels?.language || 'en-US',
-        previewUrl: v.preview_url,
-        description:
-          v.description || v.labels?.description || 'Live ElevenLabs voice',
-      }));
-    } catch (e) {
-      this.logger.warn(`Live ElevenLabs voices fetch failed: ${e}`);
+    const out = await getJson(
+      'https://api.elevenlabs.io/v1/voices',
+      { 'xi-api-key': key },
+      this.logger,
+      'ElevenLabs voices',
+    );
+    if (out.ok === false) {
+      // 401 "missing the permission" (voices_read) is reported, not swallowed.
+      this.logger.warn(
+        `${BACKEND_MESSAGES.log.elevenLabsVoicesFailed} ${out.status} - ${out.body}`,
+      );
       return [];
     }
+    const body = out.data as { voices?: ElevenLabsVoiceRaw[] };
+    const list = body?.voices || [];
+    return list.slice(0, 30).map((v) => ({
+      id: v.voice_id,
+      name: v.name,
+      lang: v.labels?.language || 'en-US',
+      previewUrl: v.preview_url,
+      description:
+        v.description || v.labels?.description || 'Live ElevenLabs voice',
+    }));
   }
 
   /** Sync compat: returns [] — callers must use getVoicesLive(). */
@@ -62,83 +77,84 @@ export class ElevenLabsService {
   ): Promise<{ id: string; name: string; description?: string }[]> {
     const key = customApiKey || this.serverKey();
     if (!key) return [];
-    try {
-      const res = await fetch('https://api.elevenlabs.io/v1/models', {
-        headers: { 'xi-api-key': key },
-      });
-      if (!res.ok) return [];
-      const body = (await res.json()) as {
-        id?: string;
-        name?: string;
-        description?: string;
-      }[];
-      const list = Array.isArray(body) ? body : [];
-      return list
-        .map((m) => ({
-          id: m.id || '',
-          name: m.name || m.id || 'ElevenLabs model',
-          description: m.description,
-        }))
-        .filter((m) => m.id);
-    } catch {
+    const out = await getJson(
+      'https://api.elevenlabs.io/v1/models',
+      { 'xi-api-key': key },
+      this.logger,
+      'ElevenLabs models',
+    );
+    if (out.ok === false) {
+      this.logger.warn(
+        `${BACKEND_MESSAGES.log.elevenLabsModelsFailed} ${out.status} - ${out.body}`,
+      );
       return [];
     }
+    const list = Array.isArray(out.data)
+      ? (out.data as { id?: string; name?: string; description?: string }[])
+      : [];
+    return list
+      .map((m) => ({
+        id: m.id || '',
+        name: m.name || m.id || 'ElevenLabs model',
+        description: m.description,
+      }))
+      .filter((m) => m.id);
   }
 
+  /** One upstream attempt — status + body are classified, never swallowed. */
+  private async requestTts(
+    text: string,
+    voiceId: string,
+    apiKey: string,
+    modelId?: string,
+  ): Promise<TtsSynthesisOutcome> {
+    const out = await postForAudio(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        text,
+        model_id: modelId || this.defaultModelId,
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      },
+      { 'xi-api-key': apiKey, Accept: 'audio/mpeg' },
+      this.logger,
+      'ElevenLabs TTS',
+    );
+    if (out.ok === false)
+      return classifyTtsFailure('elevenlabs', out.status, out.body);
+    return audioSuccess(out.data);
+  }
+
+  /**
+   * Live TTS audio for the given voice/model.
+   * A stale voice or model id must not kill playback: retry once with the
+   * registry defaults. Quota/key failures are returned as-is (no wasted calls).
+   */
   async generateTtsAudio(
     text: string,
     voiceId?: string,
-  ): Promise<{ audioData: string; mimeType: string } | null> {
-    const apiKey = this.serverKey();
+    customApiKey?: string,
+    modelId?: string,
+  ): Promise<TtsSynthesisOutcome> {
+    const apiKey = customApiKey || this.serverKey();
     if (!apiKey) {
       this.logger.warn(BACKEND_MESSAGES.log.elevenLabsKeyMissing);
-      return null;
+      return missingKeyFailure('elevenlabs');
     }
 
-    const selectedVoice = voiceId || this.defaultVoiceId;
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}`;
+    const voice = voiceId || this.defaultVoiceId;
+    const first = await this.requestTts(text, voice, apiKey, modelId);
+    if (first.ok === true) return first;
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey,
-          Accept: 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
-        }),
-      });
+    const retry = planDefaultRetry(
+      first,
+      { voiceId: voice, modelId },
+      { voiceId: this.defaultVoiceId, modelId: this.defaultModelId },
+    );
+    if (!retry) return first;
 
-      if (!response.ok) {
-        const errText = await response.text();
-        this.logger.error(
-          `ElevenLabs API Error: ${response.status} - ${response.statusText}: ${errText}`,
-        );
-        if (selectedVoice !== this.defaultVoiceId) {
-          return this.generateTtsAudio(text, this.defaultVoiceId);
-        }
-        return null;
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const audioData = buffer.toString('base64');
-
-      return {
-        audioData,
-        mimeType: 'audio/mpeg',
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      this.logger.error(BACKEND_MESSAGES.template.elevenLabsTtsFailed(msg));
-      return null;
-    }
+    this.logger.warn(
+      `ElevenLabs voice/model unavailable (${first.detail ?? first.code}) — retrying with defaults`,
+    );
+    return this.requestTts(text, retry.voiceId, apiKey, retry.modelId);
   }
 }

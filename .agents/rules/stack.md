@@ -8,6 +8,18 @@
 - Icons: `@lucide/angular` only (`<svg lucideXxx>`), no inline SVG hardcoded (`xmlns`/`viewBox`/`<path>` forbidden in `apps/frontend/src`)
 - Services: chat.service.ts, message.service.ts, tts.service.ts, voice-call.service.ts, vad.service.ts
 
+## HTTP / data access — Angular 20 resources (mandatory)
+
+Rule file: `.agents/rules/angularv20-http.md`.
+
+- **GET / server-state reads → `httpResource()`** (reactive, owned by a dedicated API service).
+- **POST / PUT / PATCH / DELETE → `rxResource()`** for actions/mutations with explicit intent signals; or explicit `HttpClient` Observable when the caller needs a Promise (e.g. `TtsService.speak`). Mutations are never auto-reactive resources.
+- Non-HTTP async reads → `resource()`; RxJS-native resource lifecycle → `rxResource()`.
+- **Native `fetch()` is allowed only for the chat SSE stream** — never for REST. No ad-hoc `HttpClient`/promise calls outside services, no API call inside a component.
+- **No `firstValueFrom(HttpClient)` in services** — use resources instead. The only valid `HttpClient` usage is explicit Observable actions in dedicated services.
+- Angular 20 syntax: `httpResource()` takes a **request function** as its first arg (`() => HttpResourceRequest | undefined`); `rxResource()` / `resource()` use **`params`** in their options (`params: () => R`, `stream: ({ params }) => ...`). Both shapes compile on Angular 20.3.11 — trust the installed typings.
+- Reference: `features/tts-voice/services/tts-synthesis.service.ts` (explicit POST action), `features/tts-voice/services/elevenlabs-catalog.service.ts` (catalog reads via httpResource).
+
 ## Angular Modern Patterns (strict rules)
 
 ### Forms — FormsModule / Reactive Forms Forbidden
@@ -80,19 +92,17 @@
 aucun `fetch()`, aucune `Promise` native d'entrée.**
 
 - **GET / read → `httpResource()`** — reactive server-state reads (list, detail, search, config, catalog).
-- **POST / PUT / PATCH / DELETE → `rxResource()`** — explicit actions/mutations, the `loader` uses
-  `HttpClient` internally; the component only sets the request and reads `value()/isLoading()/error()`.
+- **POST / PUT / PATCH / DELETE → `rxResource()`** — explicit actions/mutations, the `stream` uses
+  `HttpClient` internally; the component only sets the intent signal and reads `value()/isLoading()/error()`.
 - **Generic async non-HTTP read → `resource()`** — browser APIs, SDK promises, non-HTTP async sources.
 - **FORBIDDEN in feature code**: `fetch()`, `firstValueFrom()`, manual `loading`/`error` signals
   duplicating resource state, manual `.subscribe()` in components. `HttpClient` is allowed **only**
   inside a `rxResource` loader (or Apollo `HttpLink` infra) — never called directly from components
   or from service methods returning Promises.
 - **SSE chat stays `fetch()` + `ReadableStream`** — the only exception (streaming, not request/response).
-- **A mutation must never auto-execute**: its `request` must depend on an *intent* signal the user
+- **A mutation must never auto-execute**: its `params` must depend on an *intent* signal the user
   sets, never on a state signal — otherwise a signal change silently fires a POST/PATCH/DELETE.
-- **Syntaxe Angular 20 obligatoire** : `request` (jamais `params`) dans `resource()` / `rxResource()`.
-  `params` n'existe que dans le `HttpResourceRequest` de `httpResource()`. Vérifié contre
-  `@angular/core@20.3` — ne jamais mélanger la syntaxe Angular 22+.
+- **Syntaxe installée (vérifiée typings @angular/core@20.3.11)** : `resource()` / `rxResource()` utilisent `params` + `loader`/`stream` (pas `request` — ce nom n'existe que dans `HttpResourceRequest` de `httpResource()`). Suivre les typings installés, jamais la syntaxe aspirational d'une autre version.
 - **Error contract**: formater via `formatHttpError()` / `formatApiError()` ; le toast unique passe
   par `http-error.interceptor.ts`. Aucune chaîne d'erreur HTTP codée en dur dans un composant.
 - **Lazy boot**: gate resources behind a trigger signal (`undefined` request = idle) +
@@ -122,12 +132,14 @@ The `Resource` object provides several signals to read its current state:
 ## Backend
 
 - NestJS 11 + Express 5 (`@as-integrations/express5`), global prefix `api`
-- **Outbound HTTP → axios (mandatory)**: every external API call (AI providers, TTS, STT) goes through axios with `timeout` + `validateStatus: () => true` so upstream statuses become typed `{ ok: false, status, body }` results instead of opaque exceptions. Pattern: `libs/backend/feature-live/src/lib/tts/tts-http.util.ts` (`postForAudio` / `postForJson` / `getJson`). Native `fetch` in services is being migrated: **TTS layer done**, remaining (gemini-live, groq, genkit) tracked in `.agents/output/live-english-teacher/tasks/tts-error-contract.md`.
-- **Outbound external API calls → `axios` only** (never `fetch()`): shared contract in
+- **Outbound HTTP → `axios` only (mandatory)**, never native `fetch()`: shared contract in
   `libs/backend/feature-live/src/lib/tts/tts-http.util.ts` — `HttpOutcome<T>` =
   `{ ok: true; data } | { ok: false; status; body }`, hard `timeout`, and
   `validateStatus: () => true` so upstream statuses (401 quota, 429, 400) are **data, never
-  exceptions**. Streaming SSE reads keep `ReadableStream` where already established.
+  exceptions**. Helpers: `postForAudio` / `postForJson` / `getJson`. Migration status:
+  **TTS layer done**; remaining native `fetch` (gemini-live, groq, genkit) tracked in
+  `.agents/output/live-english-teacher/tasks/tts-error-contract.md`. Streaming SSE reads keep
+  `ReadableStream` where already established.
 - GraphQL: `@nestjs/graphql` + `@nestjs/apollo`, single resolver `libs/backend/feature-live/src/lib/live.resolver.ts`
 - WebSocket: Socket.IO gateway `live.gateway.ts` (⚠️ dead code: frontend does not connect to it)
 - AI: Gemini via direct fetch (`gemini-live.service.ts`) + Genkit flows (`genkit-flow.ts`, port 3400)

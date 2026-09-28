@@ -3,7 +3,7 @@ import type {
   TtsModel,
   TtsProviderMeta,
 } from '@features/tts-voice/services/elevenlabs-audio.util';
-import type { SelectOption } from '@core/components/ui/select/select.component';
+import type { SelectOption } from '@app-shared/ui/select/select.component';
 
 export const SAMPLE_TEXTS: Record<string, string> = {
   en: 'Hello! I am your AI English tutor. How can I help you today?',
@@ -45,51 +45,15 @@ export function sttModelOptionsFor(providerId: string): SelectOption[] {
     { value: 'whisper-large-v3', label: 'Whisper Large V3 (Accurate)' },
     { value: 'distil-whisper-large-v3-en', label: 'Distil Whisper (EN)' },
   ];
-  if (providerId === 'browser')
-    return [{ value: 'web-speech', label: 'Web Speech (live)' }, ...base];
   if (providerId === 'openai')
     return [{ value: 'whisper-1', label: 'Whisper-1 (OpenAI)' }, ...base];
   if (providerId === 'google')
     return [{ value: 'google-chirp', label: 'Google Chirp' }, ...base];
-  return [...base, { value: 'web-speech', label: 'Web Speech (fallback)' }];
+  return base;
 }
 
 export function getInputValue(event: Event): string {
   const target = event.target;
   if (target instanceof HTMLInputElement) return target.value;
   return '';
-}
-
-/** Web Speech fallback: speak sample text with a browser voice. */
-export function speakWithBrowser(
-  text: string,
-  lang: string,
-  onEnd: () => void,
-  onError: () => void,
-): void {
-  try {
-    const synth = window.speechSynthesis;
-    if (synth.speaking || synth.pending) synth.cancel();
-    if (synth.paused) synth.resume();
-    const voices = synth.getVoices();
-    const prefix = lang.split('-')[0].toLowerCase();
-    const match =
-      voices.find((v) => v.lang.toLowerCase().startsWith(prefix)) ||
-      voices.find((v) => v.default) ||
-      voices[0];
-    const utter = new SpeechSynthesisUtterance(text);
-    if (match) {
-      utter.voice = match;
-      utter.lang = match.lang;
-    } else {
-      utter.lang = lang;
-    }
-    utter.rate = 1;
-    utter.pitch = 1;
-    utter.onend = () => onEnd();
-    utter.onerror = () => onError();
-    synth.speak(utter);
-  } catch {
-    onError();
-  }
 }

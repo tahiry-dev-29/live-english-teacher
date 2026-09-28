@@ -95,9 +95,22 @@ export function makeMockTts() {
       }
       return [];
     },
-    synthesize: async ({ text, provider }: { text?: string; provider?: string }) => {
-      if (!text) return null;
+    synthesize: async ({
+      text,
+      provider,
+    }: {
+      text?: string;
+      provider?: string;
+    }) => {
+      if (!text) {
+        return {
+          ok: false as const,
+          code: 'VOICE_UNAVAILABLE' as const,
+          provider: provider || 'elevenlabs',
+        };
+      }
       return {
+        ok: true as const,
         audioData: Buffer.from(`audio:${provider || 'el'}:${text}`).toString(
           'base64',
         ),
@@ -130,4 +143,3 @@ export function makeMockAiProvider() {
     },
   };
 }
-

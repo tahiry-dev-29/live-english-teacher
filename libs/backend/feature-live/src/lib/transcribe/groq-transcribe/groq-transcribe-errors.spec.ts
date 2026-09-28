@@ -31,7 +31,10 @@ describe('GroqTranscribeService errors', () => {
 
   it('returns null when the response has no text field', async () => {
     const empty = (async () =>
-      ({ ok: true, json: async () => ({}) }) as unknown as Response) as typeof fetch;
+      ({
+        ok: true,
+        json: async () => ({}),
+      }) as unknown as Response) as typeof fetch;
     const svc = new DoubleTranscribe('sk-test', empty);
     assert.equal(await svc.transcribe(validAudio), null);
   });

@@ -1,3 +1,5 @@
+import { SHARED_MESSAGES } from '@shared/constants';
+
 /** Centralized backend messages: user-facing errors and logger labels. No emoji. */
 export const BACKEND_MESSAGES = {
   error: {
@@ -7,8 +9,7 @@ export const BACKEND_MESSAGES = {
       'No API key configured. Please add your Groq API key in Settings > AI Model to continue chatting.',
     aiUnreachable:
       'Could not reach AI service. Please check your internet connection or try a different model in Settings.',
-    geminiConnectivity:
-      "I'm experiencing connectivity issues. Please try again later or verify your Gemini API key in Settings.",
+    geminiConnectivity: SHARED_MESSAGES.error.aiServiceUnavailable,
     geminiEmptyResponse:
       "I'm sorry, I couldn't generate a response right now. Could you try asking something else?",
     geminiRetriesExhausted:
@@ -23,6 +24,9 @@ export const BACKEND_MESSAGES = {
     groqTranscribeKeyMissing:
       'GROQ_API_KEY is not configured for transcription.',
     elevenLabsKeyMissing: 'ELEVENLABS_API_KEY is not configured.',
+    elevenLabsVoicesFailed: 'ElevenLabs voices fetch failed:',
+    elevenLabsModelsFailed: 'ElevenLabs models fetch failed:',
+    ttsQuotaExceeded: 'TTS quota exhausted (prompting user for own key):',
     geminiChatReceived: 'Gemini chat response received.',
     geminiEmptyContent: 'Gemini response was okay but content was empty.',
     geminiTtsGenerated: 'TTS audio generated successfully.',
@@ -40,13 +44,6 @@ export const BACKEND_MESSAGES = {
     ): string => `API Error (Attempt ${attempt}): ${status} - ${statusText}`,
     ttsApiError: (status: number, statusText: string): string =>
       `TTS API Error: ${status} - ${statusText}`,
-    elevenLabsApiError: (
-      status: number,
-      statusText: string,
-      body: string,
-    ): string => `ElevenLabs API Error: ${status} - ${statusText}: ${body}`,
-    elevenLabsTtsFailed: (reason: string): string =>
-      `Failed to generate ElevenLabs TTS: ${reason}`,
     geminiChatError: (reason: string): string =>
       `Error in getGeminiChatResponse: ${reason}`,
     geminiTtsError: (reason: string): string =>
@@ -84,8 +81,6 @@ export const BACKEND_MESSAGES = {
     quotaExceeded: (provider: string): string =>
       `Quota exceeded for ${provider}, prompting user for own key.`,
     sseStreamError: (reason: string): string => `SSE stream error: ${reason}`,
-    ttsUnavailable: (provider: string): string =>
-      `TTS not available for provider "${provider}"`,
     appRunning: (url: string): string => `Application is running on: ${url}`,
     genkitRunning: (url: string): string =>
       `GenKit Flow Server is running on: ${url}`,

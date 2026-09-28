@@ -10,10 +10,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import {
-  StreamChatDto,
-  resolveModelsQuery,
-} from './ai-stream-validation.pipe';
+import { StreamChatDto, resolveModelsQuery } from './ai-stream-validation.pipe';
 import { processStreamChat } from './ai-stream-chat.route';
 import { AiModelsService } from '../ai-models/ai-models.service';
 import type { DiscoveredAiModel } from '../ai-models/ai-models.service';

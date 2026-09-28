@@ -14,7 +14,7 @@ import {
   LucideX,
   LucideRotateCcw,
 } from '@lucide/angular';
-import { PromptTagService } from '@core/services/prompt-tag.service';
+import { PromptTagService } from '@features/user-data/services/prompt-tag.service';
 import { canAddTag } from './settings-tags.util';
 
 @Component({
@@ -45,18 +45,13 @@ export class SettingsTabTagsComponent {
   );
 
   constructor() {
-    void this.tags.ensureLoaded();
+    this.tags.ensureLoaded();
   }
 
-  async addTag(): Promise<void> {
-    const created = await this.tags.addCustom(
-      this.nameDraft(),
-      this.descDraft(),
-    );
-    if (created) {
-      this.nameDraft.set('');
-      this.descDraft.set('');
-    }
+  addTag(): void {
+    this.tags.addCustom(this.nameDraft(), this.descDraft());
+    this.nameDraft.set('');
+    this.descDraft.set('');
   }
 
   startEdit(name: string, description: string): void {
@@ -64,11 +59,10 @@ export class SettingsTabTagsComponent {
     this.editDraft.set(description);
   }
 
-  async saveEdit(name: string): Promise<void> {
-    if (await this.tags.updateCustom(name, this.editDraft())) {
-      this.editingName.set(null);
-      this.editDraft.set('');
-    }
+  saveEdit(name: string): void {
+    this.tags.updateCustom(name, this.editDraft());
+    this.editingName.set(null);
+    this.editDraft.set('');
   }
 
   cancelEdit(): void {
@@ -77,14 +71,14 @@ export class SettingsTabTagsComponent {
   }
 
   removeTag(name: string): void {
-    void this.tags.removeCustom(name);
+    this.tags.removeCustom(name);
   }
 
   retryLoad(): void {
-    void this.tags.load();
+    this.tags.load();
   }
 
   resetTags(): void {
-    void this.tags.resetDefaults();
+    this.tags.resetDefaults();
   }
 }

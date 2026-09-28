@@ -17,12 +17,6 @@ export function cleanMarkdownForSpeech(text: string): string {
     .trim();
 }
 
-/** Rough spoken duration at ~150 wpm, used for Web Speech progress. */
-export function estimateSpeechDurationSeconds(cleanText: string): number {
-  const wordCount = cleanText.split(' ').length;
-  return (wordCount / 150) * 60;
-}
-
 /** Downsample analyser FFT bins to `target` 0..1 bars. */
 export function downsampleBins(bins: Uint8Array, target: number): number[] {
   const out: number[] = [];
@@ -37,20 +31,4 @@ export function downsampleBins(bins: Uint8Array, target: number): number[] {
     out.push(n > 0 ? Math.min(1, Math.max(0.08, sum / n)) : 0.08);
   }
   return out;
-}
-
-/** Animated state-driven bars for Web Speech utterances (no audio node). */
-export function computeWebSpeechVizLevels(
-  elapsedSeconds: number,
-  bars = 48,
-): number[] {
-  const levels: number[] = [];
-  for (let i = 0; i < bars; i++) {
-    const v =
-      0.35 +
-      0.3 * Math.sin(elapsedSeconds * 6 + i * 0.45) +
-      0.2 * Math.sin(elapsedSeconds * 11 + i * 0.9);
-    levels.push(Math.min(1, Math.max(0.12, v)));
-  }
-  return levels;
 }

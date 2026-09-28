@@ -21,11 +21,9 @@ export {
   toVoiceOptions,
   toTtsModelOptions,
   sttModelOptionsFor,
-  speakWithBrowser,
 } from './settings-tab-voices.util';
 export * from './settings-general.util';
 export * from './ai-live-test.component';
 export * from './ai-model-grid.component';
-export * from './browser-voice-picker.component';
 export * from './voice-live-test.component';
 export * from './services/index';

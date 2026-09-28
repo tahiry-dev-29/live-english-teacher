@@ -16,6 +16,7 @@ export * from './api-endpoints';
 // External API Provider Configs (Gemini, Groq, etc.) - safe for all
 // (uses process.env only inside functions with runtime guard)
 export * from './external-apis';
+export * from './messages';
 
 // Frontend API Configuration is NOT re-exported here because it imports
 // @environment which is frontend-only. The frontend should import directly:

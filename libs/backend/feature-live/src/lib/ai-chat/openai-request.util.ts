@@ -41,7 +41,9 @@ export function resolveOpenAiTarget(
   customApiKey?: string,
 ): ResolvedOpenAiTarget | { error: string } {
   const resolvedId =
-    providerId === 'default' ? process.env['AI_PROVIDER'] || 'gemini' : providerId;
+    providerId === 'default'
+      ? process.env['AI_PROVIDER'] || 'gemini'
+      : providerId;
   const config = AI_PROVIDERS_REGISTRY[resolvedId];
   if (!config) return { error: `Provider "${providerId}" is not configured.` };
   const apiKey = customApiKey || process.env[config.keyEnv] || '';

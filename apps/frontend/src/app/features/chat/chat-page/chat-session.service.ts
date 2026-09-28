@@ -4,7 +4,7 @@
  */
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { NotificationService } from '@core/services/notification.service';
+import { NotificationService } from '@features/user-data/services/notification.service';
 import { ChatPageState } from './chat-page.state';
 import { ChatService } from '../services/chat.service';
 import { MessageService } from '../services/message.service';

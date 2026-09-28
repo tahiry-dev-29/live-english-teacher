@@ -5,7 +5,10 @@ import {
   inject,
   DestroyRef,
 } from '@angular/core';
+import { ElevenLabsVoiceService } from '@features/tts-voice/services/elevenlabs-voice.service';
+import { TtsService } from '@features/tts-voice/services/tts.service';
 
+/** Server TTS tester: previews the selected provider voice via POST /ai/tts. */
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-tts-tester',
@@ -18,34 +21,9 @@ import {
       <h2
         class="card-title bg-gradient-to-r from-primary to-secondary bg-clip-text text-2xl font-bold text-transparent"
       >
-        Browser TTS Tester
+        Server TTS Tester
       </h2>
 
-      <!-- Voice Selection -->
-      <div class="space-y-2">
-        <label
-          for="voice-select"
-          class="label-text font-medium text-base-content/70"
-          >Select Voice</label
-        >
-        <div class="relative">
-          <select
-            id="voice-select"
-            [value]="selectedVoice()?.name"
-            (change)="onVoiceChange($any($event.target).value)"
-            class="select w-full"
-          >
-            @for (voice of voices(); track voice.name) {
-              <option [value]="voice.name">
-                {{ voice.name }} ({{ voice.lang }})
-              </option>
-            }
-          </select>
-          <div>▼</div>
-        </div>
-      </div>
-
-      <!-- Text Input -->
       <div class="space-y-2">
         <label
           for="tts-input"
@@ -60,20 +38,19 @@ import {
           class="textarea w-full resize-none"
           placeholder="Type something here..."
         ></textarea>
+        <p class="text-xs opacity-60">
+          Voice: {{ voiceService.selectedVoiceId() || 'provider default' }} ·
+          Model: {{ voiceService.selectedModelId() || 'provider default' }}
+        </p>
       </div>
 
-      <!-- Controls -->
       <div class="flex gap-4">
         <button
           (click)="speak()"
           [disabled]="!text() || isSpeaking()"
           class="btn flex-1 gap-2 btn-primary"
         >
-          @if (isSpeaking()) {
-            <span class="animate-spin">⟳</span> Speaking...
-          } @else {
-            <span>▶</span> Speak
-          }
+          {{ isSpeaking() ? 'Speaking…' : 'Speak' }}
         </button>
 
         <button
@@ -84,81 +61,48 @@ import {
           Stop
         </button>
       </div>
+      @if (error()) {
+        <p class="rounded-lg bg-error/10 p-2 text-xs text-error">
+          {{ error() }}
+        </p>
+      }
     </div>
   `,
 })
 export class TtsTesterComponent {
-  readonly text = signal<string>('');
-  readonly voices = signal<SpeechSynthesisVoice[]>([]);
-  readonly selectedVoice = signal<SpeechSynthesisVoice | null>(null);
-  readonly isSpeaking = signal<boolean>(false);
-
+  readonly voiceService = inject(ElevenLabsVoiceService);
+  private readonly speaker = inject(TtsService);
   private readonly destroyRef = inject(DestroyRef);
-  private voicesHandler: (() => void) | null = null;
+
+  readonly text = signal<string>('Hello! I am your AI English tutor.');
+  readonly isSpeaking = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
 
   constructor() {
-    this.loadVoices();
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const handler = (): void => this.loadVoices();
-      this.voicesHandler = handler;
-      window.speechSynthesis.addEventListener('voiceschanged', handler);
-      this.destroyRef.onDestroy(() => {
-        if (this.voicesHandler) {
-          window.speechSynthesis.removeEventListener(
-            'voiceschanged',
-            this.voicesHandler,
-          );
-          this.voicesHandler = null;
-        }
-      });
-    }
-  }
-
-  private loadVoices(): void {
-    const availableVoices = window.speechSynthesis.getVoices();
-    this.voices.set(availableVoices);
-
-    if (!this.selectedVoice() && availableVoices.length > 0) {
-      const defaultVoice =
-        availableVoices.find((v) => v.lang.startsWith('en')) ||
-        availableVoices[0];
-      this.selectedVoice.set(defaultVoice);
-    }
-  }
-
-  onVoiceChange(voiceName: string): void {
-    const voice = this.voices().find((v) => v.name === voiceName);
-    if (voice) {
-      this.selectedVoice.set(voice);
-    }
+    this.destroyRef.onDestroy(() => this.speaker.stop());
   }
 
   speak(): void {
-    if (!this.text()) return;
-
-    this.stop();
+    const text = this.text().trim();
+    if (!text) return;
+    this.error.set(null);
     this.isSpeaking.set(true);
-
-    const utterance = new SpeechSynthesisUtterance(this.text());
-    const voice = this.selectedVoice();
-
-    if (voice) {
-      utterance.voice = voice;
-    }
-
-    utterance.onend = () => {
-      this.isSpeaking.set(false);
-    };
-
-    utterance.onerror = () => {
-      this.isSpeaking.set(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
+    void this.speaker
+      .speak(text, {
+        onEnd: () => this.isSpeaking.set(false),
+        onError: () => {
+          this.isSpeaking.set(false);
+          this.error.set('TTS unavailable — add an API key for this provider.');
+        },
+      })
+      .catch(() => {
+        this.isSpeaking.set(false);
+        this.error.set('TTS request failed.');
+      });
   }
 
   stop(): void {
-    window.speechSynthesis.cancel();
+    this.speaker.stop();
     this.isSpeaking.set(false);
   }
 }

@@ -1,9 +1,9 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { httpResource } from '@angular/common/http';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { ApiKeyService } from '@features/settings/services/api-key.service';
 import { API_URLS } from '@shared/constants/api-config';
 import {
   KNOWN_TTS_PROVIDERS,
-  browserFallbackVoices,
   resolveActiveProviderId,
   type TtsModel,
   type TtsProviderMeta,
@@ -11,8 +11,8 @@ import {
 } from './elevenlabs-audio.util';
 
 /**
- * Live TTS catalog (T94 split): providers/voices/models fetched from the
- * backend. Selection state stays in ElevenLabsVoiceService (facade).
+ * Live TTS catalog: providers/voices/models fetched via httpResource.
+ * Selection state stays in ElevenLabsVoiceService (facade).
  */
 @Injectable({
   providedIn: 'root',
@@ -20,106 +20,100 @@ import {
 export class ElevenLabsCatalogService {
   private readonly apiKeyService = inject(ApiKeyService);
 
-  readonly providers = signal<TtsProviderMeta[]>(KNOWN_TTS_PROVIDERS);
-  /** Live-only: starts empty, filled from /ai/voices. No hardcoded voices. */
-  readonly voices = signal<TtsVoice[]>([]);
-  readonly ttsModels = signal<TtsModel[]>([]);
-  readonly liveError = signal<string | null>(null);
-  readonly loading = signal<boolean>(false);
+  /** Live voices — starts empty, filled from /ai/voices. */
+  readonly voices = computed<TtsVoice[]>(() => this.voicesGet.value() ?? []);
 
-  async fetchProviders(): Promise<void> {
-    try {
-      const res = await fetch(API_URLS.ttsProviders);
-      if (res.ok) {
-        const data = (await res.json()) as TtsProviderMeta[];
-        if (Array.isArray(data) && data.length > 0) {
-          this.providers.set(data);
-        }
-      }
-    } catch {
-      // keep static provider metadata (config, not mock voices)
+  /** Live TTS models — starts empty, filled from /ai/tts-models. */
+  readonly ttsModels = computed<TtsModel[]>(() => this.modelsGet.value() ?? []);
+
+  /** Providers — live data when available, falls back to static metadata. */
+  readonly providers = computed<TtsProviderMeta[]>(() => {
+    return this.providersGet.value() ?? KNOWN_TTS_PROVIDERS;
+  });
+
+  readonly liveError = computed<string | null>(() => {
+    const err =
+      this.providersGet.error() ??
+      this.voicesGet.error() ??
+      this.modelsGet.error();
+    if (!err) return null;
+    if (typeof err === 'object' && err !== null && 'status' in err) {
+      return `Catalog unavailable (${(err as { status: number }).status}).`;
     }
+    return err instanceof Error ? err.message : 'Load failed.';
+  });
+
+  readonly loading = computed(
+    () =>
+      this.providersGet.isLoading() ||
+      this.voicesGet.isLoading() ||
+      this.modelsGet.isLoading(),
+  );
+
+  /** Gate: resource stays idle until ensureProvidersLoaded() flips it. */
+  private readonly providersGate = signal(0);
+
+  /** GET /ai/tts-providers → httpResource (reactive read, auto loading/error). */
+  private readonly providersGet = httpResource<TtsProviderMeta[]>(() =>
+    this.providersGate() === 0 ? undefined : { url: API_URLS.ttsProviders },
+  );
+
+  /** Gate + provider-dependent gate for voices. */
+  private readonly voicesRequest = signal<{
+    providerId: string;
+    useServerKey: boolean;
+  } | null>(null);
+
+  /** GET /ai/voices → httpResource (dependent on provider). */
+  private readonly voicesGet = httpResource<TtsVoice[]>(() => {
+    const req = this.voicesRequest();
+    if (!req) return undefined;
+    return {
+      url: API_URLS.voices,
+      headers: this.apiKeyService.getTtsHeaders(
+        resolveActiveProviderId(req.providerId),
+        req.useServerKey,
+      ),
+    };
+  });
+
+  /** Gate + provider-dependent gate for models. */
+  private readonly modelsRequest = signal<{
+    providerId: string;
+    useServerKey: boolean;
+  } | null>(null);
+
+  /** GET /ai/tts-models → httpResource (dependent on provider). */
+  private readonly modelsGet = httpResource<TtsModel[]>(() => {
+    const req = this.modelsRequest();
+    if (!req) return undefined;
+    return {
+      url: API_URLS.ttsModels,
+      headers: this.apiKeyService.getTtsHeaders(
+        resolveActiveProviderId(req.providerId),
+        req.useServerKey,
+      ),
+    };
+  });
+
+  /** Flip the gate: first call fires the GET, later calls are no-ops. */
+  ensureProvidersLoaded(): void {
+    if (this.providersGate() === 0) this.providersGate.set(1);
+  }
+
+  /** Load voices for a provider (triggers GET). */
+  loadVoicesForProvider(providerId: string, useServerKey = false): void {
+    this.voicesRequest.set({ providerId, useServerKey });
+  }
+
+  /** Load TTS models for a provider (triggers GET). */
+  loadTtsModelsForProvider(providerId: string, useServerKey = false): void {
+    this.modelsRequest.set({ providerId, useServerKey });
   }
 
   /** Return the TtsProviderMeta for a provider, resolving 'default'. */
   resolveProviderMeta(providerId: string): TtsProviderMeta | undefined {
     const resolved = resolveActiveProviderId(providerId);
     return this.providers().find((p) => p.id === resolved);
-  }
-
-  /** Fetch live voices; returns them (facade syncs its selection). */
-  async loadVoicesForProvider(
-    providerId: string,
-    useServerKey = false,
-  ): Promise<TtsVoice[]> {
-    const activeProvider = resolveActiveProviderId(providerId);
-    if (activeProvider === 'browser') {
-      const fallback = browserFallbackVoices();
-      this.voices.set(fallback);
-      this.liveError.set(null);
-      return fallback;
-    }
-
-    this.loading.set(true);
-    this.liveError.set(null);
-    try {
-      const headers = this.apiKeyService.getTtsHeaders(
-        activeProvider,
-        useServerKey,
-      );
-      const res = await fetch(API_URLS.voices, { headers });
-      if (res.ok) {
-        const data = (await res.json()) as TtsVoice[];
-        if (Array.isArray(data) && data.length > 0) {
-          this.voices.set(data);
-          return data;
-        }
-        this.voices.set([]);
-        this.liveError.set('No live voices. Add an API key for this provider.');
-        return [];
-      }
-      this.voices.set([]);
-      this.liveError.set(
-        `Live voices unavailable (${res.status}). Add an API key.`,
-      );
-      return [];
-    } catch {
-      this.voices.set([]);
-      this.liveError.set('Live voices fetch failed. Check network / API key.');
-      return [];
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  /** Fetch live TTS models; returns them (facade syncs its selection). */
-  async loadTtsModelsForProvider(
-    providerId: string,
-    useServerKey = false,
-  ): Promise<TtsModel[]> {
-    const activeProvider = resolveActiveProviderId(providerId);
-    if (activeProvider === 'browser') {
-      this.ttsModels.set([]);
-      return [];
-    }
-    try {
-      const headers = this.apiKeyService.getTtsHeaders(
-        activeProvider,
-        useServerKey,
-      );
-      const res = await fetch(API_URLS.ttsModels, { headers });
-      if (res.ok) {
-        const data = (await res.json()) as TtsModel[];
-        if (Array.isArray(data) && data.length > 0) {
-          this.ttsModels.set(data);
-          return data;
-        }
-      }
-      this.ttsModels.set([]);
-      return [];
-    } catch {
-      this.ttsModels.set([]);
-      return [];
-    }
   }
 }

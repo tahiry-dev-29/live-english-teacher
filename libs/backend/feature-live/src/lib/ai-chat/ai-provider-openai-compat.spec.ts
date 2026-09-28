@@ -37,7 +37,6 @@ describe('AiProviderService — openai-compat/stream', () => {
       await svc.generateText([], 'hello', { provider: 'mistral' });
       assert.equal(openai.calls[0].provider, 'mistral');
     });
-
   });
 
   describe('generateText() — API key forwarding', () => {
@@ -50,7 +49,6 @@ describe('AiProviderService — openai-compat/stream', () => {
       assert.equal(openai.calls[0].apiKey, 'oai-key');
     });
   });
-
 
   describe('generateStreamText() — streaming routing', () => {
     async function collectStream(
@@ -95,5 +93,5 @@ describe('AiProviderService — openai-compat/stream', () => {
       );
       assert.equal(groq.calls[0].apiKey, 'sk-groq');
     });
-});
+  });
 });

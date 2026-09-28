@@ -19,7 +19,6 @@ import {
   writeToken,
 } from './ai-stream-sse.util';
 
-
 /** SSE session stream body: session bookkeeping + token relay + AI title. */
 export async function processStreamChat(
   deps: {
@@ -142,4 +141,3 @@ export async function processStreamChat(
     endStream(res);
   }
 }
-

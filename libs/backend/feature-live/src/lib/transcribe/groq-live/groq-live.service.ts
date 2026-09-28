@@ -155,7 +155,8 @@ export class GroqLiveService {
   }
 
   private async *streamDeltas(response: Response): AsyncGenerator<string> {
-    const reader = response.body!.getReader();
+    if (!response.body) return;
+    const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     while (true) {

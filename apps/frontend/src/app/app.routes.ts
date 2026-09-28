@@ -28,7 +28,7 @@ export const appRoutes: Route[] = [
     path: '**',
     title: 'Not Found',
     loadComponent: () =>
-      import('./core/components/not-found-page/not-found-page-component').then(
+      import('./shared/not-found-page/not-found-page.component').then(
         (m) => m.NotFoundPageComponent,
       ),
   },

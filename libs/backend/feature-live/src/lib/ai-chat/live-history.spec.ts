@@ -161,5 +161,5 @@ describe('LiveResolver — history', () => {
       assert.ok(fork.title);
       assert.ok(!isNaN(Date.parse(fork.createdAt)));
     });
-});
+  });
 });

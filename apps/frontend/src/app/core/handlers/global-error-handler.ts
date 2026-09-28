@@ -1,6 +1,6 @@
 import { ErrorHandler, Injectable, inject } from '@angular/core';
 import { LoggingService } from '@core/services/logging.service';
-import { NotificationService } from '@core/services/notification.service';
+import { NotificationService } from '@features/user-data/services/notification.service';
 
 /**
  * Global error boundary (Task 32.6): window errors go to logs only,

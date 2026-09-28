@@ -9,7 +9,6 @@ import { environment } from '@environment';
 import {
   AI_ENDPOINTS,
   USER_ENDPOINTS,
-  GRAPHQL_ENDPOINT,
   buildApiUrl,
   type AnyEndpoint,
 } from './api-endpoints';

@@ -34,7 +34,10 @@ async function settle(): Promise<void> {
 }
 
 describe('ChatService sessionsResource', () => {
-  let apolloMock: { query: ReturnType<typeof vi.fn>; mutate: ReturnType<typeof vi.fn> };
+  let apolloMock: {
+    query: ReturnType<typeof vi.fn>;
+    mutate: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     apolloMock = {
@@ -49,7 +52,12 @@ describe('ChatService sessionsResource', () => {
         { provide: MessageService, useValue: {} },
         {
           provide: LoggingService,
-          useValue: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+          useValue: {
+            error: vi.fn(),
+            warn: vi.fn(),
+            info: vi.fn(),
+            debug: vi.fn(),
+          },
         },
       ],
     });

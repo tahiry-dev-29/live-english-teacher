@@ -14,10 +14,7 @@ import { TranscribeDto, GenerateTtsDto } from '../shared/dto/transcribe.dto';
 import { TtsProviderService } from '../tts/tts-provider.service';
 import { TtsVoiceInfo, TtsProviderConfig } from '../tts/tts-providers.registry';
 import { BACKEND_MESSAGES } from '../shared/messages';
-import {
-  resolveTtsApiKey,
-  resolveTtsProvider,
-} from './ai-stream-tts.util';
+import { resolveTtsApiKey, resolveTtsProvider } from './ai-stream-tts.util';
 import { processTts } from './ai-stream-media.route';
 
 /**

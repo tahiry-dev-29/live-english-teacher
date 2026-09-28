@@ -1,17 +1,11 @@
-import { Injectable, signal, inject, computed } from '@angular/core';
-import { MESSAGES } from '@core/constants/messages';
+import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { ApiKeyService } from '@features/settings/services/api-key.service';
-import { API_URLS } from '@shared/constants/api-config';
-import { LoggingService } from '@core/services/logging.service';
 import { ElevenLabsCatalogService } from './elevenlabs-catalog.service';
 import { scheduleIdleCallback } from './elevenlabs-idle.util';
 import {
-  buildTtsRequestBody,
   loadStorageValue,
-  parseTtsAudioPayload,
   resolveActiveProviderId,
   saveStorageValue,
-  type TtsAudioPayload,
   type TtsProviderMeta,
 } from './elevenlabs-audio.util';
 
@@ -19,7 +13,6 @@ import {
   providedIn: 'root',
 })
 export class ElevenLabsVoiceService {
-  private readonly logger = inject(LoggingService);
   private static readonly STORAGE_KEY_PROVIDER = 'tts_selected_provider';
   private static readonly STORAGE_KEY_VOICE = 'tts_selected_voice_id';
   private static readonly STORAGE_KEY_MODEL = 'tts_selected_model_id';
@@ -62,13 +55,54 @@ export class ElevenLabsVoiceService {
       2500,
       ElevenLabsVoiceService.IDLE_DEFER_MS,
     );
+
+    // Auto-select first voice when live voices load.
+    effect(() => {
+      const data = this.catalog.voices();
+      if (
+        data.length > 0 &&
+        !data.some((v) => v.id === this.selectedVoiceId())
+      ) {
+        this.setVoiceId(data[0].id);
+      }
+    });
+
+    // Auto-select model when live models load.
+    effect(() => {
+      const data = this.catalog.ttsModels();
+      if (data.length > 0) {
+        const meta = this.catalog.resolveProviderMeta(
+          resolveActiveProviderId(this.selectedProviderId()),
+        );
+        const selected =
+          data.find((m) => m.id === meta?.defaultModel) || data[0];
+        if (!data.some((m) => m.id === this.selectedModelId())) {
+          this.setModelId(selected.id);
+        }
+      } else {
+        const meta = this.catalog.resolveProviderMeta(
+          resolveActiveProviderId(this.selectedProviderId()),
+        );
+        if (meta?.defaultModel && !this.selectedModelId()) {
+          this.setModelId(meta.defaultModel);
+        }
+      }
+    });
   }
 
   private bootstrapCatalog(): void {
-    void this.fetchProviders();
+    const providerId = this.selectedProviderId();
+    const meta = this.catalog.resolveProviderMeta(providerId);
+    if (meta?.defaultModel && !this.selectedModelId()) {
+      this.setModelId(meta.defaultModel);
+    }
+    this.catalog.ensureProvidersLoaded();
     const useServerKey = !this.apiKeyService.getKey(this.selectedProviderId());
-    void this.loadVoicesForProvider(this.selectedProviderId(), useServerKey);
-    void this.loadTtsModelsForProvider(this.selectedProviderId(), useServerKey);
+    this.catalog.loadVoicesForProvider(this.selectedProviderId(), useServerKey);
+    this.catalog.loadTtsModelsForProvider(
+      this.selectedProviderId(),
+      useServerKey,
+    );
   }
 
   setVoiceId(id: string): void {
@@ -86,8 +120,8 @@ export class ElevenLabsVoiceService {
     saveStorageValue(ElevenLabsVoiceService.STORAGE_KEY_STT_MODEL, model);
   }
 
-  fetchProviders(): Promise<void> {
-    return this.catalog.fetchProviders();
+  fetchProviders(): void {
+    this.catalog.ensureProvidersLoaded();
   }
 
   setProviderId(providerId: string): void {
@@ -126,75 +160,27 @@ export class ElevenLabsVoiceService {
     const useServerKey = !this.apiKeyService.getKey(
       resolveActiveProviderId(providerId),
     );
-    void this.loadVoicesForProvider(providerId, useServerKey);
-    void this.loadTtsModelsForProvider(providerId, useServerKey);
+    this.catalog.loadVoicesForProvider(providerId, useServerKey);
+    this.catalog.loadTtsModelsForProvider(providerId, useServerKey);
   }
 
   async loadVoicesForProvider(
     providerId?: string,
     useServerKey = false,
   ): Promise<void> {
-    const data = await this.catalog.loadVoicesForProvider(
+    this.catalog.loadVoicesForProvider(
       providerId || this.selectedProviderId(),
       useServerKey,
     );
-    if (data.length > 0 && !data.some((v) => v.id === this.selectedVoiceId())) {
-      this.setVoiceId(data[0].id);
-    }
   }
 
   async loadTtsModelsForProvider(
     providerId?: string,
     useServerKey = false,
   ): Promise<void> {
-    const data = await this.catalog.loadTtsModelsForProvider(
+    this.catalog.loadTtsModelsForProvider(
       providerId || this.selectedProviderId(),
       useServerKey,
     );
-    if (data.length > 0 && !data.some((m) => m.id === this.selectedModelId())) {
-      this.setModelId(data[0].id);
-    }
-  }
-
-  async generateSpeechAudio(
-    text: string,
-    voiceId?: string,
-    targetLanguage?: string,
-  ): Promise<TtsAudioPayload | null> {
-    const activeProvider = resolveActiveProviderId(this.selectedProviderId());
-    const selectedVoice = voiceId || this.selectedVoiceId();
-    const selectedModel = this.selectedModelId() || undefined;
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...this.apiKeyService.getTtsHeaders(activeProvider),
-      };
-      const response = await fetch(API_URLS.tts, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(
-          buildTtsRequestBody(
-            activeProvider,
-            selectedVoice,
-            selectedModel,
-            text,
-            targetLanguage,
-          ),
-        ),
-      });
-      if (!response.ok) {
-        this.logger.warn(
-          MESSAGES.log.ttsRequestFailed,
-          `HTTP ${response.status}: ${response.statusText}`,
-        );
-        return null;
-      }
-      return parseTtsAudioPayload(
-        (await response.json()) as { audioData?: string; mimeType?: string },
-      );
-    } catch (error) {
-      this.logger.warn(MESSAGES.log.ttsRequestFailed, error);
-      return null;
-    }
   }
 }

@@ -5,9 +5,9 @@ import {
   ChatAudioService,
 } from '@features/chat/services/chat-audio.service';
 import { ChatStreamService } from '@features/chat/services/chat-stream.service';
-import { PromptTagService } from '@core/services/prompt-tag.service';
-import { MemoryService } from '@core/services/memory.service';
-import { UserProfileService } from '@core/services/user-profile.service';
+import { PromptTagService } from '@features/user-data/services/prompt-tag.service';
+import { MemoryService } from '@features/user-data/services/memory.service';
+import { UserProfileService } from '@features/user-data/services/user-profile.service';
 import { formatApiError } from '@core/utils/api-error.util';
 import { ChatMessage } from '@models/chat-message.model';
 import { LoggingService } from '@core/services/logging.service';
@@ -16,7 +16,7 @@ import {
   pushStreamingToken,
   removeStreamingPlaceholder,
 } from '@features/chat/services/message-mapper.util';
-import { buildEnrichedMessage } from '@features/chat/services/message-context.util';
+import { buildInvisibleContext } from '@features/chat/services/message-context.util';
 import { MessageHistoryLoader } from '@features/chat/services/message-history.loader';
 
 export interface StreamingCursor {
@@ -66,29 +66,24 @@ export class MessageService {
     content: string,
     sessionId: string | null,
     targetLanguage: string,
-  ): Promise<{ text: string; sessionId: string | null }> {
+  ): Promise<{
+    text: string;
+    sessionId: string | null;
+    title?: string | null;
+  }> {
     this.messages.update((msgs) => [...msgs, { role: 'user', text: content }]);
     this.loading.set(true);
     this.streaming.set(false);
     this.cursor = { index: null, text: '' };
 
-    // Enterprise context (tasks 85/86/87): bubble keeps raw text, the
-    // backend receives profile + memories + #skill tags invisibly.
-    await Promise.all([
-      this.memories.ensureLoaded(),
-      this.profile.ensureLoaded(),
-      this.promptTags.ensureLoaded(),
-    ]);
-    const enriched = buildEnrichedMessage(
-      content,
-      this.profile.buildProfileContext(),
-      this.memories.buildMemoryContext(),
-      this.promptTags.buildSystemPrompt(content),
-    );
+    // Enterprise context (tasks 85/86/87): the bubble AND the DB keep the
+    // raw text; profile + memories + #skill tags travel in a separate
+    // `context` field the LLM sees but storage never does.
+    const context = await this.loadInvisibleContext(content);
 
     try {
       const result = await this.chatStream.streamChat(
-        { message: enriched, sessionId, targetLanguage },
+        { message: content, context, sessionId, targetLanguage },
         (token) => this.pushStreamingToken(token),
       );
       this.loading.set(false);
@@ -104,7 +99,11 @@ export class MessageService {
         return { text, sessionId: result.sessionId ?? sessionId };
       }
 
-      return { text: result.text, sessionId: result.sessionId ?? sessionId };
+      return {
+        text: result.text,
+        sessionId: result.sessionId ?? sessionId,
+        title: result.title,
+      };
     } catch (error) {
       this.logger.error(MESSAGES.log.streamFailed, error);
       this.messages.update((msgs) => {
@@ -129,11 +128,15 @@ export class MessageService {
     targetLanguage: string,
   ): Promise<{ text: string; sessionId: string } | null> {
     this.loading.set(true);
+    // Same invisible-context rule as text: DB stores '[Audio message]',
+    // the LLM alone receives profile + memories (no text → no #tags).
+    const context = await this.loadInvisibleContext('');
     const request: AudioChatRequest = {
       audioData,
       mimeType,
       sessionId,
       targetLanguage,
+      context,
     };
     const result = await this.chatAudio.sendAudio(request);
     this.loading.set(false);
@@ -160,9 +163,22 @@ export class MessageService {
     this.currentSessionId.set(null);
     this.messages.set([]);
   }
-
   addMessage(message: ChatMessage): void {
     this.messages.update((msgs) => [...msgs, message]);
+  }
+
+  /** LLM-only context ('' when empty) — never mixed into bubbles or DB. */
+  private async loadInvisibleContext(content: string): Promise<string> {
+    await Promise.all([
+      this.memories.ensureLoaded(),
+      this.profile.ensureLoaded(),
+      this.promptTags.ensureLoaded(),
+    ]);
+    return buildInvisibleContext(
+      this.profile.buildProfileContext(),
+      this.memories.buildMemoryContext(),
+      content ? this.promptTags.buildSystemPrompt(content) : '',
+    );
   }
 
   private pushStreamingToken(token: string): void {

@@ -1,0 +1,65 @@
+<div class="relative flex w-full flex-col gap-1">
+  @if (label()) {
+    <label
+      [for]="selectId()"
+      class="text-xs font-medium tracking-wider text-base-content/50 uppercase"
+      >{{ label() }}</label
+    >
+  }
+  <button
+    type="button"
+    [id]="selectId()"
+    [disabled]="disabled()"
+    [attr.aria-label]="ariaLabel() || label() || null"
+    [attr.aria-expanded]="isOpen()"
+    (click)="toggleDropdown($event)"
+    class="flex items-center justify-between gap-2 rounded-lg border bg-base-100 text-left text-sm transition-all"
+    [class.w-full]="fullWidth()"
+    [class.border-primary]="isOpen() || color() === 'primary'"
+    [class.border-base-300]="!isOpen() && color() !== 'primary'"
+    [class.ring-1]="isOpen()"
+    [class.ring-primary/40]="isOpen()"
+    [class.opacity-50]="disabled()"
+    [class.cursor-not-allowed]="disabled()"
+    [class]="sizeClass()"
+  >
+    <span
+      class="truncate font-normal"
+      [class.text-base-content/40]="!selectedLabel()"
+      >{{ selectedLabel() || placeholder() || '\u2014 Choose \u2014' }}</span
+    >
+    <svg
+      lucideChevronDown
+      class="h-4 w-4 shrink-0 text-base-content/60 transition-transform duration-200"
+      [class.rotate-180]="isOpen()"
+    ></svg>
+  </button>
+  @if (isOpen()) {
+    <div
+      class="absolute top-full left-0 z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-base-300 bg-base-200/95 p-1 shadow-2xl backdrop-blur-md"
+    >
+      <ul class="menu w-full menu-sm p-0" role="listbox">
+        @for (opt of options(); track opt.value) {
+          <li role="option" [attr.aria-selected]="opt.value === value()">
+            <button
+              type="button"
+              [disabled]="opt.disabled ?? false"
+              (click)="selectOption(opt, $event)"
+              class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs transition-colors"
+              [class.bg-primary]="opt.value === value()"
+              [class.text-primary-content]="opt.value === value()"
+              [class.font-semibold]="opt.value === value()"
+              [class.text-base-content]="opt.value !== value()"
+              [class.hover:bg-base-300]="opt.value !== value()"
+            >
+              <span class="truncate">{{ opt.label }}</span>
+              @if (opt.value === value()) {
+                <svg lucideCheck class="h-3.5 w-3.5 shrink-0"></svg>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>

@@ -70,14 +70,13 @@ export function selectValidModelId(
   const providerModels = getModelsForProvider(models, provider);
 
   if (provider === 'default') {
-    // Find any model marked as default across all providers.
+    // The server default is authoritative: prefer the explicitly marked model
+    // even when a previously selected model is still present in the catalog.
     const defaultModel = providerModels.find((m) => m.isDefault);
-    if (defaultModel && defaultModel.id !== currentModelId) {
-      return defaultModel.id;
-    } else if (!currentModelId && providerModels.length > 0) {
-      return providerModels[0].id;
-    }
-    return currentModelId;
+    if (defaultModel) return defaultModel.id;
+    return currentModelId && providerModels.some((m) => m.id === currentModelId)
+      ? currentModelId
+      : providerModels[0]?.id || '';
   }
 
   if (

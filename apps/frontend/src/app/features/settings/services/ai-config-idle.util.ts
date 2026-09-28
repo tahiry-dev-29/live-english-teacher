@@ -2,10 +2,7 @@ import { DestroyRef } from '@angular/core';
 
 export class AiConfigIdleHelper {
   constructor(
-    private readonly fetchModels: (
-      provider?: string,
-      force?: boolean,
-    ) => Promise<void>,
+    private readonly fetchModels: (provider?: string, force?: boolean) => void,
     private readonly provider: () => string,
     private readonly fetchFailed: () => boolean,
     private readonly setFetchFailed: (value: boolean) => void,

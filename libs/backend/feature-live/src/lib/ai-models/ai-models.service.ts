@@ -68,7 +68,8 @@ export class AiModelsService {
   ): Promise<DiscoveredAiModel[]> {
     if (!apiKey) return [];
     if (config.id === 'gemini') return this.fetchGeminiModels(apiKey);
-    if (config.id === 'anthropic') return this.fetchAnthropicModels(config, apiKey);
+    if (config.id === 'anthropic')
+      return this.fetchAnthropicModels(config, apiKey);
     if (config.chatApi === 'openai-compatible' && config.modelsUrl) {
       return this.fetchOpenAiCompatibleModels(config, apiKey);
     }
@@ -92,7 +93,9 @@ export class AiModelsService {
     }
   }
 
-  private async fetchGeminiModels(apiKey: string): Promise<DiscoveredAiModel[]> {
+  private async fetchGeminiModels(
+    apiKey: string,
+  ): Promise<DiscoveredAiModel[]> {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
       const response = await fetch(url);

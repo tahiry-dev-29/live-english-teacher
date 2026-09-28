@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Apollo } from 'apollo-angular';
 import { MESSAGES } from '@core/constants/messages';
 import {
@@ -20,6 +20,8 @@ export interface AudioChatRequest {
   mimeType: string;
   sessionId: string | null;
   targetLanguage: string;
+  /** Invisible LLM-only context (profile/memories) — never stored. */
+  context?: string;
 }
 
 export type AudioChatResult =
@@ -43,6 +45,7 @@ export class ChatAudioService {
   private readonly chatStream = inject(ChatStreamService);
   private readonly ttsVoiceService = inject(ElevenLabsVoiceService);
   private readonly apiKeyService = inject(ApiKeyService);
+  private readonly http = inject(HttpClient);
 
   async sendAudio(request: AudioChatRequest): Promise<AudioChatResult> {
     try {
@@ -57,6 +60,7 @@ export class ChatAudioService {
             targetLanguage: request.targetLanguage,
             model: this.aiConfig.selectedModelId(),
             provider: this.aiConfig.provider(),
+            context: request.context || undefined,
           },
           context: {
             headers: new HttpHeaders(this.chatStream.buildApiHeaders()),
@@ -83,6 +87,8 @@ export class ChatAudioService {
     language?: string,
     model?: string,
   ): Promise<string | null> {
+    // POST action: explicit user-triggered HttpClient Observable → Promise at
+    // the transport boundary (interceptor normalizes HTTP errors to UX text).
     try {
       const sttModel = model || this.ttsVoiceService.selectedSttModel();
       const headers: Record<string, string> = {
@@ -93,19 +99,13 @@ export class ChatAudioService {
         headers['x-groq-api-key'] = groqKey;
       }
 
-      const res = await fetch(API_URLS.transcribe, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          audioData,
-          mimeType,
-          language,
-          model: sttModel,
-        }),
-      });
-
-      if (!res.ok) return null;
-      const data = (await res.json()) as { transcript?: string };
+      const data = await firstValueFrom(
+        this.http.post<{ transcript?: string }>(
+          API_URLS.transcribe,
+          { audioData, mimeType, language, model: sttModel },
+          { headers },
+        ),
+      );
       return data.transcript || null;
     } catch (error) {
       this.logger.warn(MESSAGES.log.transcriptionFailed, error);

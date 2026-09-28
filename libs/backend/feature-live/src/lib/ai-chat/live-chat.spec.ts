@@ -107,5 +107,5 @@ describe('LiveResolver — chat', () => {
       const result = await resolver.generateAudio('Hello');
       assert.equal(result, null);
     });
-});
+  });
 });

@@ -127,9 +127,7 @@ export function createUserProfileModel(store: UserDataCollections) {
 export function createPromptTagModel(store: UserDataCollections) {
   return {
     findMany: async (opts?: any) => {
-      const list = store.tags.filter((t) =>
-        matchesScope(t, opts?.where ?? {}),
-      );
+      const list = store.tags.filter((t) => matchesScope(t, opts?.where ?? {}));
       list.sort((a, b) => a.name.localeCompare(b.name));
       return list;
     },

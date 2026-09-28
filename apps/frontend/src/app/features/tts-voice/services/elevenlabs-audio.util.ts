@@ -103,35 +103,11 @@ export const KNOWN_TTS_PROVIDERS: TtsProviderMeta[] = [
     defaultVoiceId: 'JBFqnCBsd6RMkjVDRZzb',
     hasCustomKeys: true,
   },
-  {
-    id: 'browser',
-    label: 'Web Speech (Browser)',
-    quotaNote: 'Unlimited local',
-    quality: 'System Voice',
-    review: 'Always available offline fallback',
-    keyHeader: '',
-    consoleUrl: '',
-    defaultModel: '',
-    defaultVoiceId: '',
-    hasCustomKeys: false,
-  },
 ];
 
 /** 'default' means the server default (elevenlabs). */
 export function resolveActiveProviderId(providerId: string): string {
   return providerId === 'default' ? 'elevenlabs' : providerId;
-}
-
-/** Fallback voice entry used when the provider is the local browser engine. */
-export function browserFallbackVoices(): TtsVoice[] {
-  return [
-    {
-      id: 'default',
-      name: 'Browser Default Voice',
-      lang: 'en-US',
-      description: 'System text-to-speech engine (Web Speech API)',
-    },
-  ];
 }
 
 export interface TtsRequestBody {

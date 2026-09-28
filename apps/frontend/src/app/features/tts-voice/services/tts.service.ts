@@ -1,22 +1,19 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { ElevenLabsVoiceService } from './elevenlabs-voice.service';
+import { TtsSynthesisService } from './tts-synthesis.service';
 import { TtsAudioCacheService } from './tts-audio-cache.service';
-import { BrowserSpeechService } from './browser-speech.service';
 import { TtsPlaybackService } from './tts-playback.service';
-import {
-  cleanMarkdownForSpeech,
-  estimateSpeechDurationSeconds,
-} from './tts-settings.util';
+import { cleanMarkdownForSpeech } from './tts-settings.util';
 import { base64ToBlob } from '@core/utils/text.util';
 import { MESSAGES } from '@core/constants/messages';
 import { LoggingService } from '@core/services/logging.service';
 
 interface TtsSpeechOptions {
-  voice?: SpeechSynthesisVoice;
   voiceId?: string;
   lang?: string;
   onEnd?: () => void;
-  onError?: (error?: SpeechSynthesisErrorEvent | unknown) => void;
+  onError?: (error?: unknown) => void;
 }
 
 @Injectable({
@@ -25,9 +22,9 @@ interface TtsSpeechOptions {
 export class TtsService {
   private readonly logger = inject(LoggingService);
   private readonly elevenLabs = inject(ElevenLabsVoiceService);
-  private readonly browserSpeech = inject(BrowserSpeechService);
   private readonly audioCache = inject(TtsAudioCacheService);
   private readonly playback = inject(TtsPlaybackService);
+  private readonly synthesis = inject(TtsSynthesisService);
 
   readonly isPlaying = signal<boolean>(false);
   readonly currentAudioTime = signal<number>(0);
@@ -43,8 +40,9 @@ export class TtsService {
   private lastOptions: TtsSpeechOptions | undefined;
 
   /**
-   * Speak text. Tries the TTS API first; falls back to Web Speech always.
-   * Retries the API when invoked from the play button after a failure.
+   * Speak text via server TTS APIs only (no browser synthesis).
+   * On failure the error surfaces via onError + lastTtsFailed so the UI
+   * prompts for an API key instead of silently falling back.
    */
   async speak(text: string, options?: TtsSpeechOptions): Promise<void> {
     const cleanText = cleanMarkdownForSpeech(text);
@@ -60,8 +58,7 @@ export class TtsService {
     const selectedVoiceId =
       options?.voiceId || this.elevenLabs.selectedVoiceId();
 
-    // 1. Try TTS API (with loading state for the play-button spinner).
-    //    Cached audio (L1 memory / L2 IndexedDB) skips re-synthesis entirely.
+    // TTS API (cached audio in L1 memory / L2 IndexedDB skips re-synthesis).
     this.isLoading.set(true);
     try {
       const cacheKey = await this.audioCache.buildKey([
@@ -71,26 +68,17 @@ export class TtsService {
         this.elevenLabs.selectedProviderId(),
         options?.lang,
       ]);
-      const audioBlob = await this.audioCache.getOrFetch(cacheKey, () =>
-        this.elevenLabs
-          .generateSpeechAudio(cleanText, selectedVoiceId, options?.lang)
-          .then((res) => {
-            if (!res) throw new Error('tts-unavailable');
-            return base64ToBlob(res.audioData, res.mimeType);
-          })
-          .catch((err: unknown) => {
-            if (err instanceof Error && err.message === 'tts-unavailable') {
-              this.logger.warn(
-                MESSAGES.log.ttsUnavailable(
-                  this.elevenLabs.selectedProviderId(),
-                ),
-              );
-            } else {
-              this.logger.warn(MESSAGES.log.ttsFallback, err);
-            }
-            throw err;
+      const audioBlob = await this.audioCache.getOrFetch(cacheKey, async () => {
+        const outcome = await firstValueFrom(
+          this.synthesis.synthesize(cleanText, {
+            voiceId: selectedVoiceId,
+            lang: options?.lang,
           }),
-      );
+        );
+        // Rejection propagates (never cached): the interceptor toasts the cause.
+        if (!outcome.ok) throw new Error(outcome.message);
+        return base64ToBlob(outcome.audioData, outcome.mimeType);
+      });
 
       this.lastTtsFailed.set(false);
       this.isLoading.set(false);
@@ -105,22 +93,17 @@ export class TtsService {
           this.currentAudioTime.set(0);
           options?.onEnd?.();
         },
-        onError: () => {
+        onError: (error) => {
           this.isPlaying.set(false);
-          this.logger.warn(MESSAGES.log.audioFallback);
-          this.speakWebSpeech(cleanText, options);
+          this.fail(error, options);
         },
       });
       return;
     } catch (err) {
-      this.lastTtsFailed.set(true);
-      this.logger.warn(MESSAGES.log.ttsFallback, err);
+      this.fail(err, options);
     } finally {
       this.isLoading.set(false);
     }
-
-    // 2. Fallback to Web Speech API (always available)
-    this.speakWebSpeech(cleanText, options);
   }
 
   /** Retry the TTS API for the last spoken text (play button after failure). */
@@ -129,49 +112,16 @@ export class TtsService {
     if (text) await this.speak(text, this.lastOptions);
   }
 
-  /** Browser fallback — owned by BrowserSpeechService (chunked, voices). */
-  private speakWebSpeech(cleanText: string, options?: TtsSpeechOptions): void {
-    const estimatedDuration = estimateSpeechDurationSeconds(cleanText);
-    const startTime = Date.now();
-    this.browserSpeech.speak(cleanText, {
-      voice: options?.voice,
-      lang: options?.lang,
-      onStart: () => {
-        this.isPlaying.set(true);
-        this.currentAudioTime.set(0);
-        this.totalAudioDuration.set(estimatedDuration);
-        this.playback.startProgressTracking(
-          { onTimeUpdate: (s) => this.currentAudioTime.set(s) },
-          startTime,
-          estimatedDuration,
-        );
-        this.playback.startWebSpeechViz(
-          () => this.isPlaying() && this.browserSpeech.active(),
-          (levels) => this.analyserLevels.set(levels),
-        );
-      },
-      onEnd: () => {
-        this.finishWebSpeech();
-        options?.onEnd?.();
-      },
-      onError: (error) => {
-        this.finishWebSpeech();
-        options?.onError?.(error);
-      },
-    });
-  }
-
-  /** Shared Web Speech teardown (end + error paths). */
-  private finishWebSpeech(): void {
-    this.playback.stopWebSpeechViz();
-    this.playback.stopProgressTracking();
+  /** Surface the failure: retry flag + caller hook (key prompt in UI). */
+  private fail(error: unknown, options?: TtsSpeechOptions): void {
+    this.lastTtsFailed.set(true);
     this.isPlaying.set(false);
-    this.currentAudioTime.set(0);
+    this.logger.warn(MESSAGES.log.ttsRequestFailed, error);
+    options?.onError?.(error);
   }
 
   stop(): void {
     this.playback.stop();
-    this.browserSpeech.stop();
     this.isPlaying.set(false);
     this.isLoading.set(false);
     this.currentAudioTime.set(0);
@@ -180,10 +130,6 @@ export class TtsService {
   pause(): void {
     if (this.playback.pause()) {
       this.isPlaying.set(false);
-    } else if (this.browserSpeech.active() && this.isPlaying()) {
-      this.browserSpeech.pause();
-      this.isPlaying.set(false);
-      this.playback.stopProgressTracking();
     }
   }
 
@@ -194,10 +140,7 @@ export class TtsService {
       onError: (error) =>
         this.logger.error(MESSAGES.log.audioPlayFailed, error),
     });
-    if (!resumed && this.browserSpeech.active() && !this.isPlaying()) {
-      this.browserSpeech.resume();
-      this.isPlaying.set(true);
-    }
+    if (!resumed) this.isPlaying.set(false);
   }
 
   seekTo(seconds: number): void {

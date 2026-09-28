@@ -114,8 +114,15 @@ describe('AiStreamController — transcribe/tts', () => {
       assert.ok(decoded.includes('azure'));
     });
 
-    it('throws when TTS synthesize returns null', async () => {
-      const badTts = { ...makeMockTts(), synthesize: async () => null };
+    it('throws the TTS failure code when synthesis fails', async () => {
+      const badTts = {
+        ...makeMockTts(),
+        synthesize: async () => ({
+          ok: false,
+          code: 'QUOTA_EXCEEDED',
+          provider: 'elevenlabs',
+        }),
+      };
       controller = new AiStreamController(
         makeMockModels(),
         makeMockAiProvider(),
@@ -125,7 +132,7 @@ describe('AiStreamController — transcribe/tts', () => {
       );
       await assert.rejects(
         () => controller.tts({ text: 'hello' }),
-        /TTS not available/,
+        /TTS QUOTA_EXCEEDED/,
       );
     });
   });

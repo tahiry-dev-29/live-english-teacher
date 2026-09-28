@@ -8,7 +8,8 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { appRoutes } from './app.routes';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { apiErrorInterceptor } from './core/interceptors/http-error.interceptor';
 import { Apollo, APOLLO_OPTIONS } from 'apollo-angular';
 import { HttpLink } from 'apollo-angular/http';
 import { InMemoryCache } from '@apollo/client/core';
@@ -27,7 +28,7 @@ export const appConfig: ApplicationConfig = {
       inject(GraphQLService);
     }),
     provideRouter(appRoutes),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([apiErrorInterceptor])),
     provideMarkdown(),
     Apollo,
     {

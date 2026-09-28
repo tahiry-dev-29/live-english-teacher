@@ -21,7 +21,7 @@ import {
 import {
   AppSelectComponent,
   type SelectOption,
-} from '@core/components/ui/select/select.component';
+} from '@app-shared/ui/select/select.component';
 import { SettingsProfileFormComponent } from './settings-profile-form.component';
 import { SettingsAppearanceComponent } from './settings-appearance.component';
 

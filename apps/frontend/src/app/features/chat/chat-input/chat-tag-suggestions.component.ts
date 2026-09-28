@@ -4,7 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { PromptTag } from '@core/services/prompt-tag.service';
+import { PromptTag } from '@features/user-data/services/prompt-tag.service';
 
 /** `#tag` autocomplete dropdown (task 87) — presentation only. */
 @Component({

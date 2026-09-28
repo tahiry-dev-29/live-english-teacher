@@ -1,10 +1,16 @@
-import type { OpenAiChatChoice, OpenAiStreamChoice } from './openai-message.model';
+import type {
+  OpenAiChatChoice,
+  OpenAiStreamChoice,
+} from './openai-message.model';
 import { BACKEND_MESSAGES } from '../shared/messages';
 
 /** Extracts the assistant text from a chat-completion payload. */
-export function extractChatContent(body: { choices?: OpenAiChatChoice[] }): string {
+export function extractChatContent(body: {
+  choices?: OpenAiChatChoice[];
+}): string {
   return (
-    body.choices?.[0]?.message?.content || BACKEND_MESSAGES.error.noResponseReceived
+    body.choices?.[0]?.message?.content ||
+    BACKEND_MESSAGES.error.noResponseReceived
   );
 }
 
@@ -23,7 +29,9 @@ export function extractStreamContent(line: string): string {
 }
 
 /** Splits Anthropic messages into system prompt + message list. */
-export function splitAnthropicMessages<T extends { role: string; content: string }>(
+export function splitAnthropicMessages<
+  T extends { role: string; content: string },
+>(
   messages: T[],
 ): { system?: string; messages: { role: string; content: string }[] } {
   const system = messages.find((m) => m.role === 'system')?.content;

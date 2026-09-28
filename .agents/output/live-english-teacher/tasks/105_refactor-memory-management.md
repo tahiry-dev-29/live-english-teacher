@@ -23,30 +23,39 @@ ChatGPT / Gemini web :
    quota non atomique, `buildContext()` dupliqué FE/BE, component de 200 lignes, erreurs codées
    en dur, suppressions optimistes sans rollback, doublon de `MAX_MEMORIES`.
 
-## 2. Current state (audit)
+## 2. Current state (audit 2026-09-28, post-migration HTTP)
 
-| Point | Emplacement | Défaut |
+**La migration Resource API a déjà été appliquée dans le worktree.** `memory.service.ts` est passé
+en `httpResource()` + `rxResource()` (194 lignes), comme `user-profile`, `prompt-tag`, `ai-config`,
+`elevenlabs-catalog`. Il ne reste qu'un seul `fetch()` dans tout le frontend, le transport SSE de
+`chat-stream.service.ts` — correctement toléré. **Ne pas refaire cette partie.**
+
+En revanche la feature demandée (mémoire par modèle, scoping utilisateur, quota atomique) n'a pas
+démarré : aucun fichier de la §4 n'existe, aucune migration n'a été créée.
+
+| Point | Emplacement | État |
 |---|---|---|
-| Portée mémoire | `user-memory.service.ts:19-23` | `userId ?? deviceKey` — la mémoire ne suit pas l'utilisateur |
-| Portée modèle | `prisma/schema.prisma:54-66` | **aucune** notion de modèle |
-| Client HTTP | `memory.service.ts:57,74,92,110,122` | 5× `fetch()` brut, hors `angularv20-http.md` |
-| État manuel | `memory.service.ts:27-28,34-35` | `loading`/`error`/`loaded`/`inflight` dupliquent ce qu'un Resource fournit |
-| Quota | `user-memory.service.ts:35-42` | `count()` puis `create()` — race entre deux requêtes concurrentes |
-| Quota FE | `memory.service.ts:22,30-32` | `MAX_MEMORIES = 50` dupliqué du backend |
-| Formatage contexte | `memory.service.ts:132` vs `user-memory.service.ts:75-79` | même logique `- ${text}` écrite deux fois |
-| Component | `settings-tab-memory.component.ts:159` | 200 lignes (plafond), template inline, **aucun** `.util.ts` contrairement à `settings-tab-tags` / `settings-tab-voices` |
-| Erreurs | `memory.service.ts:60,64` | `Memories unavailable (${res.status}).` codé en dur, hors `SHARED_MESSAGES` |
-| Suppressions | `memory.service.ts:107-117,119-129` | optimistes, `catch {}` muet, aucun rollback ni toast |
-| Chargement | `settings-tab-memory.component.ts:168` | fetch dans le constructeur — interdit par `stack.md` |
-| Spec BE | `user-memory.service.spec.ts:13-64` | réimplémente le service en clair, ne teste pas le vrai fichier |
+| Client HTTP | `memory.service.ts:38-42` | ✅ **FAIT** — `httpResource()` pour le GET, `rxResource()` pour les mutations |
+| Gate lazy | `memory.service.ts:36,39-43` | ✅ **FAIT** — `loadGate` signal, request `undefined` tant que 0 |
+| État loading/error | `memory.service.ts:44-52` | ✅ **FAIT** — `computed()` dérivé de la resource, plus de `loaded`/`inflight`/`loading` signal |
+| **Merge par `effect()`** | `memory.service.ts:127,135,146` | ❌ **3 effects** qui copient `memoriesGet.value()` → `memories.set()`. Anti-pattern **interdit par `stack.md`** (« Never use `effect` to sync one piece of state to another ») → à réécrire en `linkedSignal` |
+| Portée modèle | `prisma/schema.prisma:54-66` | ❌ **aucune** notion de modèle. Aucune migration au-delà de `20260921114336` |
+| Portée propriétaire | `user-memory.service.ts:19-23` | ❌ `userId ?? deviceKey` — la mémoire ne suit pas l'utilisateur entre navigateurs |
+| Quota atomique | `user-memory.service.ts:35-42` | ❌ `count()` puis `create()` — race sur `add()` concurrents |
+| Formatage contexte | `memory.service.ts` (nouveau) vs `user-memory.service.ts:75-79` | ❌ **dupliqué** : la même concaténation `- ${text}` existe encore des deux côtés |
+| `MAX_MEMORIES` | `memory.service.ts:24` vs `user-memory.service.ts:15` | ❌ **dupliqué** (50 dans les deux fichiers) |
+| Component | `settings-tab-memory.component.ts` | ❌ **199 lignes**, `templateUrl` absent (template inline), aucun `.util.ts` — contrairement à `settings-tab-tags` / `settings-tab-voices` |
+| Erreurs | `memory.service.ts:46-52` | ❌ `Memories unavailable (${status}).` **codé en dur**. `SHARED_MESSAGES` n'a ni `authRequired` ni `memoryQuotaReached` (vérifié) |
+| Spec BE | `user-memory.service.spec.ts:13-64` | ❌ réimplémente le service en clair au lieu de l'importer — ne teste pas le vrai fichier |
+| Rollback / toasts | — | ❌ suppressions optimistes sans rollback ni `NotificationService` |
 
 ### 2.1 Blocage auth à assumer explicitement
 
 Aucun service d'auth frontend n'existe (Task 28 est TODO) et **personne ne pose l'en-tête
 `x-user-id`** aujourd'hui — seuls les 14 handlers du `UserDataController` le lisent. On ne peut donc
-paslivrer « scopé par l'utilisateur connecté » en une fois. La task livre :
+pas livrer « scopé par l'utilisateur connecté » en une fois. La task livre :
 
-- un `OwnerContextService` unique qui expose `ownerId` / `isAuthenticated` ;
+- un `MemoryOwnerService` unique qui expose `ownerId` / `isAuthenticated` ;
 - aujourd'hui : `deviceKey` + `isAuthenticated = false` → **lecture seule**, ce qui est déjà le
   comportement demandé pour les non connectés ;
 - plus tard (Task 28) : `ownerId = userId` et le même service bascule l'écriture sans qu'aucun
@@ -64,7 +73,7 @@ UserMemory { id, userId?, deviceKey, modelScope?, text, createdAt, updatedAt }
 ```text
 MemoryApiService (Angular 20 — règle stack.md §HTTP Frontend)
    ├── httpResource()  GET /api/user/memories?model=provider:modelId  → globale + modèle
-   │                    (état réactif de l'onglet, lazy derrière _shouldLoadMemories)
+   │                    (état réactif de l'onglet, gate `loadGate` existant)
    ├── rxResource()    POST   /api/user/memories   (stream loader, scope: 'global'|'model')
    │                   PATCH  /api/user/memories/:id
    │                   DELETE /api/user/memories/:id · /api/user/memories
@@ -86,9 +95,9 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
 
 | Opération | API retenue | Justification |
 |---|---|---|
-| `GET /memories` (liste, pilotée par `selectedModelId`) | `httpResource()` | GET + état serveur réactif. Loader `undefined` tant que `_shouldLoadMemories` est `false` (miroir de `chat.service.ts:72-104`) |
+| `GET /memories` (liste, pilotée par `selectedModelId`) | `httpResource()` | GET + état serveur réactif. **Déjà en place** (`memory.service.ts:39` `memoriesGet`) — étendre la request avec le scope, garder le gate `loadGate` existant (miroir de `chat.service.ts:72-104`) |
 | `POST` / `PATCH` / `DELETE` | **`rxResource()`** avec loader `stream` | mutations = commandes explicites. Le `request` dépend d'un Signal d'intention, **jamais** d'un Signal d'état → une mutation ne s'auto-exécute pas. `HttpClient` n'apparaît qu'`this.http.post(...)` **dans** le `stream` |
-| `GET /memories/context` | `httpResource()` | GET d'état serveur, pas une action ponctuelle. Loader gated par le même `_shouldLoadMemories` → zéro requête au premier paint |
+| `GET /memories/context` | `httpResource()` | GET d'état serveur, pas une action ponctuelle. Gaté par le même `loadGate` → zéro requête au premier paint |
 | Optimistic update local après mutation | `signal.update()` | état local de présentation, pas une ressource |
 | `fetch()` | **interdit** | seul `chat-stream.service.ts` (SSE `ReadableStream`) est toléré |
 | Backend → Prisma | Prisma | pas d'axios ici : aucune API externe, c'est la base locale |
@@ -122,21 +131,20 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
 - `user-memory-context.util.spec.ts` — nouveau : filtrage par portée, plafond, tri, liste vide
 
 ### Frontend — `apps/frontend/src/app/features/user-data/`
-- `services/memory.service.ts` → renommé `memory-api.service.ts` : `httpResource()` pour les GET
-  (loader lazy derrière `_shouldLoadMemories`), `rxResource()` avec loader `stream` pour les
-  mutations, plus aucun `fetch`, plus de `loading`/`error`/`loaded`/`inflight`
-- `services/memory-mutations.ts` — les 4 `rxResource()` (`addMemory`, `updateMemory`,
-  `removeMemory`, `clearMemories`), chacun avec son Signal d'intention ; `HttpClient` injecté
-  ici seulement
-- `services/memory-lazy.util.ts` — **pur** : `shouldLoadMemories(ready, requested, opened)` +
-  `whenIdle(fn)` (`requestIdleCallback` avec fallback `setTimeout`), sur le modèle de
-  `elevenlabs-idle.util.ts` / `ai-config-idle.util.ts`
-- `services/memory-context.service.ts` — nouveau : GET `/context`, alimente `MessageService`
+- `services/memory.service.ts` → **garder le nom** (déjà migré Resource API) : rebrancher sur
+  `MemoryOwnerService`, exposer le scope dans la request, et **supprimer les 3 `effect()` de merge**
+  au profit d'un `linkedSignal`
+- `services/memory-mutations.ts` — les 3 `rxResource()` (`addMemory`, `updateMemory`,
+  `removeMemory`, `clearMemories`) extraits hors du service principal, pour faire passer
+  `memory.service.ts` (194 l.) sous 120 lignes ; `HttpClient` injecté ici seulement
+- `services/memory-context.service.ts` — nouveau : `httpResource()` sur `GET /context`,
+  alimente `MessageService`
 - `services/memory-owner.service.ts` — nouveau : `ownerId`, `isAuthenticated`, bascule Task 28
 - `services/memory-tab.util.ts` — **pur** : `normalizeScope`, `scopeLabel`, `canAddMemory`,
   `isEditing`, `counterLabel`
-- `services/memory-api.service.spec.ts` : `provideHttpClientTesting()` + `httpTestingController` —
-  assertions sur `httpResource()` (resolved/error/lazy) et sur les 4 `rxResource()`
+- `services/memory.service.spec.ts` — réécrire : `provideHttpClientTesting()` + `httpTestingController`
+  (resolved/error/lazy + les `rxResource()`) **et** une assertion prouvant l'absence d'`effect()`
+  de merge
 - `libs/shared/constants/messages.ts` — `error.authRequired`, `error.memoryQuotaReached(n/max)`,
   `templates.memoryScopeLabel(model)`
 
@@ -149,10 +157,10 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
 ### Frontend — chat
 - `features/chat/services/message.service.ts:173-179` — remplacer
   `this.memories.ensureLoaded() + buildMemoryContext()` par
-  `this.memoryContext.load(modelScope)` ; le `profile`/`promptTags` restent inchangés
+  `this.memoryContext.value()` ; le `profile`/`promptTags` restent inchangés
 
 ### Partagé
-- `libs/shared/constants/api-endpoints.ts:41-45` — `memories`, `memoryById`, `memoryContext`
+- `libs/shared/constants/api-endpoints.ts:41-45` — ajouter `memoryContext`
 
 ## 5. Steps
 
@@ -164,12 +172,13 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
 6. **Specs backend** — réécrire `user-memory.service.spec.ts` sur le vrai service.
 7. **Messages partagés** — `messages.ts`, `api-endpoints.ts`.
 8. **FE `memory-owner.service.ts`** — `ownerId` / `isAuthenticated` (deviceKey, `false`).
-9. **FE `memory-api.service.ts`** — `httpResource()` (GET réactifs, lazy) + `rxResource()` loader
-   `stream` (mutations) ; `memory-lazy.util.ts` pour le déverrouillage idle.
+9. **FE `memory.service.ts`** — brancher le scope dans la request `httpResource()`, extraire les
+   `rxResource()` dans `memory-mutations.ts`, **remplacer les 3 `effect()` de merge par
+   `linkedSignal`**, supprimer le `MAX_MEMORIES` local.
 10. **FE `memory-context.service.ts`** + bascule de `message.service.ts`.
 11. **FE util + component + template** — découpage de `settings-tab-memory.component.ts`.
 12. **Toasts + rollback** — `NotificationService` branché ; rollback des suppressions optimistes.
-13. **Tests FE** — `memory-api.service.spec.ts`, `memory-tab.util.spec.ts`.
+13. **Tests FE** — `memory.service.spec.ts` (réécrit), `memory-tab.util.spec.ts`.
 14. **Validation** — `tsc`, `pnpm lint`, builds, tests backend + frontend, `format:check`, guard themes.
 
 ## 6. Test assertions (Act / Wait / Assert)
@@ -236,18 +245,17 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
       `buildMemoryContext()` (FE) et `buildContext()` (BE) ont disparu.
 - [ ] Le quota est atomique : 5 `add()` concurrents ne dépassent pas `MAX_MEMORIES`.
 - [ ] `MAX_MEMORIES` n'est défini qu'une fois (backend) ; le frontend lit la valeur exposée.
-- [ ] Zéro `fetch()` et zéro `Promise` native d'appel HTTP dans `features/user-data/`.
-- [ ] Chaque appel HTTP est tracé dans le tableau §3 et conforme à `stack.md` :
-      GET → `httpResource()`, mutations → `rxResource()` (loader `stream`).
+- [ ] **Zéro `effect()` de synchronisation d'état dans `memory.service.ts`** — les 3 effects de merge
+      (lignes 127/135/146) sont remplacés par un `linkedSignal`. `stack.md` interdit explicitement
+      `effect()` pour.sync un signal sur un autre.
+- [ ] Zéro `effect()`, `subscribe()`, `OnDestroy` ou `ngOnChanges` ajouté par cette task.
 - [ ] `HttpClient` n'est injecté **que** dans `memory-mutations.ts` (et plus dans aucun
       composant, aucun autre service du feature).
 - [ ] **Aucune mutation ne s'auto-exécute** : poser `addIntent` / `updateIntent` / `removeIntent`
-      laisse les 4 `rxResource()` en `status() === 'idle'` sans requête (assertion dédiée).
+      laisse les `rxResource()` en `status() === 'idle'` sans requête (assertion dédiée).
 - [ ] Syntaxe Angular 20 respectée : `request` dans `resource()`/`rxResource()` (jamais `params`) ;
       `params` uniquement dans le `HttpResourceRequest` de `httpResource()`.
-- [ ] Zéro état `loading`/`error`/`loaded`/`inflight` manuel dans `MemoryService`.
-- [ ] Zéro appel réseau à la construction ; déverrouillage en `requestIdleCallback` (fallback
-      `setTimeout`) conformément à `stack.md`.
+- [ ] Zéro appel réseau à la construction — le `loadGate` existant est conservé et étendu au scope.
 - [ ] Écriture refusée `401` + message partagé quand l'utilisateur n'est pas connecté ; lecture
       toujours possible.
 - [ ] Une seule source de vérité pour le propriétaire (`MemoryOwnerService`), prête pour Task 28
@@ -279,10 +287,12 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
 
 - Task 28 (auth microservice) elle-même.
 - Modifier `Session` / `Message` ou l'historique de conversation.
-- Migrer `user-profile.service.ts` / `prompt-tag.service.ts` (mêmes défauts `fetch()`, mais hors
-  périmètre de cette task — suivi dans `tasks/angular20-http-refactor.md`).
+- Nettoyer les `effect()` de merge de `user-profile.service.ts:61` et `prompt-tag.service.ts:61,71,81`
+  — même anti-pattern que `memory.service.ts`, mais services distincts. **Ces 2 services sont déjà
+  migrés Resource API** ; il ne reste que le refactor Signals à faire. À suivre dans une task dédiée
+  « Signals pass 2 : `effect()` → `linkedSignal` » (26 `effect()` dans le repo au total).
 - Supprimer la mémoire de session existante.
-- Appliquer l'extraction automatique (« l'IA se souvient de X ») — ce task structure le scoping, pas
+- Appliquer l'extraction automatique (« l'IA se souvient de X ») — cette task structure le scoping, pas
   l'extraction depuis la conversation.
 
 ---

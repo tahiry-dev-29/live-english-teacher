@@ -13,9 +13,8 @@ import { I18nService } from '@features/settings/services/i18n.service';
 import {
   AppSelectComponent,
   SelectOption,
-} from '@core/components/ui/select/select.component';
+} from '@app-shared/ui/select/select.component';
 import { VoiceLiveTestComponent } from './voice-live-test.component';
-import { BrowserVoicePickerComponent } from './browser-voice-picker.component';
 import {
   toTtsProviderOptions,
   toVoiceOptions,
@@ -33,7 +32,6 @@ import {
     LucideEyeOff,
     AppSelectComponent,
     VoiceLiveTestComponent,
-    BrowserVoicePickerComponent,
   ],
   templateUrl: './settings-tab-voices.component.html',
 })
@@ -55,9 +53,14 @@ export class SettingsTabVoicesComponent {
   readonly voiceOptions = computed<SelectOption[]>(() =>
     toVoiceOptions(this.ttsService.voices()),
   );
-  readonly ttsModelOptions = computed<SelectOption[]>(() =>
-    toTtsModelOptions(this.ttsService.ttsModels()),
-  );
+  readonly ttsModelOptions = computed<SelectOption[]>(() => {
+    const live = toTtsModelOptions(this.ttsService.ttsModels());
+    if (live.length > 0) return live;
+    const defaultModel = this.selectedProviderMeta()?.defaultModel;
+    return defaultModel
+      ? [{ value: defaultModel, label: `${defaultModel} (Default)` }]
+      : [];
+  });
   readonly sttModelOptions = computed<SelectOption[]>(() =>
     sttModelOptionsFor(this.ttsService.selectedProviderId()),
   );

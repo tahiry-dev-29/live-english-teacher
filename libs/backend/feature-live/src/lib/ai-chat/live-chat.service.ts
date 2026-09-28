@@ -30,7 +30,10 @@ export class LiveChatService {
     private readonly sessionTitleService: SessionTitleService,
   ) {}
 
-  async chat(content: string, options: LiveChatOptions = {}): Promise<ChatResponse> {
+  async chat(
+    content: string,
+    options: LiveChatOptions = {},
+  ): Promise<ChatResponse> {
     const {
       targetLanguage,
       model,
@@ -108,6 +111,11 @@ export class LiveChatService {
     } catch (error) {
       console.error('Failed to generate audio for response:', error);
     }
-    return { text, audioData: responseAudioData, mimeType: responseMimeType, sessionId };
+    return {
+      text,
+      audioData: responseAudioData,
+      mimeType: responseMimeType,
+      sessionId,
+    };
   }
 }

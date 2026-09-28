@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { computeWebSpeechVizLevels, downsampleBins } from './tts-settings.util';
+import { downsampleBins } from './tts-settings.util';
 
 /** Callbacks wiring playback-element events back to the facade signals. */
 export interface TtsPlaybackHooks {
@@ -8,12 +8,13 @@ export interface TtsPlaybackHooks {
   onDuration: (seconds: number) => void;
   onLevels: (levels: number[]) => void;
   onEnded: () => void;
-  onError: () => void;
+  onError: (error?: unknown) => void;
 }
 
 /**
  * HTMLAudio element lifecycle (T94 split): object URL, analyser, progress
- * ticker, Web Speech viz. Facade keeps signals; this drives elements only.
+ * ticker. Facade keeps signals; this drives elements only. Server audio
+ * only — no browser synthesis path.
  */
 @Injectable({
   providedIn: 'root',
@@ -24,7 +25,6 @@ export class TtsPlaybackService {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private analyserRaf: number | null = null;
-  private webSpeechRaf: number | null = null;
   private progressInterval: ReturnType<typeof setInterval> | null = null;
 
   play(blob: Blob, hooks: TtsPlaybackHooks): void {
@@ -40,7 +40,7 @@ export class TtsPlaybackService {
       };
       this.currentAudio.onerror = () => {
         this.teardownPlayback();
-        hooks.onError();
+        hooks.onError(new Error('TTS playback failed.'));
       };
       hooks.onTimeUpdate(0);
       this.currentAudio
@@ -49,9 +49,9 @@ export class TtsPlaybackService {
           this.startProgressTracking(hooks);
           this.startAnalyser(hooks);
         })
-        .catch(() => hooks.onError());
-    } catch {
-      hooks.onError();
+        .catch((error: unknown) => hooks.onError(error));
+    } catch (error) {
+      hooks.onError(error);
     }
   }
 
@@ -97,7 +97,6 @@ export class TtsPlaybackService {
 
   stop(): void {
     this.teardownPlayback();
-    this.stopWebSpeechViz();
   }
 
   /** Shared teardown for ended/error/stop paths. */
@@ -148,42 +147,12 @@ export class TtsPlaybackService {
     this.analyser = null;
   }
 
-  /** Animated bars for Web Speech utterances (no audio node). */
-  startWebSpeechViz(
-    isActive: () => boolean,
-    onLevels: (levels: number[]) => void,
-  ): void {
-    this.stopWebSpeechViz();
-    const start = Date.now();
-    const tick = (): void => {
-      if (!isActive()) return;
-      onLevels(computeWebSpeechVizLevels((Date.now() - start) / 1000));
-      this.webSpeechRaf = requestAnimationFrame(tick);
-    };
-    this.webSpeechRaf = requestAnimationFrame(tick);
-  }
-
-  stopWebSpeechViz(): void {
-    if (this.webSpeechRaf !== null) {
-      cancelAnimationFrame(this.webSpeechRaf);
-      this.webSpeechRaf = null;
-    }
-  }
-
-  /** Progress ticker: live element time, or estimated clock for Web Speech. */
-  startProgressTracking(
-    hooks: Pick<TtsPlaybackHooks, 'onTimeUpdate'>,
-    startTime?: number,
-    estimatedDuration?: number,
-  ): void {
+  /** Live progress ticker from the audio element clock. */
+  startProgressTracking(hooks: Pick<TtsPlaybackHooks, 'onTimeUpdate'>): void {
     this.stopProgressTracking();
-    const start = startTime || Date.now();
     this.progressInterval = setInterval(() => {
       if (this.currentAudio) {
         hooks.onTimeUpdate(this.currentAudio.currentTime);
-      } else if (estimatedDuration) {
-        const elapsed = (Date.now() - start) / 1000;
-        hooks.onTimeUpdate(Math.min(elapsed, estimatedDuration));
       } else {
         this.stopProgressTracking();
       }

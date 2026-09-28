@@ -11,7 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { LucideExpand, LucideShrink } from '@lucide/angular';
-import { PromptTag } from '@core/services/prompt-tag.service';
+import { PromptTag } from '@features/user-data/services/prompt-tag.service';
 import { ChatTagSuggestionsComponent } from './chat-tag-suggestions.component';
 import {
   INPUT_LONG_TEXT_THRESHOLD_PX,
@@ -100,6 +100,13 @@ export class ChatComposerFieldComponent {
       this.value();
       this.expanded();
       untracked(() => requestAnimationFrame(() => this.autosize()));
+    });
+
+    // Focus the textarea whenever it (re)appears — initial load and after recording.
+    effect(() => {
+      const el = this.composer()?.nativeElement;
+      if (!el) return;
+      untracked(() => requestAnimationFrame(() => el.focus()));
     });
   }
 

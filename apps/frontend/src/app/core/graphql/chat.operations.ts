@@ -9,6 +9,7 @@ export const CHAT_MUTATION = gql`
     $targetLanguage: String
     $model: String
     $provider: String
+    $context: String
   ) {
     chat(
       content: $content
@@ -18,6 +19,7 @@ export const CHAT_MUTATION = gql`
       targetLanguage: $targetLanguage
       model: $model
       provider: $provider
+      context: $context
     ) {
       text
       sessionId

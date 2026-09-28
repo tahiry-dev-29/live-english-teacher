@@ -8,7 +8,7 @@ import { LucideUser } from '@lucide/angular';
 import {
   UserProfileService,
   UserProfile,
-} from '@core/services/user-profile.service';
+} from '@features/user-data/services/user-profile.service';
 
 /** "Your profile" section of the general settings tab (task 86). */
 @Component({
@@ -68,7 +68,7 @@ export class SettingsProfileFormComponent {
   private profileTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    void this.profile.ensureLoaded();
+    this.profile.ensureLoaded();
     this.destroyRef.onDestroy(() => {
       if (this.profileTimer) clearTimeout(this.profileTimer);
     });
@@ -79,7 +79,7 @@ export class SettingsProfileFormComponent {
     this.profile.stageProfile({ [field]: value } as Partial<UserProfile>);
     if (this.profileTimer) clearTimeout(this.profileTimer);
     this.profileTimer = setTimeout(() => {
-      void this.profile.saveProfile();
+      this.profile.saveProfile();
     }, 500);
   }
 }

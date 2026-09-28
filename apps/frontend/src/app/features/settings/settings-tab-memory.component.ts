@@ -12,7 +12,7 @@ import {
   LucideCheck,
   LucideX,
 } from '@lucide/angular';
-import { MemoryService } from '@core/services/memory.service';
+import { MemoryService } from '@features/user-data/services/memory.service';
 
 @Component({
   selector: 'app-settings-tab-memory',
@@ -165,12 +165,12 @@ export class SettingsTabMemoryComponent {
   readonly editDraft = signal<string>('');
 
   constructor() {
-    void this.memory.ensureLoaded();
+    this.memory.ensureLoaded();
   }
 
-  async addMemory(): Promise<void> {
-    const created = await this.memory.add(this.draft());
-    if (created) this.draft.set('');
+  addMemory(): void {
+    this.memory.add(this.draft());
+    this.draft.set('');
   }
 
   startEdit(id: string, text: string): void {
@@ -178,11 +178,10 @@ export class SettingsTabMemoryComponent {
     this.editDraft.set(text);
   }
 
-  async saveEdit(id: string): Promise<void> {
-    if (await this.memory.update(id, this.editDraft())) {
-      this.editingId.set(null);
-      this.editDraft.set('');
-    }
+  saveEdit(id: string): void {
+    this.memory.update(id, this.editDraft());
+    this.editingId.set(null);
+    this.editDraft.set('');
   }
 
   cancelEdit(): void {
@@ -191,10 +190,10 @@ export class SettingsTabMemoryComponent {
   }
 
   removeMemory(id: string): void {
-    void this.memory.remove(id);
+    this.memory.remove(id);
   }
 
   retryLoad(): void {
-    void this.memory.load();
+    this.memory.load();
   }
 }

@@ -4,7 +4,6 @@ import {
   OnInit,
   inject,
 } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
 
 import {
   LucideKeyRound,
@@ -15,13 +14,13 @@ import {
 } from '@lucide/angular';
 import { MESSAGES } from '@core/constants/messages';
 import { CallInterfaceComponent } from '@features/voice-call/call-interface/call-interface.component';
-import { SidebarComponent } from '@core/components/sidebar/sidebar-component';
+import { SidebarComponent } from '@features/sessions/sidebar/sidebar.component';
 import { SettingsDialogComponent } from '@features/settings/settings-dialog-component';
-import { ToastComponent } from '@core/components/toast/toast.component';
+import { ToastComponent } from '@app-shared/ui/toast/toast.component';
 import { ChatInputComponent } from '../chat-input/chat-input.component';
 import { ChatContainerComponent } from '../chat-container/chat-container.component';
 import { LanguageService } from '@features/settings/services/language.service';
-import { NotificationService } from '@core/services/notification.service';
+import { NotificationService } from '@features/user-data/services/notification.service';
 import { TtsService } from '@features/tts-voice/services/tts.service';
 import { ChatService } from '../services/chat.service';
 import { MessageService } from '../services/message.service';
@@ -41,7 +40,6 @@ import { ChatInitService } from './chat-init.service';
   selector: 'app-chat-page',
   standalone: true,
   imports: [
-    RouterModule,
     LucideMessageCircle,
     LucidePanelLeftOpen,
     LucideTriangleAlert,
@@ -70,8 +68,6 @@ export class ChatPageComponent implements OnInit {
   protected readonly voice = inject(ChatVoiceService);
   private readonly session = inject(ChatSessionService);
   private readonly init = inject(ChatInitService);
-
-  private readonly router = inject(Router);
 
   protected readonly chatService = inject(ChatService);
   protected readonly messageService = inject(MessageService);

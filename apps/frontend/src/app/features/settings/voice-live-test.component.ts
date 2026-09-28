@@ -7,12 +7,16 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { LucidePlay, LucideSquare } from '@lucide/angular';
+import type { Subscription } from 'rxjs';
 import { base64ToBlob } from '@core/utils/text.util';
+import { TtsSynthesisService } from '@features/tts-voice/services/tts-synthesis.service';
 import { ElevenLabsVoiceService } from '@features/tts-voice/services/elevenlabs-voice.service';
-import { TtsService } from '@features/tts-voice/services/tts.service';
 import { LanguageService } from '@features/settings/services/language.service';
-import { sampleTextFor, speakWithBrowser } from './settings-tab-voices.util';
+import { sampleTextFor } from './settings-tab-voices.util';
 
+const UNPLAYABLE = new Set(['Polly', 'MiniMax']);
+
+/** Live server-TTS preview (POST /ai/tts) for the selected voice. */
 @Component({
   selector: 'app-voice-live-test',
   standalone: true,
@@ -36,110 +40,91 @@ import { sampleTextFor, speakWithBrowser } from './settings-tab-voices.util';
     @if (error()) {
       <p class="rounded-lg bg-error/10 p-2 text-xs text-error">{{ error() }}</p>
     }
-    @if (usingBrowser()) {
-      <p class="text-[11px] opacity-60">Playing via Web Speech (browser).</p>
-    }
   `,
 })
 export class VoiceLiveTestComponent {
   readonly voiceId = input<string>('');
-  private readonly tts = inject(ElevenLabsVoiceService);
-  private readonly speaker = inject(TtsService);
+  private readonly synthesis = inject(TtsSynthesisService);
+  private readonly voices = inject(ElevenLabsVoiceService);
   private readonly langs = inject(LanguageService);
   private readonly destroyRef = inject(DestroyRef);
   readonly testing = signal<boolean>(false);
   readonly error = signal<string | null>(null);
-  readonly usingBrowser = signal<boolean>(false);
   private audioEl: HTMLAudioElement | null = null;
+  private objectUrl: string | null = null;
+  private synthesis$: Subscription | null = null;
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.stopAll());
+    this.destroyRef.onDestroy(() => {
+      this.synthesis$?.unsubscribe();
+      this.stopAll();
+    });
   }
 
-  async test(): Promise<void> {
+  /** Explicit action (Angular 20 rule): the POST runs only on click. */
+  test(): void {
     if (this.testing()) {
       this.stopAll();
       return;
     }
     this.error.set(null);
-    this.usingBrowser.set(false);
     const lang = this.langs.selectedLanguageCode();
-    const text = sampleTextFor(lang);
-    const provider = this.tts.selectedProviderId();
     this.testing.set(true);
-
-    // Browser provider → Web Speech directly (real local test).
-    if (provider === 'browser') {
-      this.usingBrowser.set(true);
-      speakWithBrowser(
-        text,
+    this.synthesis$ = this.synthesis
+      .synthesize(sampleTextFor(lang), {
+        voiceId: this.voiceId() || undefined,
         lang,
-        () => this.testing.set(false),
-        () => {
-          this.testing.set(false);
-          this.error.set('Web Speech failed in this browser.');
-        },
-      );
-      return;
-    }
+      })
+      .subscribe((outcome) => {
+        if (!outcome.ok) {
+          this.fail(outcome.message);
+          return;
+        }
+        void this.play(outcome);
+      });
+  }
 
-    // Real provider → backend audio first, Web Speech fallback.
+  private async play(outcome: {
+    audioData: string;
+    mimeType: string;
+  }): Promise<void> {
     try {
-      const res = await this.tts.generateSpeechAudio(
-        text,
-        this.voiceId() || undefined,
-        lang,
+      this.release();
+      this.objectUrl = URL.createObjectURL(
+        base64ToBlob(outcome.audioData, outcome.mimeType),
       );
-      if (res) {
-        const blob = base64ToBlob(res.audioData, res.mimeType);
-        const url = URL.createObjectURL(blob);
-        this.audioEl = new Audio(url);
-        this.audioEl.onended = () => {
-          this.testing.set(false);
-          URL.revokeObjectURL(url);
-        };
-        this.audioEl.onerror = () => {
-          this.testing.set(false);
-          URL.revokeObjectURL(url);
-          this.fallbackBrowser(text, lang);
-        };
-        await this.audioEl.play();
-        return;
-      }
-      this.fallbackBrowser(text, lang);
+      const audio = new Audio(this.objectUrl);
+      this.audioEl = audio;
+      audio.onended = () => this.stopAll();
+      audio.onerror = () => this.fail();
+      await audio.play();
     } catch {
-      this.fallbackBrowser(text, lang);
+      this.fail();
     }
   }
 
-  private fallbackBrowser(text: string, lang: string): void {
-    // Also drive global TtsService so chat playback state stays in sync.
-    this.usingBrowser.set(true);
-    speakWithBrowser(
-      text,
-      lang,
-      () => this.testing.set(false),
-      () => {
-        this.testing.set(false);
-        this.error.set('Live audio unavailable. Check key / provider.');
-      },
+  /** Server message wins; provider hint covers playback-side failures. */
+  private fail(message?: string): void {
+    this.release();
+    this.testing.set(false);
+    const label = this.voices.currentProviderMeta()?.label ?? 'this provider';
+    this.error.set(
+      message ??
+        (UNPLAYABLE.has(label)
+          ? `${label} synthesis is not wired yet — pick another provider.`
+          : 'Live audio unavailable. Check key / provider.'),
     );
-    void this.speaker.speak(text, { lang }).catch(() => {
-      // speak() already falls back internally; ignore
-    });
   }
 
   private stopAll(): void {
-    if (this.audioEl) {
-      this.audioEl.pause();
-      this.audioEl = null;
-    }
-    try {
-      window.speechSynthesis.cancel();
-    } catch {
-      // ignore
-    }
-    this.speaker.stop();
+    this.release();
     this.testing.set(false);
+  }
+
+  private release(): void {
+    this.audioEl?.pause();
+    this.audioEl = null;
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+    this.objectUrl = null;
   }
 }

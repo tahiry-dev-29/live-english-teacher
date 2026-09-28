@@ -4,9 +4,9 @@ import { MessageService } from './message.service';
 import { Apollo } from 'apollo-angular';
 import { ChatStreamService } from './chat-stream.service';
 import { ChatAudioService } from './chat-audio.service';
-import { PromptTagService } from '@core/services/prompt-tag.service';
-import { MemoryService } from '@core/services/memory.service';
-import { UserProfileService } from '@core/services/user-profile.service';
+import { PromptTagService } from '@features/user-data/services/prompt-tag.service';
+import { MemoryService } from '@features/user-data/services/memory.service';
+import { UserProfileService } from '@features/user-data/services/user-profile.service';
 import { of } from 'rxjs';
 
 interface MockApollo {
@@ -90,10 +90,40 @@ describe('MessageService', () => {
     expect(res.text).toBe('Hello from AI');
     expect(res.sessionId).toBe('session-123');
     expect(chatStreamMock.streamChat).toHaveBeenCalled();
+    // Raw text on the wire: no context block is ever mixed into `message`.
+    const [req] = chatStreamMock.streamChat.mock.calls[0] as [
+      { message: string; context: string },
+    ];
+    expect(req.message).toBe('Hi AI!');
+    expect(req.message).not.toContain('user context');
     const messages = service.messages();
     expect(messages.some((m) => m.role === 'user' && m.text === 'Hi AI!')).toBe(
       true,
     );
+  });
+
+  it('sends profile/memory/tag context in a separate invisible field', async () => {
+    const tags = TestBed.inject(PromptTagService);
+    const memories = TestBed.inject(MemoryService);
+    const profile = TestBed.inject(UserProfileService);
+    vi.mocked(tags.buildSystemPrompt).mockReturnValue('[correction: …]');
+    vi.mocked(memories.buildMemoryContext).mockReturnValue('likes tea');
+    vi.mocked(profile.buildProfileContext).mockReturnValue('About: Tahiry');
+
+    await service.sendTextMessage('#correction teste', null, 'en');
+
+    const [req] = chatStreamMock.streamChat.mock.calls[0] as [
+      { message: string; context: string },
+    ];
+    // Bubble + stored message stay exactly what the user typed.
+    expect(req.message).toBe('#correction teste');
+    expect(service.messages().some((m) => m.text === '#correction teste')).toBe(
+      true,
+    );
+    // Context travels apart and carries every invisible block.
+    expect(req.context).toContain('About: Tahiry');
+    expect(req.context).toContain('likes tea');
+    expect(req.context).toContain('[correction: …]');
   });
 
   it('handles stream errors by displaying error message', async () => {

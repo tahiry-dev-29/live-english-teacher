@@ -1,13 +1,14 @@
 /**
  * Chat send + session mutation orchestration (Task 82/92 split).
  * Pure orchestration over injected services — no template, no signals.
+ * New-chat title is AI-written backend-side (SessionTitleService);
+ * here we only refresh the history so the sidebar picks it up.
  */
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { ChatService } from '@features/chat/services/chat.service';
 import { MessageService } from '@features/chat/services/message.service';
 import { LanguageService } from '@features/settings/services/language.service';
-import { generateChatTitle } from './chat-title.util';
 import type { SpeakOptions } from './speak-options.model';
 
 @Injectable()
@@ -21,7 +22,7 @@ export class ChatSendService {
     return this.chatService.activeSessionId();
   }
 
-  /** Text send (composer or live transcript) + fire-and-forget auto-title. */
+  /** Text send (composer or live transcript) + history refresh for AI title. */
   async sendText(
     rawText: string,
     opts: SpeakOptions,
@@ -34,11 +35,11 @@ export class ChatSendService {
       this.sessionId,
       this.languageService.selectedLanguageCode(),
     );
-    this.afterSend(result, wasNewChat, text, opts);
+    this.afterSend(result, wasNewChat, opts);
     return result;
   }
 
-  /** Audio send (base64 recording) + fire-and-forget auto-title. */
+  /** Audio send (base64 recording) + history refresh for AI title. */
   async sendAudio(
     base64: string,
     mimeType: string,
@@ -53,12 +54,7 @@ export class ChatSendService {
     );
     if (!result) return;
     this.chatService.activeSessionId.set(result.sessionId);
-    if (wasNewChat) {
-      void this.chatService.renameSession(
-        result.sessionId,
-        generateChatTitle('Voice Message'),
-      );
-    }
+    if (wasNewChat) this.chatService.loadSessions();
     this.router.navigate(['/chat', result.sessionId]);
     if (opts.isLiveMode()) opts.speak(result.text);
   }
@@ -88,20 +84,14 @@ export class ChatSendService {
   private afterSend(
     result: { text: string; sessionId: string | null } | null,
     wasNewChat: boolean,
-    sentText: string,
     opts: SpeakOptions,
   ): void {
     if (!result) return;
     if (result.sessionId) {
       this.chatService.activeSessionId.set(result.sessionId);
-      // Auto-title (task 82): fire-and-forget — renameSession() already
-      // reloads the history once internally, navigation never waits for it.
-      if (wasNewChat) {
-        void this.chatService.renameSession(
-          result.sessionId,
-          generateChatTitle(sentText),
-        );
-      }
+      // Title is AI-written backend-side and sent as an SSE `title` event;
+      // a single history reload picks it up (no rename from here).
+      if (wasNewChat) this.chatService.loadSessions();
       this.router.navigate(['/chat', result.sessionId]);
     }
     // On error the bubble is already in the thread; only speak when live.

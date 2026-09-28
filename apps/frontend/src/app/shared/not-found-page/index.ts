@@ -1,1 +1,2 @@
-// Barrel plan-001 (T91 scaffold) — re-exports ajoutes par T92-T100.
+// Barrel shared/not-found-page (T97).
+export * from './not-found-page.component';

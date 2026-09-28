@@ -58,7 +58,6 @@ describe('AiProviderService — gemini/groq', () => {
     });
   });
 
-
   describe('generateText() — API key forwarding', () => {
     it('forwards groqApiKey to groq service', async () => {
       const svc = new AiProviderService(gemini, groq, openai, 'gemini');
@@ -83,7 +82,6 @@ describe('AiProviderService — gemini/groq', () => {
       await svc.generateText([], 'hello', { geminiApiKey: 'my-gemini-key' });
       assert.equal(gemini.calls[0].apiKey, 'my-gemini-key');
     });
-
   });
 
   describe('generateText() — options passthrough', () => {
@@ -110,5 +108,5 @@ describe('AiProviderService — gemini/groq', () => {
       await svc.generateText([], 'hello', { model: 'gemini-2.0-flash' });
       assert.equal(gemini.calls[0].model, 'gemini-2.0-flash');
     });
-});
+  });
 });

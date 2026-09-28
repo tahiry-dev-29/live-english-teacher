@@ -3,31 +3,28 @@
  * and console log labels. No emoji here — UI icons come from @lucide/angular.
  */
 
+import { SHARED_MESSAGES } from '@shared/constants';
+
 export const MESSAGES = {
   error: {
     /** Generic fallback when the AI backend is unreachable. */
-    aiServiceUnavailable: 'AI service unavailable. Please try again.',
+    aiServiceUnavailable: SHARED_MESSAGES.error.aiServiceUnavailable,
     /** Default text when the stream reports an error without a message. */
-    aiServiceError: 'AI service error',
+    aiServiceError: SHARED_MESSAGES.error.aiServiceError,
     audioProcessingFailed:
       'Could not process audio. Please try again or send a text message.',
-    quotaExceeded:
-      'Server quota exhausted. Add your own API key in Settings > AI Model to keep chatting.',
-    modelUnavailable:
-      'Model not available. Open Settings > AI Model to select a working model, or add your own API key.',
-    invalidApiKey:
-      'Invalid API key. Open Settings > AI Model to add or check your API key.',
-    noApiKey:
-      'No API key configured. Open Settings > AI Model to add your API key.',
-    networkUnreachable:
-      'Could not reach AI service. Check your internet connection and try again.',
+    quotaExceeded: SHARED_MESSAGES.error.quotaExceeded,
+    modelUnavailable: SHARED_MESSAGES.error.modelUnavailable,
+    invalidApiKey: SHARED_MESSAGES.error.invalidApiKey,
+    noApiKey: SHARED_MESSAGES.error.noApiKey,
+    networkUnreachable: SHARED_MESSAGES.error.networkUnreachable,
     noActiveRecording: 'No active recording',
     microphoneAccessDenied:
       'Could not access microphone. Please check your browser permissions.',
   },
   warning: {
-    quotaBannerBody: 'Add your own free API key to keep chatting.',
-    quotaBannerAction: 'Add my key',
+    quotaBannerBody: SHARED_MESSAGES.templates.quotaBannerBody,
+    quotaBannerAction: SHARED_MESSAGES.templates.quotaBannerAction,
     inactivityPrompt: "I can't hear you. Are you still there?",
   },
   success: {
@@ -44,12 +41,7 @@ export const MESSAGES = {
     audioBlobFailed: 'Error creating audio blob:',
     audioPlayFailed: 'Failed to play audio:',
     ttsSpeakFailed: 'TTS speak() failed:',
-    ttsRequestFailed: 'ElevenLabs TTS request failed:',
-    ttsFallback: 'TTS service unavailable, falling back to Web Speech:',
-    ttsUnavailable: (provider: string): string =>
-      `TTS not available for provider "${provider}". Using fallback.`,
-    audioFallback: 'Audio playback error, fallback to Web Speech',
-    audioFallbackFailed: 'Audio play error, fallback to Web Speech:',
+    ttsRequestFailed: 'Server TTS request failed:',
     vadStartFailed: 'Error starting VAD:',
     vadStarted: 'VAD started successfully',
     vadStopped: 'VAD stopped',
@@ -67,7 +59,7 @@ export const MESSAGES = {
 /** Messages needing interpolation (kept out of MESSAGES to stay plain strings). */
 export const MESSAGE_TEMPLATES = {
   quotaBannerTitle: (provider: string): string =>
-    `Server quota exhausted (${provider.toUpperCase()}).`,
+    SHARED_MESSAGES.templates.quotaBannerTitle(provider),
   streamRequestFailed: (status: number): string =>
     `SSE request failed with status ${status}`,
 } as const;

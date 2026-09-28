@@ -2,7 +2,6 @@
 import { MockPrismaService } from '../shared/testing/mock-prisma.service.ts';
 export { MockPrismaService };
 
-
 export class ChatHistoryService {
   private readonly pinnedSessionIds = new Set<string>();
 
@@ -109,4 +108,3 @@ export class ChatHistoryService {
     });
   }
 }
-

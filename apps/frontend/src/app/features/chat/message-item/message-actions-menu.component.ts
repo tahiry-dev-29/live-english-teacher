@@ -11,7 +11,7 @@ import {
   LucideSquare,
   LucideVolume2,
 } from '@lucide/angular';
-import { AppDropdownMenuComponent } from '@core/components/ui/dropdown-menu/dropdown-menu.component';
+import { AppDropdownMenuComponent } from '@app-shared/ui/dropdown-menu/dropdown-menu.component';
 
 /** ⋯ canonical dropdown of the AI action bar (task 89). */
 @Component({

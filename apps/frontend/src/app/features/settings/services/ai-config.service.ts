@@ -1,4 +1,12 @@
-import { Injectable, signal, effect, inject, DestroyRef } from '@angular/core';
+import { HttpClient, httpResource } from '@angular/common/http';
+import {
+  Injectable,
+  signal,
+  computed,
+  effect,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { CookieService } from 'ngx-cookie-service';
 import {
   migrateLocalStorageToCookie,
@@ -6,7 +14,6 @@ import {
   writePrefCookie,
 } from '@core/utils/cookie.util';
 import { ApiKeyService } from './api-key.service';
-import { MESSAGES } from '@core/constants/messages';
 import { API_URLS } from '@shared/constants/api-config';
 import { LoggingService } from '@core/services/logging.service';
 import { resolveActiveProvider } from './ai-providers.util';
@@ -30,13 +37,10 @@ export class AiConfigService {
 
   private readonly cookies = inject(CookieService);
   private readonly apiKeyService = inject(ApiKeyService);
+  private readonly http = inject(HttpClient);
 
   // Live-only: no hardcoded models. Starts empty, filled from /ai/models.
   readonly models = signal<AiModel[]>([]);
-  readonly loading = signal<boolean>(false);
-  readonly fetchFailed = signal<boolean>(false);
-  readonly lastFetchedProvider = signal<string | null>(null);
-  readonly liveError = signal<string | null>(null);
 
   readonly provider = signal<string>(
     this.loadCookie(AiConfigService.COOKIE_PROVIDER, 'groq'),
@@ -46,18 +50,50 @@ export class AiConfigService {
     this.loadCookie(AiConfigService.COOKIE_MODEL, ''),
   );
 
-  readonly selectedModel = signal<AiModel | null>(
+  readonly selectedModel = computed(() =>
     this.resolveModel(this.provider(), this.selectedModelId()),
   );
+
+  /** Resource state — replaces manual loading/fetchFailed/liveError signals. */
+  private readonly modelsGate = signal(0);
+  private readonly modelsGet = httpResource<AiModel[]>(() => {
+    if (this.modelsGate() === 0) return undefined;
+    const activeProvider = resolveActiveProvider(this.provider());
+    const headers: Record<string, string> = {};
+    if (activeProvider) headers['x-provider'] = activeProvider;
+    const keys = this.apiKeyService.customKeys();
+    for (const [p, k] of Object.entries(keys)) {
+      if (k) headers[`x-${p}-api-key`] = k;
+    }
+    return { url: API_URLS.models, headers };
+  });
+
+  readonly loading = computed(() => this.modelsGet.isLoading());
+  readonly liveError = computed<string | null>(() => {
+    const err = this.modelsGet.error();
+    if (!err) return null;
+    if (typeof err === 'object' && err !== null && 'status' in err) {
+      return `Live models unavailable (${(err as { status: number }).status}). Add an API key.`;
+    }
+    return 'Live models fetch failed. Check network / API key.';
+  });
+  readonly fetchFailed = computed<boolean>(() => {
+    const err = this.modelsGet.error();
+    return err !== undefined && this.modelsGet.hasValue();
+  });
 
   constructor() {
     const idleHelper = new AiConfigIdleHelper(
       (provider, force) => this.fetchModels(provider, force),
       () => this.provider(),
       () => this.fetchFailed(),
-      (value) => this.fetchFailed.set(value),
+      (_value) => {
+        /* no-op — fetchFailed is now a computed signal */
+      },
       () => this.liveError(),
-      (value) => this.liveError.set(value),
+      (_value) => {
+        /* no-op — liveError is now a computed signal */
+      },
       this.logger,
       inject(DestroyRef),
     );
@@ -69,78 +105,40 @@ export class AiConfigService {
       const m = this.selectedModelId();
       writePrefCookie(this.cookies, AiConfigService.COOKIE_PROVIDER, p);
       writePrefCookie(this.cookies, AiConfigService.COOKIE_MODEL, m);
-      this.selectedModel.set(this.resolveModel(p, m));
+    });
+
+    // Merge server state into models signal
+    effect(() => {
+      const fetched = this.modelsGet.value();
+      if (fetched && Array.isArray(fetched) && fetched.length > 0) {
+        this.models.set(
+          mergeLiveModels(
+            this.models(),
+            fetched,
+            resolveActiveProvider(this.provider()),
+          ),
+        );
+        this.ensureValidSelection();
+      } else if (fetched !== undefined) {
+        this.models.set(
+          pruneProviderModels(
+            this.models(),
+            resolveActiveProvider(this.provider()),
+          ),
+        );
+      }
     });
   }
 
-  async fetchModels(providerId?: string, force = false): Promise<void> {
-    if (this.loading()) return;
-
-    const rawProvider = providerId || this.provider();
-    // 'default' means the server default: fetch all providers.
-    const activeProvider = resolveActiveProvider(rawProvider);
-
-    if (!force && this.fetchFailed()) return;
-    if (!force && this.lastFetchedProvider() === rawProvider) return;
-
-    // Offline (task 81): never hammer the API while the browser is offline.
-    // Transient state — do NOT set fetchFailed so the `online` event can retry.
+  fetchModels(providerId?: string, force = false): void {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      this.liveError.set('You are offline. Models will load when back online.');
       return;
     }
-
-    this.loading.set(true);
+    if (!force && this.loading()) return;
     if (force) {
-      this.fetchFailed.set(false);
-      this.liveError.set(null);
-    }
-
-    try {
-      const headers: Record<string, string> = {};
-      if (activeProvider) {
-        headers['x-provider'] = activeProvider;
-      }
-
-      const keys = this.apiKeyService.customKeys();
-      for (const [p, k] of Object.entries(keys)) {
-        if (k) {
-          headers[`x-${p}-api-key`] = k;
-        }
-      }
-
-      const response = await fetch(API_URLS.models, {
-        headers,
-      });
-      if (response.ok) {
-        const fetched = (await response.json()) as AiModel[];
-        if (Array.isArray(fetched) && fetched.length > 0) {
-          // Merge live results, keep other providers' live models.
-          this.models.set(
-            mergeLiveModels(this.models(), fetched, activeProvider),
-          );
-          this.lastFetchedProvider.set(rawProvider);
-          this.ensureValidSelection();
-        } else {
-          // Live API returned empty: no mocks, surface empty + hint.
-          this.models.set(pruneProviderModels(this.models(), activeProvider));
-          this.fetchFailed.set(true);
-          this.liveError.set(
-            'No live models for this provider. Add an API key or check server keys.',
-          );
-        }
-      } else {
-        this.fetchFailed.set(true);
-        this.liveError.set(
-          `Live models unavailable (${response.status}). Add an API key.`,
-        );
-      }
-    } catch (error) {
-      this.fetchFailed.set(true);
-      this.liveError.set('Live models fetch failed. Check network / API key.');
-      this.logger.warn(MESSAGES.log.modelsFetchFailed, error);
-    } finally {
-      this.loading.set(false);
+      this.modelsGate.update((n) => n + 1);
+    } else {
+      if (this.modelsGate() === 0) this.modelsGate.set(1);
     }
   }
 

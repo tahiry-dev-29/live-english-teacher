@@ -17,10 +17,12 @@ export function filterChatModels<T extends { id: string }>(models: T[]): T[] {
 }
 
 /** Keeps generateContent-capable Gemini models only. */
-export function filterGeminiModels<T extends {
-  name: string;
-  supportedGenerationMethods?: string[];
-}>(models: T[]): T[] {
+export function filterGeminiModels<
+  T extends {
+    name: string;
+    supportedGenerationMethods?: string[];
+  },
+>(models: T[]): T[] {
   return models.filter((m) => {
     const name = m.name.toLowerCase();
     const methods = m.supportedGenerationMethods || [];

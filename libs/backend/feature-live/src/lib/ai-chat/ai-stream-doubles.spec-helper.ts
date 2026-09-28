@@ -128,8 +128,13 @@ export class AiStreamController {
       modelId: dto.modelId,
       targetLanguage: dto.targetLanguage,
     });
-    if (!audio) throw new Error(`TTS not available for provider "${provider}"`);
-    return audio;
+    // Mirrors processTts: the failure code is surfaced, never a bare 503.
+    if (!audio || !audio.ok) {
+      throw new Error(
+        `TTS ${audio ? audio.code : 'PROVIDER_UNAVAILABLE'} for provider ${provider}`,
+      );
+    }
+    return { audioData: audio.audioData, mimeType: audio.mimeType };
   }
 
   /** Simplified stream test helper (actual SSE streaming not testable here) */
@@ -186,4 +191,3 @@ export class AiStreamController {
 }
 
 // ── Mock factories ────────────────────────────────────────────────────────────
-

@@ -1,0 +1,105 @@
+<dialog
+  #dialog
+  id="share-dialog"
+  class="modal backdrop-blur-sm"
+  (cancel)="onClose()"
+>
+  <div
+    class="modal-box max-w-md overflow-hidden rounded-3xl border border-base-300 bg-base-200 p-6 shadow-2xl"
+  >
+    <div
+      class="flex items-center justify-between border-b border-base-300 pb-4"
+    >
+      <div class="flex items-center gap-2.5">
+        <div
+          class="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+        >
+          <svg lucideShare2 class="h-4 w-4" />
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-base-content">
+            Share link to Chat
+          </h3>
+          <p class="max-w-[240px] truncate text-[11px] text-base-content/50">
+            {{ session()?.title || 'Conversation' }}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn btn-circle btn-ghost text-base-content/60 btn-xs hover:text-base-content"
+        (click)="onClose()"
+        aria-label="Close dialog"
+      >
+        <svg lucideX class="h-4 w-4" />
+      </button>
+    </div>
+    <div class="space-y-4 py-4 text-xs text-base-content/70">
+      <div
+        class="flex items-start gap-2.5 rounded-2xl bg-base-300/50 p-3 text-xs leading-relaxed"
+      >
+        <svg lucideGlobe class="mt-0.5 h-4 w-4 shrink-0 text-base-content/60" />
+        <span
+          >A read-only snapshot of this conversation is created with a unique
+          link. Anyone with this link can view the snapshot — your original chat
+          stays private.</span
+        >
+      </div>
+      <div class="space-y-1.5">
+        <label
+          for="shareable-link-input"
+          class="text-[11px] font-semibold tracking-wider text-base-content/50 uppercase"
+          >Shareable Link</label
+        >
+        <div
+          class="flex items-center gap-2 rounded-2xl border border-base-300 bg-base-100 p-1.5"
+        >
+          <div class="flex min-w-0 flex-1 items-center gap-2 px-2">
+            <svg lucideLink class="h-3.5 w-3.5 shrink-0 text-base-content/40" />
+            @if (store.isGenerating()) {
+              <span class="text-xs text-base-content/40 italic"
+                >Creating snapshot…</span
+              >
+            } @else {
+              <input
+                id="shareable-link-input"
+                type="text"
+                [value]="store.snapshotUrl()"
+                readonly
+                class="w-full truncate bg-transparent text-xs text-base-content outline-none select-all"
+              />
+            }
+          </div>
+          <button
+            type="button"
+            (click)="copyLink()"
+            [disabled]="store.isGenerating() || !store.snapshotUrl()"
+            class="btn shrink-0 gap-1.5 rounded-xl px-3 btn-primary btn-sm disabled:opacity-50"
+          >
+            @if (store.isGenerating()) {
+              <svg lucideLoader class="h-3.5 w-3.5 animate-spin" /><span
+                >Creating…</span
+              >
+            } @else if (isCopied()) {
+              <svg lucideCheck class="h-3.5 w-3.5" /><span>Copied!</span>
+            } @else {
+              <svg lucideCopy class="h-3.5 w-3.5" /><span>Copy link</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end pt-2">
+      <button
+        type="button"
+        class="btn rounded-xl btn-ghost text-xs btn-sm"
+        (click)="onClose()"
+      >
+        Done
+      </button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" (click)="onClose()">close</button>
+  </form>
+</dialog>

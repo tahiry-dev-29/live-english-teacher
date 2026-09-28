@@ -7,25 +7,27 @@ import {
 } from './tts-providers.registry';
 import { ElevenLabsService } from './elevenlabs/elevenlabs.service';
 import { TtsVoicesService } from './tts-voices.service';
-import { TtsSynthesizeService } from './tts-synthesize.service';
+import { TtsVendorsService } from './tts-vendors.service';
+import {
+  unsupportedProviderFailure,
+  type TtsSynthesisOutcome,
+} from './tts-failure.util';
 import {
   effectiveKey,
   resolveProviderId,
   resolveVoice,
 } from './tts-fallback.util';
 
-export interface TtsSynthesisResult {
-  audioData: string;
-  mimeType: string;
-}
-
-/** Facade: routing only — catalog in TtsVoicesService, audio in TtsSynthesizeService. */
+/**
+ * Facade: routing only — catalog in TtsVoicesService, audio in
+ * ElevenLabsService (elevenlabs) / TtsVendorsService (other vendors).
+ */
 @Injectable()
 export class TtsProviderService {
   constructor(
     private readonly elevenLabsService: ElevenLabsService,
     private readonly voices: TtsVoicesService,
-    private readonly synth: TtsSynthesizeService,
+    private readonly vendors: TtsVendorsService,
   ) {}
 
   getProviders(): TtsProviderConfig[] {
@@ -36,7 +38,10 @@ export class TtsProviderService {
     options: { provider?: string; apiKey?: string } = {},
   ): Promise<TtsVoiceInfo[]> {
     const providerId =
-      resolveProviderId(options.provider, Object.keys(TTS_PROVIDERS_REGISTRY)) ?? '';
+      resolveProviderId(
+        options.provider,
+        Object.keys(TTS_PROVIDERS_REGISTRY),
+      ) ?? '';
     const config = TTS_PROVIDERS_REGISTRY[providerId];
     if (!config) return [];
     // Live-only: no mocks. Without a key, [] so the UI prompts for a key.
@@ -65,7 +70,10 @@ export class TtsProviderService {
     options: { provider?: string; apiKey?: string } = {},
   ): Promise<TtsModelInfo[]> {
     const providerId =
-      resolveProviderId(options.provider, Object.keys(TTS_PROVIDERS_REGISTRY)) ?? '';
+      resolveProviderId(
+        options.provider,
+        Object.keys(TTS_PROVIDERS_REGISTRY),
+      ) ?? '';
     const config = TTS_PROVIDERS_REGISTRY[providerId];
     if (!config) return [];
     const key = effectiveKey(options.apiKey, config.keyEnv);
@@ -84,6 +92,7 @@ export class TtsProviderService {
     return [];
   }
 
+  /** Synthesis routed per vendor; failure carries the cause (never a bare null). */
   async synthesize(options: {
     provider?: string;
     voiceId?: string;
@@ -91,36 +100,42 @@ export class TtsProviderService {
     text: string;
     apiKey?: string;
     targetLanguage?: string;
-  }): Promise<TtsSynthesisResult | null> {
+  }): Promise<TtsSynthesisOutcome> {
+    const requested = options.provider || 'elevenlabs';
     const providerId = resolveProviderId(
       options.provider,
       Object.keys(TTS_PROVIDERS_REGISTRY),
     );
     const config = providerId ? TTS_PROVIDERS_REGISTRY[providerId] : undefined;
-    if (!providerId || !config) return null;
+    if (!providerId || !config) return unsupportedProviderFailure(requested);
     const key = effectiveKey(options.apiKey, config.keyEnv);
     const voice = resolveVoice(options.voiceId, config.defaultVoiceId);
 
     switch (providerId) {
       case 'elevenlabs':
-        return this.synth.elevenLabs(options.text, voice, key, options.modelId);
+        return this.elevenLabsService.generateTtsAudio(
+          options.text,
+          voice,
+          key,
+          options.modelId,
+        );
       case 'openai':
-        return this.synth.openAi(
+        return this.vendors.openAi(
           options.text,
           voice,
           options.modelId || config.defaultModel || 'tts-1',
           key,
         );
       case 'azure':
-        return this.synth.azure(options.text, voice, key);
+        return this.vendors.azure(options.text, voice, key);
       case 'google':
-        return this.synth.google(options.text, voice, key);
+        return this.vendors.google(options.text, voice, key);
       case 'polly':
-        return this.synth.polly(voice);
+        return this.vendors.polly(voice);
       case 'minimax':
-        return this.synth.minimax(options.text, voice, key);
+        return this.vendors.minimax(options.text, voice, key);
       default:
-        return null;
+        return unsupportedProviderFailure(requested);
     }
   }
 }

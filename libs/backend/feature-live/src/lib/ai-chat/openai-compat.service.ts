@@ -35,17 +35,23 @@ export class OpenAiCompatService {
     if ('error' in target) return target.error;
     const { label, model, apiKey, chatUrl, chatApi } = target;
     const messages = this.buildMessages(history, newMessage, targetLanguage);
-    if (chatApi === 'anthropic') return this.callAnthropic(apiKey, model, messages);
+    if (chatApi === 'anthropic')
+      return this.callAnthropic(apiKey, model, messages);
     if (!chatUrl) return `Chat endpoint not available for ${label}.`;
     try {
       const res = await fetch(chatUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({ model, messages, max_tokens: 1024 }),
       });
       if (!res.ok) {
         const errorText = await res.text().catch(() => '');
-        this.logger.error(`${label} error: ${res.status} - ${res.statusText} - ${errorText}`);
+        this.logger.error(
+          `${label} error: ${res.status} - ${res.statusText} - ${errorText}`,
+        );
         return `${label} error (${res.status}). Please verify your model or API key.`;
       }
       const body = (await res.json()) as {
@@ -85,8 +91,16 @@ export class OpenAiCompatService {
     try {
       const res = await fetch(chatUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model, messages, max_tokens: 1024, stream: true }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          max_tokens: 1024,
+          stream: true,
+        }),
       });
       if (!res.ok || !res.body) {
         yield `${label} error (${res.status}). Please check your key.`;
@@ -109,7 +123,9 @@ export class OpenAiCompatService {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(BACKEND_MESSAGES.template.providerStreamError(label, msg));
+      this.logger.error(
+        BACKEND_MESSAGES.template.providerStreamError(label, msg),
+      );
       yield BACKEND_MESSAGES.template.providerUnreachable(label);
     }
   }
@@ -135,12 +151,14 @@ export class OpenAiCompatService {
           messages: nonSystem,
         }),
       });
-      if (!res.ok) return `Anthropic error (${res.status}). Check your API key.`;
+      if (!res.ok)
+        return `Anthropic error (${res.status}). Check your API key.`;
       const body = (await res.json()) as {
         content?: { type: string; text: string }[];
       };
       return (
-        body.content?.find((c) => c.type === 'text')?.text || 'No response from Anthropic.'
+        body.content?.find((c) => c.type === 'text')?.text ||
+        'No response from Anthropic.'
       );
     } catch {
       return 'Could not reach Anthropic service.';

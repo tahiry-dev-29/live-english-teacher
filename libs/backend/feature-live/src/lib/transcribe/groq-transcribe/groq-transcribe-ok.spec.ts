@@ -30,7 +30,13 @@ describe('GroqTranscribeService ok', () => {
         'instance-key',
         mockFetchCapture((_u, o) => (captured = o?.headers?.Authorization)),
       );
-      await svc.transcribe(validAudio, undefined, undefined, undefined, 'custom-key');
+      await svc.transcribe(
+        validAudio,
+        undefined,
+        undefined,
+        undefined,
+        'custom-key',
+      );
       assert.ok(captured?.includes('custom-key'));
       assert.ok(!captured?.includes('instance-key'));
     });
@@ -38,7 +44,10 @@ describe('GroqTranscribeService ok', () => {
 
   describe('successful transcription', () => {
     it('returns transcript text on success', async () => {
-      const svc = new DoubleTranscribe('sk-test', mockFetchOk('The quick brown fox'));
+      const svc = new DoubleTranscribe(
+        'sk-test',
+        mockFetchOk('The quick brown fox'),
+      );
       assert.equal(await svc.transcribe(validAudio), 'The quick brown fox');
     });
   });
@@ -71,7 +80,12 @@ describe('GroqTranscribeService ok', () => {
 
     it('uses modelOverride when provided', async () => {
       const svc = new DoubleTranscribe('sk-test', mockFetchOk('override test'));
-      const out = await svc.transcribe(validAudio, 'audio/webm', undefined, 'distil-whisper');
+      const out = await svc.transcribe(
+        validAudio,
+        'audio/webm',
+        undefined,
+        'distil-whisper',
+      );
       assert.equal(out, 'override test');
     });
   });
@@ -79,7 +93,10 @@ describe('GroqTranscribeService ok', () => {
   describe('language parameter', () => {
     it('transcribes with and without language', async () => {
       const fr = new DoubleTranscribe('sk-test', mockFetchOk('bonjour'));
-      assert.equal(await fr.transcribe(validAudio, 'audio/webm', 'fr'), 'bonjour');
+      assert.equal(
+        await fr.transcribe(validAudio, 'audio/webm', 'fr'),
+        'bonjour',
+      );
       const en = new DoubleTranscribe('sk-test', mockFetchOk('hello'));
       assert.equal(await en.transcribe(validAudio, 'audio/webm'), 'hello');
     });

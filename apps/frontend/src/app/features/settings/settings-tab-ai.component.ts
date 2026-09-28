@@ -14,7 +14,7 @@ import { I18nService } from '@features/settings/services/i18n.service';
 import {
   AppSelectComponent,
   SelectOption,
-} from '@core/components/ui/select/select.component';
+} from '@app-shared/ui/select/select.component';
 import { AiModelGridComponent } from './ai-model-grid.component';
 import { AiLiveTestComponent } from './ai-live-test.component';
 import { toProviderOptions, getInputValue } from './settings-tab-ai.util';
@@ -32,7 +32,21 @@ import { toProviderOptions, getInputValue } from './settings-tab-ai.util';
     AiLiveTestComponent,
   ],
   template: `
-    <div class="space-y-5">
+    <div class="space-y-5 pb-2">
+      <header class="border-b border-base-300 pb-4">
+        <p
+          class="text-[10px] font-semibold tracking-[0.18em] text-primary uppercase"
+        >
+          Model workspace
+        </p>
+        <h3 class="mt-1 text-xl font-semibold tracking-tight">
+          Choose the engine behind your tutor
+        </h3>
+        <p class="mt-1 max-w-xl text-sm text-base-content/55">
+          Live models are discovered from your provider. Your selection is used
+          for every conversation.
+        </p>
+      </header>
       <app-select
         selectId="settings-ai-provider"
         [label]="t('ai.provider')"
@@ -146,9 +160,8 @@ export class SettingsTabAiComponent {
     return this.i18n.t()(key);
   }
 
-  async refreshModels(): Promise<void> {
-    this.aiConfig.fetchFailed.set(false);
-    await this.aiConfig.fetchModels(this.aiConfig.provider(), true);
+  refreshModels(): void {
+    this.aiConfig.fetchModels(this.aiConfig.provider(), true);
   }
 
   onKeyInput(event: Event): void {
@@ -157,15 +170,13 @@ export class SettingsTabAiComponent {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
       this.apiKeyService.setKey(provider, value);
-      this.aiConfig.fetchFailed.set(false);
-      void this.aiConfig.fetchModels(provider, true);
+      this.aiConfig.fetchModels(provider, true);
     }, 500);
   }
 
   onClearKey(): void {
     const provider = this.aiConfig.provider();
     this.apiKeyService.clearKey(provider);
-    this.aiConfig.fetchFailed.set(false);
-    void this.aiConfig.fetchModels(provider, true);
+    this.aiConfig.fetchModels(provider, true);
   }
 }

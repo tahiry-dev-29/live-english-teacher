@@ -17,7 +17,10 @@ export interface ResolverProviderDouble {
     options?: Record<string, unknown>,
   ): Promise<string>;
 }
-export { ChatHistoryService, MockPrismaService } from './live-resolver-doubles.spec-helper.ts';
+export {
+  ChatHistoryService,
+  MockPrismaService,
+} from './live-resolver-doubles.spec-helper.ts';
 
 // ── Inline LiveResolver (without NestJS decorators) ───────────────────────────
 

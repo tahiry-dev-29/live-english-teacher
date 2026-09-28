@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { formatApiError, resolveApiErrorCode } from './api-error.util';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  formatApiError,
+  formatHttpError,
+  resolveApiErrorCode,
+} from './api-error.util';
 import { MESSAGES, ERROR_CODES } from '@core/constants/messages';
 
 describe('api-error.util', () => {
@@ -56,6 +61,45 @@ describe('api-error.util', () => {
     it('returns truncated message for unknown errors', () => {
       const formatted = formatApiError('Something unusual happened in backend');
       expect(formatted).toBe('Something unusual happened in backend');
+    });
+  });
+
+  describe('formatHttpError', () => {
+    it('prefers the backend user-facing message (TTS contract)', () => {
+      const error = new HttpErrorResponse({
+        status: 429,
+        statusText: 'Too Many Requests',
+        error: {
+          statusCode: 429,
+          code: 'QUOTA_EXCEEDED',
+          provider: 'elevenlabs',
+          message: 'ELEVENLABS: voice quota exhausted',
+        },
+      });
+      expect(formatHttpError(error)).toBe('ELEVENLABS: voice quota exhausted');
+    });
+
+    it('keeps the curated mapping when there is no message field', () => {
+      const error = new HttpErrorResponse({
+        status: 401,
+        error: { statusCode: 401 },
+      });
+      expect(formatHttpError(error)).toBe(MESSAGES.error.invalidApiKey);
+    });
+
+    it('falls back to the body when the message is not a string', () => {
+      const error = new HttpErrorResponse({
+        status: 400,
+        error: { statusCode: 400, message: ['text must be a string'] },
+      });
+      // No curated mapping for 400: the truncated body is shown, never "".
+      expect(formatHttpError(error)).toContain('statusCode');
+    });
+
+    it('reports network errors', () => {
+      expect(formatHttpError(new HttpErrorResponse({ status: 0 }))).toBe(
+        MESSAGES.error.networkUnreachable,
+      );
     });
   });
 });

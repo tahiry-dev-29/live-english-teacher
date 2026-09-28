@@ -21,9 +21,7 @@ export function buildGroqMessages(
   targetLanguage: string,
 ): GroqChatMessage[] {
   const trimmed = history.slice(-MAX_HISTORY).map((msg) => ({
-    role: (msg.role === 'model' ? 'assistant' : 'user') as
-      | 'assistant'
-      | 'user',
+    role: (msg.role === 'model' ? 'assistant' : 'user') as 'assistant' | 'user',
     content: (msg.text || '').slice(0, MAX_CONTENT),
   }));
   return [

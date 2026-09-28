@@ -1,5 +1,8 @@
 import { signal } from '@angular/core';
-import { PromptTag, PromptTagService } from '@core/services/prompt-tag.service';
+import {
+  PromptTag,
+  PromptTagService,
+} from '@features/user-data/services/prompt-tag.service';
 import { findTagToken, insertTagAtToken } from './chat-input.util';
 
 /** Host hooks the autocomplete needs from the composer field. */
@@ -36,14 +39,13 @@ export class TagAutocomplete {
     }
     this.tokenStart = token.start;
     // Server-backed tags: load once, then suggest synchronously.
-    void this.tags.ensureLoaded().then(() => {
-      const list =
-        token.query.length === 0
-          ? this.tags.allTags()
-          : this.tags.suggest(token.query);
-      this.suggestions.set(list.slice(0, MAX_SUGGESTIONS));
-      this.activeIndex.set(0);
-    });
+    this.tags.ensureLoaded();
+    const list =
+      token.query.length === 0
+        ? this.tags.allTags()
+        : this.tags.suggest(token.query);
+    this.suggestions.set(list.slice(0, MAX_SUGGESTIONS));
+    this.activeIndex.set(0);
   }
 
   /** Handles list navigation keys. Returns true when the event is consumed. */

@@ -1,4 +1,4 @@
-import type { SelectOption } from '@core/components/ui/select/select.component';
+import type { SelectOption } from '@app-shared/ui/select/select.component';
 import type { AppLanguage } from './services/i18n.service';
 import type { FontSize } from './services/theme-tokens.util';
 

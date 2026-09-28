@@ -35,7 +35,6 @@ export class ChatVoiceService {
     }
 
     this.ttsService.speak(text, {
-      voice: this.languageService.selectedVoice() || undefined,
       lang: this.languageService.selectedLanguageCode(),
       onEnd: () => {
         this.state.playingMessageIndex.set(null);

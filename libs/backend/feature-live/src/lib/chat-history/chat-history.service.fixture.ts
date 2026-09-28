@@ -69,10 +69,12 @@ export class ChatHistoryService {
   async getSessionHistory(sessionId: string) {
     const session = await this.getSession(sessionId);
     if (!session) return [];
-    return session.messages.map((msg: any) => ({
-      role: msg.role as 'user' | 'model',
-      text: msg.content,
-    }));
+    return session.messages.map(
+      (msg: { role: string; content: string; createdAt: Date }) => ({
+        role: msg.role as 'user' | 'model',
+        text: msg.content,
+      }),
+    );
   }
 
   async deleteSession(sessionId: string) {
@@ -94,12 +96,14 @@ export class ChatHistoryService {
 
     if (source.messages.length > 0) {
       await this.prisma.message.createMany({
-        data: source.messages.map((msg: any) => ({
-          sessionId: newSession.id,
-          role: msg.role,
-          content: msg.content,
-          createdAt: msg.createdAt,
-        })),
+        data: source.messages.map(
+          (msg: { role: string; content: string; createdAt: Date }) => ({
+            sessionId: newSession.id,
+            role: msg.role,
+            content: msg.content,
+            createdAt: msg.createdAt,
+          }),
+        ),
       });
     }
 

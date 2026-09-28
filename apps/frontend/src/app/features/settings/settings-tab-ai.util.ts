@@ -1,6 +1,6 @@
 import type { AiModel } from '@features/settings/services/ai-models-catalog.util';
 import type { ProviderInfo } from '@features/settings/services/ai-providers.util';
-import type { SelectOption } from '@core/components/ui/select/select.component';
+import type { SelectOption } from '@app-shared/ui/select/select.component';
 
 export function toProviderOptions(providers: ProviderInfo[]): SelectOption[] {
   return [

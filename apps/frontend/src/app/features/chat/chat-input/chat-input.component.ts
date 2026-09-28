@@ -10,7 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { LanguageService } from '@features/settings/services/language.service';
-import { PromptTagService } from '@core/services/prompt-tag.service';
+import { PromptTagService } from '@features/user-data/services/prompt-tag.service';
 import { TagAutocomplete } from './chat-tag-autocomplete';
 import { ChatAttachmentsComponent } from './chat-attachments.component';
 import { ChatComposerFieldComponent } from './chat-composer-field.component';

@@ -31,10 +31,10 @@ export function mockFetchThrows(): typeof fetch {
 }
 
 export function mockFetchCapture(
-  onCall: (url: unknown, options: any) => void,
+  onCall: (url: unknown, options: unknown) => void,
   text = 'ok',
 ): typeof fetch {
-  return (async (url: unknown, options: any) => {
+  return (async (url: unknown, options: unknown) => {
     onCall(url, options);
     return { ok: true, json: async () => ({ text }) } as unknown as Response;
   }) as typeof fetch;
@@ -68,7 +68,11 @@ export class DoubleTranscribe {
           : 'webm';
     try {
       const formData = new FormData();
-      formData.append('file', new Blob([audioBuffer], { type: mimeType }), `audio.${ext}`);
+      formData.append(
+        'file',
+        new Blob([audioBuffer], { type: mimeType }),
+        `audio.${ext}`,
+      );
       formData.append('model', selectedModel);
       formData.append('temperature', '0');
       if (language) formData.append('language', language);
