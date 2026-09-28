@@ -1,14 +1,44 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@live-languages-teacher/data-access-prisma';
+import {
+  buildPromptContext,
+  type MemoryContextEntry,
+} from './user-memory-context.util';
 
 export interface OwnerScope {
   userId?: string;
   deviceKey: string;
+  modelScope: string | null;
 }
 
 /**
- * Server-side user memories (task 85, enterprise: DB is the source of truth).
- * Quota enforced here — the client can never exceed MAX_MEMORIES.
+ * Quota domain error (task 105): the owner already holds `used` memories.
+ * Carries no HTTP concern — `toHttp()` in the validation pipe maps it to a
+ * 409 with the shared `memoryQuotaReached` text.
+ */
+export class MemoryQuotaError extends Error {
+  constructor(
+    readonly used: number,
+    readonly max: number,
+  ) {
+    super(`Memory quota reached (${used}/${max}).`);
+    this.name = 'MemoryQuotaError';
+  }
+}
+
+/** Prisma serialization/deadlock conflicts (P2034) are safe to retry. */
+function isSerializationConflict(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  return 'code' in error && error.code === 'P2034';
+}
+
+const QUOTA_ADD_RETRIES = 2;
+
+/**
+ * Server-side user memories (task 85, task 105 model scoping).
+ * DB is the source of truth. Quota enforced here — the client can never
+ * exceed MAX_MEMORIES. Formatting lives in `user-memory-context.util.ts`
+ * (single implementation, shared with the chat ingestion path).
  */
 @Injectable()
 export class UserMemoryService {
@@ -17,9 +47,17 @@ export class UserMemoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   private scopeWhere(scope: OwnerScope) {
-    return scope.userId
+    const owner = scope.userId
       ? { userId: scope.userId }
-      : { deviceKey: scope.deviceKey };
+      : { userId: null, deviceKey: scope.deviceKey };
+    // A request sees global memories plus the current model's own —
+    // never another model's.
+    return scope.modelScope
+      ? {
+          ...owner,
+          OR: [{ modelScope: scope.modelScope }, { modelScope: null }],
+        }
+      : { ...owner, OR: [{ modelScope: null }] };
   }
 
   list(scope: OwnerScope) {
@@ -32,21 +70,39 @@ export class UserMemoryService {
   async add(scope: OwnerScope, text: string) {
     const clean = text.trim();
     if (!clean) throw new Error('Memory text must not be empty.');
-    const count = await this.prisma.userMemory.count({
-      where: this.scopeWhere(scope),
-    });
-    if (count >= UserMemoryService.MAX_MEMORIES) {
-      throw new Error(
-        `Memory is full (${UserMemoryService.MAX_MEMORIES}/${UserMemoryService.MAX_MEMORIES}).`,
-      );
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        // Count + insert in one serializable transaction: concurrent `add()`
+        // calls cannot slip past the quota between the two statements.
+        return await this.prisma.$transaction(
+          async (tx) => {
+            const used = await tx.userMemory.count({
+              where: this.scopeWhere(scope),
+            });
+            if (used >= UserMemoryService.MAX_MEMORIES) {
+              throw new MemoryQuotaError(used, UserMemoryService.MAX_MEMORIES);
+            }
+            return tx.userMemory.create({
+              data: {
+                userId: scope.userId,
+                deviceKey: scope.deviceKey,
+                modelScope: scope.modelScope,
+                text: clean,
+              },
+            });
+          },
+          { isolationLevel: 'Serializable' },
+        );
+      } catch (error) {
+        if (
+          error instanceof MemoryQuotaError ||
+          !isSerializationConflict(error) ||
+          attempt >= QUOTA_ADD_RETRIES
+        ) {
+          throw error;
+        }
+      }
     }
-    return this.prisma.userMemory.create({
-      data: {
-        userId: scope.userId,
-        deviceKey: scope.deviceKey,
-        text: clean,
-      },
-    });
   }
 
   async update(scope: OwnerScope, id: string, text: string) {
@@ -72,9 +128,15 @@ export class UserMemoryService {
     });
   }
 
-  async buildContext(scope: OwnerScope): Promise<string> {
-    const list = await this.list(scope);
-    if (list.length === 0) return '';
-    return list.map((m) => `- ${m.text}`).join('\n');
+  /** Prompt-ready context: globals + current model, formatted once. */
+  async buildPromptContext(scope: OwnerScope): Promise<string> {
+    const rows = await this.list(scope);
+    const entries: MemoryContextEntry[] = rows.map((row) => ({
+      id: row.id,
+      text: row.text,
+      modelScope: row.modelScope,
+      updatedAt: row.updatedAt,
+    }));
+    return buildPromptContext(entries, scope.modelScope);
   }
 }

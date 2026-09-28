@@ -8,9 +8,49 @@ export function nextId(prefix: string): string {
 }
 
 export function matchesScope(row: any, where: any): boolean {
-  if (where.userId !== undefined) return row.userId === where.userId;
-  if (where.deviceKey !== undefined) return row.deviceKey === where.deviceKey;
+  if (where.userId !== undefined && row.userId !== where.userId) return false;
+  if (where.deviceKey !== undefined && row.deviceKey !== where.deviceKey)
+    return false;
+  if (where.id !== undefined && row.id !== where.id) return false;
+  if (
+    where.modelScope !== undefined &&
+    !matchesModelScope(row, where.modelScope)
+  )
+    return false;
+  if (
+    Array.isArray(where.OR) &&
+    !where.OR.some((branch: any) => matchesScopeRow(row, branch))
+  )
+    return false;
   return true;
+}
+
+/** Owner-only predicates (userId/deviceKey/id) shared with OR branches. */
+function matchesScopeRow(row: any, where: any): boolean {
+  if (where.userId !== undefined && row.userId !== where.userId) return false;
+  if (where.deviceKey !== undefined && row.deviceKey !== where.deviceKey)
+    return false;
+  if (where.id !== undefined && row.id !== where.id) return false;
+  if (
+    where.modelScope !== undefined &&
+    !matchesModelScope(row, where.modelScope)
+  )
+    return false;
+  return true;
+}
+
+function matchesModelScope(row: any, expected: any): boolean {
+  const scope = row.modelScope ?? null;
+  if (expected === null) return scope === null;
+  if (typeof expected === 'object' && expected !== null) {
+    if (Array.isArray(expected.in)) {
+      return expected.in.some(
+        (value: any) => (value ?? null) === (scope ?? null),
+      );
+    }
+    if (expected.not !== undefined) return scope !== (expected.not ?? null);
+  }
+  return scope === (expected ?? null);
 }
 
 export function createSessionRow(data: any): any {
@@ -39,6 +79,7 @@ export function createMemoryRow(data: any): any {
     id: nextId('mem'),
     userId: data.userId ?? null,
     deviceKey: data.deviceKey,
+    modelScope: data.modelScope ?? null,
     text: data.text,
     createdAt: new Date(),
     updatedAt: new Date(),

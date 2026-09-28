@@ -6,7 +6,7 @@ import {
 } from '@features/chat/services/chat-audio.service';
 import { ChatStreamService } from '@features/chat/services/chat-stream.service';
 import { PromptTagService } from '@features/user-data/services/prompt-tag.service';
-import { MemoryService } from '@features/user-data/services/memory.service';
+import { MemoryContextService } from '@features/user-data/services/memory-context.service';
 import { UserProfileService } from '@features/user-data/services/user-profile.service';
 import { formatApiError } from '@core/utils/api-error.util';
 import { ChatMessage } from '@models/chat-message.model';
@@ -33,7 +33,7 @@ export class MessageService {
   private readonly chatStream = inject(ChatStreamService);
   private readonly chatAudio = inject(ChatAudioService);
   private readonly promptTags = inject(PromptTagService);
-  private readonly memories = inject(MemoryService);
+  private readonly memoryContext = inject(MemoryContextService);
   private readonly profile = inject(UserProfileService);
 
   readonly currentSessionId = this.history.currentSessionId;
@@ -170,13 +170,13 @@ export class MessageService {
   /** LLM-only context ('' when empty) — never mixed into bubbles or DB. */
   private async loadInvisibleContext(content: string): Promise<string> {
     await Promise.all([
-      this.memories.ensureLoaded(),
+      this.memoryContext.ensureLoaded(),
       this.profile.ensureLoaded(),
       this.promptTags.ensureLoaded(),
     ]);
     return buildInvisibleContext(
       this.profile.buildProfileContext(),
-      this.memories.buildMemoryContext(),
+      this.memoryContext.context(),
       content ? this.promptTags.buildSystemPrompt(content) : '',
     );
   }

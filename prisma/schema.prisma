@@ -50,19 +50,22 @@ model User {
 
 // Enterprise user data (tasks 85/86/87): backend is the source of truth.
 // Rows are scoped by nullable userId (ready for task 28 auth) + deviceKey
-// (stable per-browser key for guests). Quota enforced server-side.
+// (stable per-browser key for guests). `modelScope` = 'provider:modelId' for a
+// per-model memory, NULL for a global one (task 105). Quota enforced server-side.
 model UserMemory {
-  id        String   @id @default(uuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceKey String
-  text      String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceKey  String
+  modelScope String?
+  text       String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([userId])
   @@index([deviceKey])
   @@index([deviceKey, updatedAt])
+  @@index([userId, modelScope, updatedAt])
 }
 
 model UserProfile {

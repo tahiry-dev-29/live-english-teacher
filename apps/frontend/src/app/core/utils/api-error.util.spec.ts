@@ -6,6 +6,7 @@ import {
   resolveApiErrorCode,
 } from './api-error.util';
 import { MESSAGES, ERROR_CODES } from '@core/constants/messages';
+import { SHARED_MESSAGES } from '@shared/constants';
 
 describe('api-error.util', () => {
   describe('resolveApiErrorCode', () => {
@@ -100,6 +101,45 @@ describe('api-error.util', () => {
       expect(formatHttpError(new HttpErrorResponse({ status: 0 }))).toBe(
         MESSAGES.error.networkUnreachable,
       );
+    });
+
+    it('maps a memory-quota 409 to the shared quota message', () => {
+      const error = new HttpErrorResponse({
+        status: 409,
+        statusText: 'Conflict',
+        error: { message: 'Memory is full (50/50).' },
+      });
+      expect(formatHttpError(error)).toBe(
+        SHARED_MESSAGES.error.memoryQuotaReached(50, 50),
+      );
+    });
+
+    it('prefers used/max fields when the quota body carries them', () => {
+      const error = new HttpErrorResponse({
+        status: 409,
+        statusText: 'Conflict',
+        error: {
+          code: 'memoryQuotaReached',
+          message: 'Memory is full (50/50).',
+          used: 50,
+          max: 50,
+        },
+      });
+      expect(formatHttpError(error)).toBe(
+        SHARED_MESSAGES.error.memoryQuotaReached(50, 50),
+      );
+    });
+
+    it('maps a guest-write 401 to the shared auth message', () => {
+      const error = new HttpErrorResponse({
+        status: 401,
+        statusText: 'Unauthorized',
+        error: {
+          code: 'authRequired',
+          message: 'You must be signed in to add, edit or delete memories.',
+        },
+      });
+      expect(formatHttpError(error)).toBe(SHARED_MESSAGES.error.authRequired);
     });
   });
 });

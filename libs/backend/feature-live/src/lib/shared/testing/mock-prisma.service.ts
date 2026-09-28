@@ -108,6 +108,18 @@ export class MockPrismaService {
   readonly userMemory = createUserMemoryModel(this);
   readonly userProfile = createUserProfileModel(this);
   readonly promptTag = createPromptTagModel(this);
+
+  /**
+   * Interactive-transaction stand-in: runs the callback against this store.
+   * The second (options) argument is accepted and ignored, mirroring the
+   * Prisma `$transaction(fn, { isolationLevel })` call shape.
+   */
+  async $transaction<T>(
+    fn: (tx: MockPrismaService) => Promise<T>,
+    _options?: unknown,
+  ): Promise<T> {
+    return fn(this);
+  }
 }
 
 export { nextId };

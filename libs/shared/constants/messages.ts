@@ -14,6 +14,10 @@ export const SHARED_MESSAGES = {
     noApiKey: 'No API key is configured. Open Settings > AI Model to add one.',
     networkUnreachable:
       'The AI service could not be reached. Check your internet connection and try again.',
+    authRequired:
+      'You must be signed in to add, edit or delete memories. Reading them stays available.',
+    memoryQuotaReached: (used: number, max: number): string =>
+      `Memory is full (${used}/${max}). Delete a memory to add a new one.`,
   },
   templates: {
     quotaBannerTitle: (provider: string): string =>
@@ -22,8 +26,31 @@ export const SHARED_MESSAGES = {
     quotaBannerAction: 'Add my key',
     quotaSseMessage: (provider: string): string =>
       `The ${provider.toUpperCase()} quota has been exhausted. Add your own API key in Settings > AI Model to continue.`,
+    memoryScopeLabel: (modelScope: string | null): string =>
+      humanizeModelScope(modelScope),
   },
 } as const;
+
+/**
+ * `'gemini:gemini-2.5-pro'` (or a bare `'gemini-2.5-pro'`) → `'Gemini 2.5 Pro'`,
+ * `null` → `'All models'`. Pure: the single implementation both the backend
+ * and the frontend memory tab use.
+ */
+function humanizeModelScope(modelScope: string | null): string {
+  if (!modelScope) return 'All models';
+  const id = modelScope.includes(':')
+    ? modelScope.split(':').slice(1).join(':')
+    : modelScope;
+  const label = id
+    .split('-')
+    .map((token) =>
+      /^[a-z]/i.test(token)
+        ? token.charAt(0).toUpperCase() + token.slice(1)
+        : token,
+    )
+    .join(' ');
+  return label || 'All models';
+}
 
 export type SharedErrorCode = keyof typeof SHARED_MESSAGES.error;
 

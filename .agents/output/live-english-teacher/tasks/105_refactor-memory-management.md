@@ -1,6 +1,6 @@
 # Task 105 — Refactor « gestion de la mémoire » (par modèle, type ChatGPT/Gemini web)
 
-**Status:** TODO
+**Status:** DONE (2026-09-28, thr-dev — preuves §10)
 **Priority:** 🟠 High
 **Stack:** Angular 20.3.11 (`httpResource()` + `rxResource()`, syntaxe `request`), NestJS 11 + Prisma 6
 **Règles:** `.agents/rules/stack.md` (canonique), `.agents/rules/angularv20-http.md` (upstream,
@@ -237,38 +237,55 @@ UserMemoryService (NestJS) → user-memory-context.util.ts (pur) → buildPrompt
 
 ## 7. Acceptance criteria
 
-- [ ] `prisma/schema.prisma` a `UserMemory.modelScope String?` + migration additive appliquée,
+- [x] `prisma/schema.prisma` a `UserMemory.modelScope String?` + migration additive appliquée,
       `npx prisma migrate status` propre, lignes existantes = globales.
-- [ ] Le contexte LLM contient les mémoires globales **et** celle du modèle courant, jamais celle
+- [x] Le contexte LLM contient les mémoires globales **et** celle du modèle courant, jamais celle
       d'un autre modèle — prouvé par les assertions de portée.
-- [ ] Le formatage du contexte existe en **un seul** endroit (`user-memory-context.util.ts`) ;
-      `buildMemoryContext()` (FE) et `buildContext()` (BE) ont disparu.
-- [ ] Le quota est atomique : 5 `add()` concurrents ne dépassent pas `MAX_MEMORIES`.
-- [ ] `MAX_MEMORIES` n'est défini qu'une fois (backend) ; le frontend lit la valeur exposée.
-- [ ] **Zéro `effect()` de synchronisation d'état dans `memory.service.ts`** — les 3 effects de merge
-      (lignes 127/135/146) sont remplacés par un `linkedSignal`. `stack.md` interdit explicitement
-      `effect()` pour.sync un signal sur un autre.
-- [ ] Zéro `effect()`, `subscribe()`, `OnDestroy` ou `ngOnChanges` ajouté par cette task.
-- [ ] `HttpClient` n'est injecté **que** dans `memory-mutations.ts` (et plus dans aucun
-      composant, aucun autre service du feature).
-- [ ] **Aucune mutation ne s'auto-exécute** : poser `addIntent` / `updateIntent` / `removeIntent`
-      laisse les `rxResource()` en `status() === 'idle'` sans requête (assertion dédiée).
-- [ ] Syntaxe Angular 20 respectée : `request` dans `resource()`/`rxResource()` (jamais `params`) ;
-      `params` uniquement dans le `HttpResourceRequest` de `httpResource()`.
-- [ ] Zéro appel réseau à la construction — le `loadGate` existant est conservé et étendu au scope.
-- [ ] Écriture refusée `401` + message partagé quand l'utilisateur n'est pas connecté ; lecture
-      toujours possible.
-- [ ] Une seule source de vérité pour le propriétaire (`MemoryOwnerService`), prête pour Task 28
+- [x] Le formatage du contexte existe en **un seul** endroit (`user-memory-context.util.ts`) ;
+      `buildMemoryContext()` (FE) et `buildContext()` (BE mémoire) ont disparu.
+- [x] Le quota est atomique : 5 `add()` concurrents ne dépassent pas `MAX_MEMORIES`.
+- [x] `MAX_MEMORIES` n'est défini qu'une fois (backend) ; le frontend lit la valeur exposée
+      (enveloppe `{ items, maxMemories }`).
+- [x] **Zéro `effect()` de synchronisation d'état dans `memory.service.ts`** — les 3 effects de merge
+      sont remplacés par un `linkedSignal` (+ assertion `?raw` anti-`effect()` dans la spec).
+- [x] Zéro `effect()`, `subscribe()`, `OnDestroy` ou `ngOnChanges` ajouté par cette task.
+- [x] `HttpClient` n'est injecté **que** dans `memory-mutations.ts` (streams `rxResource()`).
+- [x] **Aucune mutation ne s'auto-exécute** : intents à null → `status() === 'idle'`, `expectNone`.
+- [x] Syntaxe Angular 20 respectée : `params` + `stream` sur `rxResource()`, `params` seulement
+      dans le `HttpResourceRequest` de `httpResource()`.
+- [x] Zéro appel réseau à la construction — `loadGate` conservé et étendu au scope.
+- [x] Écriture refusée `401` + message partagé quand l'utilisateur n'est pas connecté ; lecture
+      toujours possible (prouvé en curl : POST guest → 401 `authRequired`).
+- [x] Une seule source de vérité pour le propriétaire (`MemoryOwnerService`), prête pour Task 28
       sans changement dans les appelants.
-- [ ] `settings-tab-memory.component.ts` ≤ 120 lignes, `templateUrl` externe, logique pure dans
-      `settings-tab-memory.util.ts` + spec.
-- [ ] Sélecteur de portée globale/modèle présent, alimenté par `selectedModel` d'`ai-config.service`.
-- [ ] Aucune chaîne d'erreur mémoire codée en dur ; tout passe par `SHARED_MESSAGES`.
-- [ ] Suppressions optimistes annulées au 5xx + toast ; `NotificationService` branché.
-- [ ] `Session`/`Message` (mémoire de session) **inchangés** — vérifié par `git diff` sur
-      `prisma/schema.prisma` : aucun ajout de champ sur ces modèles.
-- [ ] `pnpm lint` 0 erreur · builds FE+BE exit 0 · tests backend et frontend verts ·
-      `format:check` propre · `scripts/check-theme-tokens.mjs` OK · aucun fichier > 200 lignes.
+- [x] `settings-tab-memory.component.ts` 104 lignes, `templateUrl` externe, logique pure dans
+      `memory-tab.util.ts` + spec.
+- [x] Sélecteur de portée globale/modèle présent, alimenté par `selectedModel` d'`ai-config.service`.
+- [x] Aucune chaîne d'erreur mémoire codée en dur ; tout passe par `SHARED_MESSAGES`.
+- [x] Suppressions optimistes annulées au 5xx + toast (interceptor) ; `NotificationService` branché
+      (guards synchrones `authRequired` / quota).
+- [x] `Session`/`Message` (mémoire de session) **inchangés** — `git diff` schema : 0 ligne.
+- [x] `pnpm lint` 5 projets OK · builds FE+BE exit 0 · backend 225/225 · frontend 103/103 ·
+      `format:check` propre · `check-theme-tokens` OK · fichiers touchés ≤ 200
+      (`prompt-tag.service.ts` 257 = pré-existant, effort parallèle — hors scope).
+
+## 10. Preuves (2026-09-28)
+
+```
+GET  /api/user/memories (guest)                    -> 200 {items:[],maxMemories:50}
+POST /api/user/memories (guest, scope global)      -> 401 {code:authRequired,message:shared}
+POST (x-user-id, scope global)                     -> 201 {modelScope:null}
+POST (x-user-id, scope model, x-ai-model)          -> 201 {modelScope:'groq:gpt-4o'}
+GET  /api/user/memories (sans model)               -> 1 item (global seul)
+GET  /api/user/memories?model=groq:gpt-4o          -> 2 items (global + modèle)
+GET  /api/user/memories/context?model=groq:gpt-4o  -> {"context":"- model fact\n- global fact"}
+POST 51e global (50 existants)                     -> 409 {code:memoryQuotaReached,used:50,max:50}
+PATCH guest                                        -> 401 authRequired
+POST scope model + x-ai-model malformé             -> 400 Invalid model scope
+```
+- `npm run test:backend:unit` : **225/225** (dont `user-memory-context` 7/7, `user-memory.service` 9/9 sur le vrai service).
+- `npm run test:frontend:unit` : **103/103** (20 fichiers, dont memory 10/10, merge 8/8, tab 6/6, api-error 16/16).
+- `npx tsc -p apps/frontend/tsconfig.app.json --noEmit` : 0 erreur. `nx run-many -t lint/build --all` : OK.
 
 ## 8. Risques et mitigations
 

@@ -18,7 +18,7 @@
     "format:check": "prettier --check . --cache",
     "test": "nx run-many --target=test --all",
     "test:backend": "nx test backend",
-    "test:backend:unit": "node --experimental-strip-types --experimental-transform-types --test libs/backend/feature-live/src/lib/**/*.spec.ts",
+    "test:backend:unit": "SWC_NODE_PROJECT=libs/backend/feature-live/tsconfig.lib.json node --import @swc-node/register/esm-register --import ./scripts/test-ts-aliases.register.mjs --test \"libs/backend/feature-live/src/lib/**/*.spec.ts\"",
     "test:frontend": "nx test frontend",
     "test:frontend:unit": "vitest run --config apps/frontend/vitest.config.ts",
     "e2e": "nx run-many --target=e2e --all",

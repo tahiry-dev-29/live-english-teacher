@@ -1,10 +1,28 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateMemoryDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
   text!: string;
+
+  /** 'global' → global memory, 'model' → scoped to the x-ai-model header. */
+  @IsIn(['global', 'model'])
+  scope: 'global' | 'model' = 'global';
+}
+
+export class MemoryContextQueryDto {
+  /** Optional `provider:modelId` — selects the model memories to merge. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  model?: string;
 }
 
 export class UpdateMemoryDto {

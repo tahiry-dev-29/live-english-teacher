@@ -5,7 +5,7 @@ import { Apollo } from 'apollo-angular';
 import { ChatStreamService } from './chat-stream.service';
 import { ChatAudioService } from './chat-audio.service';
 import { PromptTagService } from '@features/user-data/services/prompt-tag.service';
-import { MemoryService } from '@features/user-data/services/memory.service';
+import { MemoryContextService } from '@features/user-data/services/memory-context.service';
 import { UserProfileService } from '@features/user-data/services/user-profile.service';
 import { of } from 'rxjs';
 
@@ -59,10 +59,10 @@ describe('MessageService', () => {
           },
         },
         {
-          provide: MemoryService,
+          provide: MemoryContextService,
           useValue: {
             ensureLoaded: vi.fn().mockResolvedValue(undefined),
-            buildMemoryContext: vi.fn().mockReturnValue(''),
+            context: vi.fn().mockReturnValue(''),
           },
         },
         {
@@ -104,10 +104,10 @@ describe('MessageService', () => {
 
   it('sends profile/memory/tag context in a separate invisible field', async () => {
     const tags = TestBed.inject(PromptTagService);
-    const memories = TestBed.inject(MemoryService);
+    const memoryContext = TestBed.inject(MemoryContextService);
     const profile = TestBed.inject(UserProfileService);
     vi.mocked(tags.buildSystemPrompt).mockReturnValue('[correction: …]');
-    vi.mocked(memories.buildMemoryContext).mockReturnValue('likes tea');
+    vi.mocked(memoryContext.context).mockReturnValue('likes tea');
     vi.mocked(profile.buildProfileContext).mockReturnValue('About: Tahiry');
 
     await service.sendTextMessage('#correction teste', null, 'en');

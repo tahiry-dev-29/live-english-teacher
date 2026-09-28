@@ -44,6 +44,9 @@ export const USER_ENDPOINTS = {
   /** PATCH/DELETE /api/user/memories/:id - Single memory operations */
   memoryById: (id: string) => `/user/memories/${id}` as const,
 
+  /** GET /api/user/memories/context?model=… - Prompt-ready memory string */
+  memoryContext: '/user/memories/context' as const,
+
   /** GET/POST /api/user/tags - Prompt tag CRUD */
   tags: '/user/tags' as const,
 

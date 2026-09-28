@@ -71,6 +71,7 @@ export const AI_URLS = {
  */
 export const USER_URLS = {
   memories: getUserUrl('memories'),
+  memoryContext: getUserUrl('memoryContext'),
   tags: getUserUrl('tags'),
   tagsReset: getUserUrl('tagsReset'),
   profile: getUserUrl('profile'),
