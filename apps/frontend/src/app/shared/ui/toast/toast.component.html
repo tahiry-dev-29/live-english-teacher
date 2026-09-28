@@ -12,7 +12,7 @@
             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-info/15"
             aria-hidden="true"
           >
-            <svg lucideInfo class="h-4 w-4 text-info" />
+            <svg lucideInfo class="h-4 w-4 shrink-0" />
           </div>
         }
         @if (n.type === 'success') {
@@ -20,7 +20,7 @@
             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-success/15"
             aria-hidden="true"
           >
-            <svg lucideCheckCircle class="h-4 w-4 text-success" />
+            <svg lucideCheckCircle class="h-4 w-4 shrink-0" />
           </div>
         }
         @if (n.type === 'warning') {
@@ -28,7 +28,7 @@
             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning/15"
             aria-hidden="true"
           >
-            <svg lucideAlertTriangle class="h-4 w-4 text-warning" />
+            <svg lucideAlertTriangle class="h-4 w-4 shrink-0" />
           </div>
         }
         @if (n.type === 'error') {
@@ -36,7 +36,7 @@
             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-error/15"
             aria-hidden="true"
           >
-            <svg lucideAlertCircle class="h-4 w-4 text-error" />
+            <svg lucideAlertCircle class="h-4 w-4 shrink-0" />
           </div>
         }
         <span class="min-w-0 flex-1 text-xs font-medium">{{ n.message }}</span>

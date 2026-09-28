@@ -42,6 +42,24 @@ describe('ToastComponent', () => {
     expect(text).toContain('Critical error encountered');
   });
 
+  it('renders a type icon with path content in every toast', () => {
+    fixture.detectChanges();
+    const svgs: SVGElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        'svg[lucideInfo], svg[lucideCheckCircle], svg[lucideAlertTriangle], svg[lucideAlertCircle]',
+      ),
+    );
+    expect(svgs.length).toBe(2);
+    for (const svg of svgs) {
+      expect(svg.childElementCount).toBeGreaterThan(0);
+      // The icon inherits the alert content color: no text-* override
+      // (tone-on-tone would make it invisible on the alert background).
+      expect(svg.getAttribute('class')).not.toMatch(
+        /text-(info|success|warning|error)/,
+      );
+    }
+  });
+
   it('emits dismiss output when close button is clicked', () => {
     fixture.detectChanges();
     let dismissedId: number | null = null;
