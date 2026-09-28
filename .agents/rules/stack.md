@@ -74,6 +74,31 @@
 - **derived**: `computed()` for derived values (never methods in templates).
 - **two-way binding**: `model()` for child components (not `output()` + `input()` for bidirectional props).
 - **side effects**: `effect()` to react to signal changes (not `ngOnInit` for watching).
+### HTTP data-access — Resources only (Angular 20 experimental API)
+
+**Règle stricte : tout appel HTTP frontend passe par une Resource API. Aucun `HttpClient` direct,
+aucun `fetch()`, aucune `Promise` native d'entrée.**
+
+- **GET / read → `httpResource()`** — reactive server-state reads (list, detail, search, config, catalog).
+- **POST / PUT / PATCH / DELETE → `rxResource()`** — explicit actions/mutations, the `loader` uses
+  `HttpClient` internally; the component only sets the request and reads `value()/isLoading()/error()`.
+- **Generic async non-HTTP read → `resource()`** — browser APIs, SDK promises, non-HTTP async sources.
+- **FORBIDDEN in feature code**: `fetch()`, `firstValueFrom()`, manual `loading`/`error` signals
+  duplicating resource state, manual `.subscribe()` in components. `HttpClient` is allowed **only**
+  inside a `rxResource` loader (or Apollo `HttpLink` infra) — never called directly from components
+  or from service methods returning Promises.
+- **SSE chat stays `fetch()` + `ReadableStream`** — the only exception (streaming, not request/response).
+- **A mutation must never auto-execute**: its `request` must depend on an *intent* signal the user
+  sets, never on a state signal — otherwise a signal change silently fires a POST/PATCH/DELETE.
+- **Syntaxe Angular 20 obligatoire** : `request` (jamais `params`) dans `resource()` / `rxResource()`.
+  `params` n'existe que dans le `HttpResourceRequest` de `httpResource()`. Vérifié contre
+  `@angular/core@20.3` — ne jamais mélanger la syntaxe Angular 22+.
+- **Error contract**: formater via `formatHttpError()` / `formatApiError()` ; le toast unique passe
+  par `http-error.interceptor.ts`. Aucune chaîne d'erreur HTTP codée en dur dans un composant.
+- **Lazy boot**: gate resources behind a trigger signal (`undefined` request = idle) +
+  `requestIdleCallback` defer, so first paint ships with zero API calls.
+- Full syntax/decision matrix: `.agents/rules/angularv20-http.md` (⚠️ its "Standard Observable HTTP"
+  and "Why Not Use `rxResource()`" sections are **superseded** by this block — see the PROJECT OVERRIDE box).
 ### When to use `linkedSignal` vs `computed` vs `effect`
 - Use `computed`: When state is **strictly** derived from other state and should never be manually updated.
 - Use `linkedSignal`: When state is derived from other state, but the user **must** be able to override or manually update it.
@@ -97,9 +122,16 @@ The `Resource` object provides several signals to read its current state:
 ## Backend
 
 - NestJS 11 + Express 5 (`@as-integrations/express5`), global prefix `api`
+- **Outbound HTTP → axios (mandatory)**: every external API call (AI providers, TTS, STT) goes through axios with `timeout` + `validateStatus: () => true` so upstream statuses become typed `{ ok: false, status, body }` results instead of opaque exceptions. Pattern: `libs/backend/feature-live/src/lib/tts/tts-http.util.ts` (`postForAudio` / `postForJson` / `getJson`). Native `fetch` in services is being migrated: **TTS layer done**, remaining (gemini-live, groq, genkit) tracked in `.agents/output/live-english-teacher/tasks/tts-error-contract.md`.
+- **Outbound external API calls → `axios` only** (never `fetch()`): shared contract in
+  `libs/backend/feature-live/src/lib/tts/tts-http.util.ts` — `HttpOutcome<T>` =
+  `{ ok: true; data } | { ok: false; status; body }`, hard `timeout`, and
+  `validateStatus: () => true` so upstream statuses (401 quota, 429, 400) are **data, never
+  exceptions**. Streaming SSE reads keep `ReadableStream` where already established.
 - GraphQL: `@nestjs/graphql` + `@nestjs/apollo`, single resolver `libs/backend/feature-live/src/lib/live.resolver.ts`
 - WebSocket: Socket.IO gateway `live.gateway.ts` (⚠️ dead code: frontend does not connect to it)
 - AI: Gemini via direct fetch (`gemini-live.service.ts`) + Genkit flows (`genkit-flow.ts`, port 3400)
+  — ⚠️ these still use `fetch()`, they are grandfathered and must migrate to the axios contract.
 - Prisma 6 + local PostgreSQL (DATABASE_URL in `.env`)
 
 ## Tools
