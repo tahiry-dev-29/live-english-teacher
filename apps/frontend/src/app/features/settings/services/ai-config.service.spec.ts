@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AiConfigService } from './ai-config.service';
 import { ApiKeyService } from './api-key.service';
 import { CookieService } from 'ngx-cookie-service';
@@ -32,6 +34,10 @@ describe('AiConfigService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        // AiConfigService reads models through httpResource: the transport must be
+        // provided even when a test only exercises the writable state signals.
+        provideHttpClient(),
+        provideHttpClientTesting(),
         AiConfigService,
         { provide: CookieService, useValue: cookieServiceMock },
         { provide: ApiKeyService, useValue: apiKeyServiceMock },
